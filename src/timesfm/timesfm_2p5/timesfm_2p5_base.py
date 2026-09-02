@@ -164,15 +164,16 @@ class TimesFM_2p5:
 
     context = self.forecast_config.max_context
     num_inputs = len(inputs)
+    padded_inputs = list(inputs)
     if (w := num_inputs % self.global_batch_size) != 0:
-      inputs += [np.array([0.0] * 3)] * (self.global_batch_size - w)
+      padded_inputs += [np.array([0.0] * 3)] * (self.global_batch_size - w)
 
     output_points = []
     output_quantiles = []
     values = []
     masks = []
     idx = 0
-    for each_input in inputs:
+    for each_input in padded_inputs:
       value = linear_interpolation(strip_leading_nans(np.array(each_input)))
       if (w := len(value)) >= context:
         value = value[-context:]

@@ -19,7 +19,6 @@ import tempfile
 import types
 
 from timesfm.timesfm_2p5.timesfm_2p5_torch import TimesFM_2p5_200M_torch
-from timesfm.timesfm_2p5.timesfm_2p5_flax import TimesFM_2p5_200M_flax
 
 
 class TestModelLoading:
@@ -89,6 +88,10 @@ class TestModelLoading:
 
   def test_flax_model_init_kwargs(self):
     """Verifies that Flax model wrapper constructor accepts arbitrary kwargs."""
+    pytest = __import__("pytest")
+    pytest.importorskip("flax")
+    from timesfm.timesfm_2p5.timesfm_2p5_flax import TimesFM_2p5_200M_flax
+
     tfm = TimesFM_2p5_200M_flax(
         proxies={"http": "http://dummy.proxy"},
         custom_kwarg="dummy_value",

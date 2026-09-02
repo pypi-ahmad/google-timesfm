@@ -135,6 +135,7 @@ def try_gc(
 
 def linear_interpolation(arr: np.ndarray) -> np.ndarray:
   """Performs linear interpolation to fill NaN values in a NumPy array."""
+  arr = np.where(np.isfinite(arr), arr, np.nan)
   was_1d = arr.ndim == 1
   arr2d = np.atleast_2d(arr)
 
@@ -151,9 +152,7 @@ def linear_interpolation(arr: np.ndarray) -> np.ndarray:
       non_nan_indices = valid_mask.nonzero()[0]
       non_nan_values = row[valid_mask]
       try:
-        row[nan_mask[r]] = np.interp(
-          nan_indices, non_nan_indices, non_nan_values
-        )
+        row[nan_mask[r]] = np.interp(nan_indices, non_nan_indices, non_nan_values)
       except ValueError:
         if non_nan_values.size > 0:
           mu = np.nanmean(row)
@@ -182,7 +181,7 @@ def _is_nonnegative(arr: np.ndarray) -> bool | np.ndarray:
 
   result = np.zeros(arr2d.shape[0], dtype=bool)
   for r in range(arr2d.shape[0]):
-    valid = arr2d[r][~np.isnan(arr2d[r])]
+    valid = arr2d[r][np.isfinite(arr2d[r])]
     result[r] = valid.size > 0 and bool(np.all(valid >= 0))
 
   return bool(result[0]) if was_1d else result
@@ -415,7 +414,9 @@ class TimesFM3Forecaster:
         state_dict = util.load_safetensors(checkpoint_path, device=self.device)
         self.model.load_state_dict(state_dict)
       elif checkpoint_path.endswith((".pth", ".pt")):
-        state_dict = torch.load(checkpoint_path, map_location=self.device)
+        state_dict = torch.load(
+          checkpoint_path, map_location=self.device, weights_only=True
+        )
         self.model.load_state_dict(state_dict)
       else:
         raise ValueError(
@@ -473,17 +474,28 @@ class TimesFM3Forecaster:
     padding_mode: str = "none",
   ) -> Iterator[ForecastOutput]:
     """Runs inference on a batch of time series with optional covariates."""
+    if horizon <= 0:
+      raise ValueError(f"horizon must be positive, got {horizon}.")
+    if not contexts:
+      raise ValueError("contexts must contain at least one time series.")
+
+    num_original_ts = len(contexts)
+    companion_lists = {
+      "past_only_covariates": past_only_covariates,
+      "past_future_covariates": past_future_covariates,
+      "ts_ids": ts_ids,
+    }
+    for name, values in companion_lists.items():
+      if values is not None and len(values) != num_original_ts:
+        raise ValueError(
+          f"{name} must have {num_original_ts} entries, got {len(values)}."
+        )
+
     global_horizon = (
       math.ceil(horizon / self.config.output_patch_length)
       * self.config.output_patch_length
     )
-    num_original_ts = len(contexts)
-    original_ts_ids = (
-      list(ts_ids) if ts_ids is not None else [None] * num_original_ts
-    )
-
-    if not contexts:
-      return
+    original_ts_ids = list(ts_ids) if ts_ids is not None else [None] * num_original_ts
 
     po_cov_list = (
       list(past_only_covariates)
@@ -499,21 +511,58 @@ class TimesFM3Forecaster:
     contexts_2d: list[np.ndarray] = []
     po_2d: list[np.ndarray | None] = []
     pf_2d: list[np.ndarray | None] = []
+    po_variates: int | None = None
+    pf_variates: int | None = None
 
     for idx, ctx in enumerate(contexts):
-      target_clean = np.atleast_2d(np.array(ctx, dtype=np.float32))
+      ctx_arr = np.asarray(ctx)
+      if ctx_arr.ndim not in (1, 2) or ctx_arr.size == 0:
+        raise ValueError(
+          f"contexts[{idx}] must be a nonempty 1D or 2D array; got shape"
+          f" {ctx_arr.shape}."
+        )
+      target_clean = np.atleast_2d(np.array(ctx_arr, dtype=np.float32))
       po = po_cov_list[idx]
-      po_arr = (
-        np.atleast_2d(np.array(po, dtype=np.float32))
-        if po is not None
-        else None
-      )
+      po_arr = np.atleast_2d(np.array(po, dtype=np.float32)) if po is not None else None
       pf = pf_cov_list[idx]
-      pf_arr = (
-        np.atleast_2d(np.array(pf, dtype=np.float32))
-        if pf is not None
-        else None
-      )
+      pf_arr = np.atleast_2d(np.array(pf, dtype=np.float32)) if pf is not None else None
+
+      for name, original, value in (
+        ("past_only_covariates", po, po_arr),
+        ("past_future_covariates", pf, pf_arr),
+      ):
+        if original is not None and np.asarray(original).ndim not in (1, 2):
+          raise ValueError(
+            f"{name}[{idx}] must be a 1D or 2D array; got shape"
+            f" {np.asarray(original).shape}."
+          )
+        if value is not None and value.size == 0:
+          raise ValueError(f"{name}[{idx}] must not be empty.")
+
+      if po_arr is not None:
+        if po_arr.shape[-1] != target_clean.shape[-1]:
+          raise ValueError(
+            f"past_only_covariates[{idx}] must have the same time length as"
+            f" contexts[{idx}] ({target_clean.shape[-1]}), got"
+            f" {po_arr.shape[-1]}."
+          )
+        po_variates = po_variates or po_arr.shape[0]
+        if po_arr.shape[0] != po_variates:
+          raise ValueError(
+            "All present past-only covariates must have the same variate count."
+          )
+      if pf_arr is not None:
+        minimum_pf_length = target_clean.shape[-1] + horizon
+        if pf_arr.shape[-1] != minimum_pf_length:
+          raise ValueError(
+            f"past_future_covariates[{idx}] must have context +"
+            f" horizon ({minimum_pf_length}) time steps, got {pf_arr.shape[-1]}."
+          )
+        pf_variates = pf_variates or pf_arr.shape[0]
+        if pf_arr.shape[0] != pf_variates:
+          raise ValueError(
+            "All present past-future covariates must have the same variate count."
+          )
 
       isnan = np.isnan(target_clean).all(axis=0)
       if isnan.all():
@@ -685,9 +734,9 @@ class TimesFM3Forecaster:
 
       po_torch = None
       if any(po is not None for po in batched_po):
+        po_template = next(po for po in batched_po if po is not None)
         po_arrs = [
-          po if po is not None else np.zeros_like(batched_tgt[j])
-          for j, po in enumerate(batched_po)
+          po if po is not None else np.zeros_like(po_template) for po in batched_po
         ]
         po_torch = torch.from_numpy(np.stack(po_arrs, axis=0)).to(
           self.device, dtype=torch.float32
@@ -695,9 +744,9 @@ class TimesFM3Forecaster:
 
       pf_torch = None
       if any(pf is not None for pf in batched_pf):
+        pf_template = next(pf for pf in batched_pf if pf is not None)
         pf_arrs = [
-          pf if pf is not None else np.zeros_like(batched_tgt[j])
-          for j, pf in enumerate(batched_pf)
+          pf if pf is not None else np.zeros_like(pf_template) for pf in batched_pf
         ]
         pf_torch = torch.from_numpy(np.stack(pf_arrs, axis=0)).to(
           self.device, dtype=torch.float32

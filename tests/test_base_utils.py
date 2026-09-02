@@ -24,10 +24,11 @@ propagation through the entire model and produces garbage forecasts.
 import numpy as np
 
 from timesfm.timesfm_2p5.timesfm_2p5_base import (
+  ForecastConfig,
+  TimesFM_2p5,
   linear_interpolation,
   strip_leading_nans,
 )
-
 
 # ---------------------------------------------------------------------------
 # strip_leading_nans
@@ -166,3 +167,20 @@ class TestLinearInterpolation:
     arr = np.array([np.nan, 5.0, np.nan])
     result = linear_interpolation(arr)
     np.testing.assert_allclose(result, [5.0, 5.0, 5.0])
+
+
+def test_forecast_does_not_mutate_input_list():
+  """Batch padding must remain internal to the forecasting call."""
+  model = TimesFM_2p5()
+  model.global_batch_size = 2
+  model.forecast_config = ForecastConfig(max_context=4)
+  model.compiled_decode = lambda horizon, values, masks: (
+    np.zeros((2, horizon)),
+    np.zeros((2, horizon, 10)),
+  )
+  inputs = [np.array([1.0, 2.0])]
+
+  model.forecast(2, inputs)
+
+  assert len(inputs) == 1
+  np.testing.assert_array_equal(inputs[0], [1.0, 2.0])

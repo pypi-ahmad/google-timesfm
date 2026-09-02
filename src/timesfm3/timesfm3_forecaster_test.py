@@ -14,6 +14,7 @@
 
 """Tests for PyTorch TimesFM3Forecaster."""
 
+import dataclasses
 import tempfile
 import unittest
 from unittest import mock
@@ -81,6 +82,97 @@ class TimesFM3ForecasterTest(unittest.TestCase):
     arr_neg = np.array([-1.0, 1.0, 2.0])
     self.assertTrue(timesfm3_forecaster._is_nonnegative(arr_pos))
     self.assertFalse(timesfm3_forecaster._is_nonnegative(arr_neg))
+    self.assertTrue(timesfm3_forecaster._is_nonnegative(np.array([np.inf, 1.0])))
+    self.assertFalse(timesfm3_forecaster._is_nonnegative(np.array([np.inf])))
+
+  @mock.patch.object(
+    timesfm3_forecaster.TimesFM3Forecaster, "_init_model", autospec=True
+  )
+  def test_predict_batch_validates_inputs(self, _):
+    forecaster = timesfm3_forecaster.TimesFM3Forecaster(self.config)
+    forecaster.model = FakeModel()
+    forecaster.device = torch.device("cpu")
+
+    invalid_calls = (
+      ({"contexts": [], "horizon": 1}, "at least one"),
+      ({"contexts": [np.empty((0, 3))], "horizon": 1}, "nonempty"),
+      ({"contexts": [np.ones(3)], "horizon": 0}, "positive"),
+      (
+        {"contexts": [np.ones(3)], "horizon": 1, "ts_ids": []},
+        "ts_ids",
+      ),
+      (
+        {
+          "contexts": [np.ones(3)],
+          "horizon": 1,
+          "past_only_covariates": [np.ones(2)],
+        },
+        "same time length",
+      ),
+      (
+        {
+          "contexts": [np.ones(3)],
+          "horizon": 2,
+          "past_future_covariates": [np.ones(4)],
+        },
+        r"context \+ horizon",
+      ),
+    )
+    for kwargs, message in invalid_calls:
+      with self.subTest(message=message), self.assertRaisesRegex(ValueError, message):
+        list(forecaster.predict_batch(**kwargs))
+
+  @mock.patch.object(
+    timesfm3_forecaster.TimesFM3Forecaster, "_init_model", autospec=True
+  )
+  def test_predict_batch_sanitizes_infinities(self, _):
+    forecaster = timesfm3_forecaster.TimesFM3Forecaster(self.config)
+    forecaster.model = FakeModel()
+    forecaster.device = torch.device("cpu")
+
+    output = forecaster.predict(np.array([1.0, np.inf, 3.0, -np.inf]), horizon=2)
+
+    self.assertEqual(output.forecast.shape, (2,))
+
+  @mock.patch.object(
+    timesfm3_forecaster.TimesFM3Forecaster, "_init_model", autospec=True
+  )
+  def test_predict_batch_zero_fills_using_covariate_schema(self, _):
+    forecaster = timesfm3_forecaster.TimesFM3Forecaster(self.config)
+    model = FakeModel()
+    observed_shapes = []
+    original_decode = model.decode
+
+    def capture_decode(*args, **kwargs):
+      observed_shapes.append(kwargs["past_only_covariates"].shape)
+      return original_decode(*args, **kwargs)
+
+    model.decode = capture_decode
+    forecaster.model = model
+    forecaster.device = torch.device("cpu")
+
+    list(
+      forecaster.predict_batch(
+        contexts=[np.ones((2, 4)), np.ones((2, 4))],
+        horizon=2,
+        past_only_covariates=[np.ones((3, 4)), None],
+      )
+    )
+
+    self.assertEqual(observed_shapes, [torch.Size([2, 3, 8])])
+
+  @mock.patch.object(timesfm3_forecaster, "_make_torch_model")
+  @mock.patch.object(timesfm3_forecaster.torch, "load")
+  def test_local_torch_checkpoint_uses_weights_only(self, load, make_model):
+    make_model.return_value = mock.MagicMock()
+    with tempfile.NamedTemporaryFile(suffix=".pth") as checkpoint:
+      config = dataclasses.replace(self.config, checkpoint_path=checkpoint.name)
+
+      timesfm3_forecaster.TimesFM3Forecaster(config, device="cpu")
+
+    load.assert_called_once_with(
+      checkpoint.name, map_location=torch.device("cpu"), weights_only=True
+    )
 
   @mock.patch.object(
     timesfm3_forecaster.TimesFM3Forecaster, "_init_model", autospec=True
