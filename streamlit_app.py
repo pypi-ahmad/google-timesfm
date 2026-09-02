@@ -34,6 +34,9 @@ from timesfm3.explorer import (
   repository_revision,
   validate_upload_total,
 )
+from timesfm3.run_store import MAX_SAVED_RUNS, RunStoreError, load_recent_runs, save_run
+
+DATABASE_PATH = Path(__file__).parent / "data" / "timesfm.duckdb"
 
 st.set_page_config(
   page_title="TimesFM-3 explorer",
@@ -49,8 +52,14 @@ def cached_forecaster(device: str, batch_size: int):
 
 
 def _initialize_state() -> None:
-  st.session_state.setdefault("runs", [])
+  if "runs" not in st.session_state:
+    try:
+      st.session_state.runs = load_recent_runs(DATABASE_PATH)
+    except RunStoreError as exc:
+      st.session_state.runs = []
+      st.session_state.persistence_warning = str(exc)
   st.session_state.setdefault("upload_cache", {})
+  st.session_state.setdefault("persistence_warning", None)
 
 
 def _parse_in_session(data: bytes, suffix: str, dataset_id: str) -> UploadedDataset:
@@ -83,28 +92,39 @@ def _timestamp_default(columns: list[str]) -> str | None:
 
 def _append_run(run: RunArtifact) -> None:
   runs: list[RunArtifact] = st.session_state.runs
-  st.session_state.runs = [*runs, run][-3:]
+  st.session_state.runs = [*runs, run][-MAX_SAVED_RUNS:]
+  try:
+    save_run(DATABASE_PATH, run)
+    st.session_state.persistence_warning = None
+  except RunStoreError as exc:
+    st.session_state.persistence_warning = str(exc)
 
 
 def _series_chart(run: RunArtifact, dataset: str, target: str) -> Any:
   history = run.history.query("dataset == @dataset and target == @target").copy()
   forecast = run.forecast.query("dataset == @dataset and target == @target").copy()
-  temporal = bool(len(history)) and isinstance(
-    history.iloc[0]["timestamp"], pd.Timestamp
+  temporal_source = history if len(history) else forecast
+  temporal = bool(len(temporal_source)) and isinstance(
+    temporal_source.iloc[0]["timestamp"], pd.Timestamp
   )
   x_type = "temporal" if temporal else "quantitative"
   x_encoding = alt.X("timestamp", type=x_type, title="Time")
-  history_chart: Any = alt.Chart(history)
-  history_line = history_chart.mark_line(color="#6b7280").encode(
-    x=x_encoding, y=alt.Y("value:Q", title=target), tooltip=["timestamp", "value"]
-  )
   forecast_chart: Any = alt.Chart(forecast)
   point_line = forecast_chart.mark_line(color="#e85d04", strokeWidth=3).encode(
     x=x_encoding,
     y=alt.Y("point:Q", title=target),
     tooltip=["timestamp", "point"],
   )
-  layers: list[Any] = [history_line]
+  layers: list[Any] = []
+  if len(history):
+    history_chart: Any = alt.Chart(history)
+    layers.append(
+      history_chart.mark_line(color="#6b7280").encode(
+        x=x_encoding,
+        y=alt.Y("value:Q", title=target),
+        tooltip=["timestamp", "value"],
+      )
+    )
   if "q0.1" in forecast and "q0.9" in forecast:
     band = forecast_chart.mark_area(color="#f48c06", opacity=0.18).encode(
       x=x_encoding, y="q0.1:Q", y2="q0.9:Q"
@@ -158,6 +178,11 @@ st.caption(
   "Local zero-shot univariate and multivariate forecasting with covariates and "
   "probabilistic outputs."
 )
+if st.session_state.persistence_warning:
+  st.warning(
+    f"{st.session_state.persistence_warning} Runs will remain in this browser session.",
+    icon=":material/database_off:",
+  )
 
 with st.sidebar:
   st.subheader("Runtime", icon=":material/memory:")
@@ -421,7 +446,7 @@ with compare_tab:
   st.subheader("Compare runs", icon=":material/compare_arrows:")
   runs = st.session_state.runs
   if len(runs) < 2:
-    st.info("Complete at least two runs. Up to three stay in this browser session.")
+    st.info("Complete at least two runs. Up to 25 are saved locally.")
   else:
     labels = {run.run_id: run for run in runs}
     selected = st.multiselect(
@@ -482,6 +507,7 @@ with about_tab:
         f"Uploads stay in browser-session memory; {MAX_DECODED_BYTES // 1024**2} MB "
         "decoded limit per file"
       ),
+      "Run history": "Newest 25 derived runs in data/timesfm.duckdb",
     },
     border="horizontal",
     width="content",

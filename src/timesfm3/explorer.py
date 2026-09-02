@@ -14,12 +14,14 @@ import os
 import platform
 import subprocess
 import sys
+import tempfile
 import time
 import zipfile
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import Any, Literal, Protocol, cast
 
+import duckdb
 import numpy as np
 import pandas as pd
 import torch
@@ -172,14 +174,15 @@ class BatchPredictor(Protocol):
 
 
 def parse_upload(data: bytes, suffix: str, dataset_id: str) -> UploadedDataset:
-  """Parse a CSV or Parquet upload without writing it to disk."""
+  """Parse a CSV or Parquet upload through a short-lived temporary file."""
   if len(data) > MAX_UPLOAD_BYTES:
     raise ExplorerError("Each file must be 50 MB or smaller.")
   normalized_suffix = suffix.lower().lstrip(".")
+  if normalized_suffix not in {"csv", "parquet", "pq"}:
+    raise ExplorerError("Only CSV and Parquet files are supported.")
+  temporary_path: Path | None = None
   try:
-    if normalized_suffix == "csv":
-      frame = pd.read_csv(io.BytesIO(data), encoding="utf-8-sig")
-    elif normalized_suffix in {"parquet", "pq"}:
+    if normalized_suffix in {"parquet", "pq"}:
       from pyarrow import parquet
 
       metadata = parquet.ParquetFile(io.BytesIO(data)).metadata
@@ -189,13 +192,23 @@ def parse_upload(data: bytes, suffix: str, dataset_id: str) -> UploadedDataset:
       )
       if decoded_size > MAX_DECODED_BYTES:
         raise ExplorerError(f"{dataset_id} expands beyond the 256 MB memory limit.")
-      frame = pd.read_parquet(io.BytesIO(data))
-    else:
-      raise ExplorerError("Only CSV and Parquet files are supported.")
+    with tempfile.NamedTemporaryFile(
+      suffix=f".{normalized_suffix}", delete=False
+    ) as temporary:
+      temporary.write(data)
+      temporary_path = Path(temporary.name)
+    reader = "read_csv_auto" if normalized_suffix == "csv" else "read_parquet"
+    with duckdb.connect() as connection:
+      frame = connection.execute(
+        f"SELECT * FROM {reader}(?)", [str(temporary_path)]
+      ).df()
   except ExplorerError:
     raise
   except Exception as exc:
     raise ExplorerError(f"Could not parse {dataset_id}: {exc}") from exc
+  finally:
+    if temporary_path is not None:
+      temporary_path.unlink(missing_ok=True)
   if frame.empty or not len(frame.columns):
     raise ExplorerError(f"{dataset_id} contains no data.")
   normalized_columns = [str(column) for column in frame.columns]

@@ -94,6 +94,14 @@ def test_parse_csv_and_parquet() -> None:
   assert list(parquet.frame.columns) == list(frame.columns)
 
 
+def test_parse_removes_temporary_upload(
+  tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  monkeypatch.setattr(explorer.tempfile, "tempdir", str(tmp_path))
+  upload(simple_frame())
+  assert not list(tmp_path.iterdir())
+
+
 def test_parse_rejects_decoded_memory_limit(monkeypatch: pytest.MonkeyPatch) -> None:
   monkeypatch.setattr(explorer, "MAX_DECODED_BYTES", 1)
   with pytest.raises(explorer.ExplorerError, match="memory limit"):
