@@ -34,7 +34,7 @@ without adaptation.
 The explorer is designed for local research, evaluation, and learning. It has
 no authentication, persistence layer, multi-tenant isolation, production
 monitoring, or service-level guarantees. Do not expose it as a public service
-without a separate security and deployment design—and do not deploy the
+without a separate security and deployment design, and do not deploy the
 default TimesFM-3 weights for production use.
 
 ## Research evidence

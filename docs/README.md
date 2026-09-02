@@ -62,8 +62,8 @@ precedence.
 | Targets and covariates | Yes | Yes | Explorer and API reference |
 | Forecast and holdout modes | Yes | Yes | Explorer reference |
 | Quantiles and exports | Yes | Yes | Explorer reference |
-| Python integration | — | Yes | Python API reference |
-| CSV helper | — | Yes | Version explanation |
-| Architecture and contribution | — | — | Explanation and codebase maps |
+| Python integration | No | Yes | Python API reference |
+| CSV helper | No | Yes | Version explanation |
+| Architecture and contribution | No | No | Explanation and codebase maps |
 | Licensing and limitations | Yes | Yes | Licensing explanation |
-| TimesFM-3 concepts and internals | Yes | — | Complete TimesFM-3 guide |
+| TimesFM-3 concepts and internals | Yes | No | Complete TimesFM-3 guide |

@@ -19,8 +19,8 @@
 | Combined raw uploads | 200 MiB |
 | Decoded dataframe | 256 MiB per file |
 | Combined decoded dataframes | 512 MiB |
-| Context or horizon | 1–15,360 steps |
-| Batch size | 1–64 |
+| Context or horizon | 1 to 15,360 steps |
+| Batch size | 1 to 64 |
 | Variates per forward pass | 32 |
 
 Above 32 combined target and covariate variates, joint mode requires explicit
@@ -43,8 +43,8 @@ selected past-and-future covariate must be complete.
 
 | Setting | Default | Allowed values or range |
 |---|---:|---|
-| Horizon | `32` in UI | 1–15,360 |
-| Context length | `512` | 1–15,360 |
+| Horizon | `32` in UI | 1 to 15,360 |
+| Context length | `512` | 1 to 15,360 |
 | Task | Forecast future | Forecast or holdout |
 | Series mode | Joint multivariate | Multivariate or independent univariate |
 | Return quantiles | On | On/off |
@@ -53,7 +53,7 @@ selected past-and-future covariate must be complete.
 | Sort quantiles | On | On/off |
 | External z-normalization | Off | On/off |
 | Known-future padding | `none` | `none` or `edge` |
-| Batch size | `4` | 1–64 |
+| Batch size | `4` | 1 to 64 |
 
 `edge` padding applies at the model boundary; the explorer still requires
 selected known-future covariates for all uploaded future rows.
@@ -81,7 +81,7 @@ Metrics are grouped by dataset and target:
 - root mean squared error (RMSE)
 - symmetric mean absolute percentage error (sMAPE)
 - mean pinball loss when quantiles exist
-- `q0.1`–`q0.9` empirical coverage when quantiles exist
+- `q0.1` to `q0.9` empirical coverage when quantiles exist
 
 ## ZIP bundle
 

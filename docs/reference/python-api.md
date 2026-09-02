@@ -104,7 +104,7 @@ Checkpoint-derived architecture settings are synchronized after loading.
 | `per_core_batch_size` | `4` | Inference batch size |
 | `input_patch_length` | `32` | Input patch size |
 | `output_patch_length` | `64` | Output patch size |
-| `quantiles` | `0.1`–`0.9` | Requested quantiles |
+| `quantiles` | `0.1` to `0.9` | Requested quantiles |
 | `device` | Auto | PyTorch device |
 | `cache_dir` | `None` | Hugging Face cache override |
 | `revision` | `None` | Hub revision |

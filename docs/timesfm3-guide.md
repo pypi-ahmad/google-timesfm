@@ -49,7 +49,7 @@ the supplied history is longer.
 ### Horizon
 
 The horizon is the number of future steps to predict. A horizon of 24 means 24
-future rows—not necessarily 24 hours. The timestamp frequency determines the
+future rows, not necessarily 24 hours. The timestamp frequency determines the
 real-world duration.
 
 ### Target
