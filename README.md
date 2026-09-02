@@ -3,6 +3,9 @@
 TimesFM (Time Series Foundation Model) is a pretrained time-series foundation
 model developed by Google Research for time-series forecasting.
 
+This Streamlit explorer fork is available at
+[github.com/pypi-ahmad/google-timesfm](https://github.com/pypi-ahmad/google-timesfm).
+
 *   Paper:
     [A decoder-only foundation model for time-series forecasting](https://arxiv.org/abs/2310.10688),
     ICML 2024.
@@ -130,7 +133,7 @@ pip install timesfm[torch]
 1.  Clone the repository:
 
     ```shell
-    git clone https://github.com/google-research/timesfm.git
+    git clone https://github.com/pypi-ahmad/google-timesfm.git
     cd timesfm
     ```
 
@@ -142,8 +145,29 @@ pip install timesfm[torch]
     source .venv/bin/activate
 
      # Install the package in editable mode with torch
-    uv pip install -e .[torch]
+     uv pip install -e .[torch]
     ```
+
+### Local Streamlit explorer
+
+This checkout includes a local TimesFM-3 lab for CSV and Parquet uploads,
+multivariate forecasting, covariates, quantiles, holdout evaluation, and
+in-memory run comparison.
+
+```powershell
+uv sync --extra app --group dev
+uv pip install -e ".[torch]" --torch-backend=auto
+uv run streamlit run streamlit_app.py
+```
+
+Each uploaded file must use wide format: one optional timestamp column plus
+numeric target and covariate columns. Known-future covariates require appended
+rows covering the forecast horizon, with target cells left empty. Multiple
+files must share the mapped column names.
+
+The app processes uploads in local RAM and exports forecasts plus a
+reproducibility manifest. The default TimesFM-3 weights remain restricted to
+non-commercial, non-production use under their separate model license.
 
 --------------------------------------------------------------------------------
 
