@@ -4,6 +4,7 @@ Choose the shortest path for what you need to do.
 
 ## Start here
 
+- Learning the model: [read the complete TimesFM-3 guide](timesfm3-guide.md).
 - New to the app: [complete your first forecast](tutorials/first-forecast.md).
 - Bringing your own file: [prepare CSV or Parquet data](how-to/prepare-data.md).
 - Integrating Python: [use the TimesFM-3 API](how-to/use-python-api.md).
@@ -28,6 +29,7 @@ Choose the shortest path for what you need to do.
 
 ## Explanation
 
+- [Learn Google TimesFM-3](timesfm3-guide.md)
 - [Architecture and data flow](explanation/architecture.md)
 - [Licensing and model versions](explanation/licensing-and-versions.md)
 
@@ -64,3 +66,4 @@ precedence.
 | CSV helper | — | Yes | Version explanation |
 | Architecture and contribution | — | — | Explanation and codebase maps |
 | Licensing and limitations | Yes | Yes | Licensing explanation |
+| TimesFM-3 concepts and internals | Yes | — | Complete TimesFM-3 guide |
