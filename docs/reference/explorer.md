@@ -8,8 +8,8 @@
 | Default URL | `http://localhost:9587` |
 | Checkpoint | `google/timesfm-3.0-pytorch` |
 | Model cache | One Streamlit resource per process |
-| Run history | Last three successful runs per browser session |
-| Upload storage | Local process memory |
+| Run history | Newest 25 derived runs in local DuckDB |
+| Upload storage | Temporary file deleted after reading; decoded session memory |
 
 ## Input limits
 

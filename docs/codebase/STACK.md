@@ -18,6 +18,7 @@
 | Hugging Face Hub | `>=0.28.0` | Checkpoint retrieval | `pyproject.toml` |
 | safetensors | `>=0.5.3` | Safe weight loading | `pyproject.toml` |
 | Streamlit | `>=1.57` optional | Local explorer UI | `pyproject.toml`, `streamlit_app.py` |
+| DuckDB | `>=1.5.5` optional | Upload reading and local run persistence | `pyproject.toml` |
 | pandas / PyArrow / Altair | app extras | Tabular I/O and charts | `pyproject.toml` |
 
 ## Development Toolchain

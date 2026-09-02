@@ -52,10 +52,10 @@ know about files, Streamlit sessions, dataframes, or export formats.
 ## State and external systems
 
 - Hugging Face supplies and caches the checkpoint.
-- Streamlit session state retains decoded current uploads and the last three
-  run artifacts.
+- Streamlit session state retains decoded current uploads.
+- DuckDB reads uploaded files and stores the newest 25 derived run artifacts.
 - Git is queried with a two-second timeout to record the source revision.
-- No database, queue, or remote application store is configured.
+- No queue or remote application store is configured.
 
 ## Failure flow
 
@@ -65,10 +65,10 @@ summarized at the UI boundary. Partial upload batches are not retained.
 
 ## Design trade-offs
 
-- In-memory processing protects against accidental server-side upload files but
-  limits dataset size and persistence.
+- Temporary upload files are deleted immediately after DuckDB reads them;
+  decoded data remains session-scoped.
 - One cached model reduces reload latency but shares finite process/GPU memory.
-- Run history is intentionally ephemeral; ZIP export is the durable record.
+- DuckDB retains 25 derived runs; ZIP export remains the portable record.
 - Evaluator chunking supports more than 32 combined variates but can subsample
   covariates, so it requires explicit acknowledgement in the app.
 

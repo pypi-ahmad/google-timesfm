@@ -50,6 +50,10 @@ uv run streamlit run streamlit_app.py --server.port=9587
 The built-in multivariate demo uses targets, past-only covariates, known-future
 covariates, quantiles, charts, and ZIP export. It does not require a data file.
 
+DuckDB reads uploaded files and stores the newest 25 derived forecast runs in
+`data/timesfm.duckdb`. Original uploads are not stored, and the database is
+ignored by Git.
+
 ## Use your own data
 
 Upload one or more wide CSV or Parquet files. Each row is a time step and each

@@ -101,8 +101,11 @@ implicated in that run. See [REVIEW.md](../REVIEW.md) for its validation counts.
 
 ## The app lost previous runs
 
-Run history is browser-session/process memory, capped at three successful runs.
-Download each ZIP bundle that must be retained.
+The app stores the newest 25 derived runs in `data/timesfm.duckdb`. Check that
+the file is readable and the project directory is writable. If DuckDB cannot
+open or update it, the app warns and continues with browser-session history.
+Original uploads and input history are not stored, so restored runs show only
+forecast outputs and metrics. Download ZIP bundles for portable archives.
 
 ## The CSV helper and explorer behave differently
 

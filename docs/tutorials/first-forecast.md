@@ -80,8 +80,9 @@ Select **Download result bundle**. The ZIP contains:
 - `metrics.csv`: holdout metrics, when applicable
 - `run.json`: settings, mappings, source hashes, runtime, and code revision
 
-The export is the durable record; the app keeps only the last three runs in
-browser-session memory.
+The app keeps the newest 25 derived runs in `data/timesfm.duckdb`. Original
+uploads are not stored. The ZIP remains the portable record for sharing or
+archiving a run.
 
 ## Checkpoint
 

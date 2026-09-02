@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | High | Default TimesFM 3 weights prohibit production/commercial use | `README.md` | Accidental license breach | Keep acknowledgement and license notice |
 | Medium | Model/checkpoint memory can exhaust local GPU/RAM | `streamlit_app.py`, `explorer.py` | Failed forecasts | Keep hard data limits and clear OOM guidance |
-| Low | Run history is ephemeral | `streamlit_app.py` | Results lost on restart | Export ZIP; add persistence only if required |
+| Low | Local run store can be unavailable | `run_store.py` | History falls back to session memory | Warn clearly; keep ZIP export |
 
 ## Technical Debt
 
@@ -29,7 +29,7 @@
 | Concern | Evidence | Symptom | Scaling risk | Suggested improvement |
 |---|---|---|---|---|
 | Large checkpoint | cached forecaster in `streamlit_app.py` | Slow first run/high VRAM | Concurrent sessions share finite GPU | Keep one cached model and bounded batches |
-| In-memory tables/artifacts | `RunArtifact`, session history | RAM increases per run | Large result tables multiply memory | Three-run cap and decoded limits |
+| In-memory tables/artifacts | `RunArtifact`, session history | RAM increases per run | Large result tables multiply memory | 25-run cap and decoded limits |
 
 ## Fragile/High-Churn Areas
 
@@ -42,8 +42,8 @@
 
 1. [ASK USER] Will this Streamlit app remain local-only, or must future work add
    authentication and deployment hardening?
-2. [ASK USER] Should run history ever persist beyond the current session, or is
-   ZIP export the intended durable record?
+2. [ASK USER] Should a future deployment replace the local DuckDB store with a
+   multi-user persistence service?
 
 ## Evidence
 

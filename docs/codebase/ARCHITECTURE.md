@@ -47,7 +47,7 @@ upload/demo -> parse and validate -> map columns -> prepare arrays
   could reduce locality unless rendering stays separate from forecast execution.
 - Current and archived packages share the `timesfm` name, so broad test
   discovery can import the wrong generation.
-- Run history is process/session memory only; restarting loses it by design.
+- DuckDB retains the newest 25 derived runs; raw uploads remain session-only.
 
 ## Evidence
 

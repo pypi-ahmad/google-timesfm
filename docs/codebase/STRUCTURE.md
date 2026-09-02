@@ -26,6 +26,7 @@
 |---|---|---|
 | Streamlit page | Widgets, session state, presentation | Model tensor implementation |
 | `timesfm3.explorer` | Upload validation, preparation, artifacts | Widget rendering |
+| `timesfm3.run_store` | DuckDB schema and derived run persistence | Raw upload retention |
 | Forecaster/evaluator | Model loading and inference | CSV/Parquet UI policy |
 | Model modules | Neural network operations/configuration | App session state |
 

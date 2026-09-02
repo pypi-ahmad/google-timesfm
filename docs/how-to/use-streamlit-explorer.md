@@ -59,9 +59,9 @@ Advanced controls and exact defaults are in the
 Accept the TimesFM-3 weights restriction, then select **Run forecast**. The
 status panel separates checkpoint loading from forecasting.
 
-The app retains the last three successful runs. Use **Compare** to overlay point
-forecasts for the same dataset and target. This state is ephemeral and is lost
-when the session or process ends.
+The app retains the newest 25 successful runs in `data/timesfm.duckdb`. Use
+**Compare** to overlay up to three point forecasts for the same dataset and
+target. Original uploads and input history are not stored.
 
 ## Export results
 

@@ -31,9 +31,9 @@ without adaptation.
 
 ## Appropriate use
 
-The explorer is designed for local research, evaluation, and learning. It has
-no authentication, persistence layer, multi-tenant isolation, production
-monitoring, or service-level guarantees. Do not expose it as a public service
+The explorer is designed for local research, evaluation, and learning. Its
+local DuckDB store does not provide authentication, multi-tenant isolation,
+production monitoring, or service-level guarantees. Do not expose it as a public service
 without a separate security and deployment design, and do not deploy the
 default TimesFM-3 weights for production use.
 

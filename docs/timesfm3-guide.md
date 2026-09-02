@@ -430,9 +430,9 @@ license before use. This guide is not legal advice.
 
 ### Deployment limit
 
-The local Streamlit explorer has no authentication, persistent storage,
-multi-tenant isolation, or production monitoring. Treat it as a research and
-learning tool.
+The local Streamlit explorer persists derived run results in DuckDB, but has no
+authentication, multi-tenant isolation, or production monitoring. Treat it as
+a research and learning tool.
 
 ## 13. Practical checklist
 

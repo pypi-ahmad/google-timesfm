@@ -13,10 +13,11 @@
 
 | Store | Role | Access layer | Key risk | Evidence |
 |---|---|---|---|---|
-| Streamlit session memory | Last three runs | `streamlit_app.py` | Lost at process/session end | `streamlit_app.py` |
+| Streamlit session memory | Current uploads and fallback run history | `streamlit_app.py` | Lost at process/session end | `streamlit_app.py` |
+| DuckDB | Newest 25 derived runs | `run_store.py` | Local file corruption or lock failure | `run_store.py` |
 | Hugging Face cache | Checkpoint reuse | `huggingface_hub` mixin | Disk use/stale revision | `timesfm3_forecaster.py` |
 
-No database, queue, or remote application datastore is configured.
+No queue or remote application datastore is configured.
 
 ## Secrets and Credentials Handling
 
