@@ -1,11 +1,11 @@
 # TimesFM-3 Explorer
 
-A local Streamlit application and Python toolkit for exploring Google's
+A local Streamlit application and Python toolkit for testing Google's
 TimesFM-3 zero-shot forecasting model with CSV or Parquet data.
 
-This fork adds a guided upload workflow, multivariate and univariate forecasts,
-covariates, holdout evaluation, quantile outputs, run comparison, and portable
-result bundles.
+This fork provides a guided upload workflow, univariate and multivariate
+forecasts, covariates, holdout evaluation, quantile outputs, run comparison,
+and portable result bundles.
 
 > [!IMPORTANT]
 > The source code is Apache-2.0. The default TimesFM-3 pretrained weights use
@@ -36,7 +36,7 @@ On Windows, start the explorer on port `9587`:
 .\launch_app.cmd
 ```
 
-Then open <http://localhost:9587>. The launcher stops an earlier instance of
+Open <http://localhost:9587>. The launcher stops an earlier instance of
 this exact application, but refuses to stop an unrelated process using the
 port. If that happens, follow the
 [alternate-port instructions](docs/troubleshooting.md#the-launcher-says-port-9587-belongs-to-another-process).
@@ -47,9 +47,8 @@ For other platforms, or to launch directly:
 uv run streamlit run streamlit_app.py --server.port=9587
 ```
 
-Start with the built-in multivariate demo. It exercises targets, past-only
-covariates, known-future covariates, quantiles, charts, and ZIP export without
-requiring a data file.
+The built-in multivariate demo uses targets, past-only covariates, known-future
+covariates, quantiles, charts, and ZIP export. It does not require a data file.
 
 ## Use your own data
 
@@ -63,18 +62,14 @@ date,sales,temperature,promotion
 2026-01-03,103,20.2,0
 ```
 
-In the app:
-
-1. Choose the optional timestamp column.
-2. Assign at least one target.
-3. Optionally assign past-only and past-and-future covariates.
-4. Choose forecast or holdout evaluation.
-5. Accept the model-weights restriction and run the forecast.
-6. Inspect charts and metrics, then download the ZIP result bundle.
+In the app, choose a timestamp column if needed, assign targets and optional
+covariates, choose forecast or holdout evaluation, accept the model-weights
+restriction, and run the forecast. Inspect the charts and metrics, then
+download the ZIP result bundle.
 
 Known-future covariates need appended rows for the complete horizon. Leave
-target cells empty in those future rows. See
-[Prepare data](docs/how-to/prepare-data.md) for complete examples.
+target cells empty in those future rows.
+[Prepare data](docs/how-to/prepare-data.md) has complete examples.
 
 ## Python API
 
@@ -101,9 +96,9 @@ assert output.quantiles.shape == (24, 9)
 ```
 
 The first run downloads the checkpoint from Hugging Face. Use `device="cuda"`
-on a compatible NVIDIA setup. For batching, multivariate arrays, evaluator
-defaults, and covariate shapes, see the
-[TimesFM-3 API guide](docs/how-to/use-python-api.md).
+on a compatible NVIDIA setup. The
+[TimesFM-3 API guide](docs/how-to/use-python-api.md) covers batching,
+multivariate arrays, evaluator defaults, and covariate shapes.
 
 ## Documentation
 
@@ -120,8 +115,8 @@ defaults, and covariate shapes, see the
 | Resolve a problem | [Troubleshooting](docs/troubleshooting.md) |
 | Work on the repository | [Contributing](CONTRIBUTING.md) |
 
-Begin at the [documentation home](docs/README.md) for the full map, including
-maintainer-oriented codebase notes and the research knowledge base.
+The [documentation home](docs/README.md) includes the full map, maintainer
+codebase notes, and the research knowledge base.
 
 ## What is included
 
@@ -144,7 +139,7 @@ uv run ty check streamlit_app.py src/timesfm3/explorer.py
 uv build
 ```
 
-See [Contributing](CONTRIBUTING.md) for focused checks and known CUDA-host test
+[Contributing](CONTRIBUTING.md) lists focused checks and known CUDA-host test
 behavior.
 
 ## Upstream project
