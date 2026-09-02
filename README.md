@@ -1,250 +1,168 @@
-# TimesFM
+# TimesFM-3 Explorer
 
-TimesFM (Time Series Foundation Model) is a pretrained time-series foundation
-model developed by Google Research for time-series forecasting.
+A local Streamlit application and Python toolkit for exploring Google's
+TimesFM-3 zero-shot forecasting model with CSV or Parquet data.
 
-This Streamlit explorer fork is available at
-[github.com/pypi-ahmad/google-timesfm](https://github.com/pypi-ahmad/google-timesfm).
+This fork adds a guided upload workflow, multivariate and univariate forecasts,
+covariates, holdout evaluation, quantile outputs, run comparison, and portable
+result bundles.
 
-*   Paper:
-    [A decoder-only foundation model for time-series forecasting](https://arxiv.org/abs/2310.10688),
-    ICML 2024.
-*   <span style="color:red">(NEW!)</span> TimesFM 3.0 Checkpoint:
-    [`google/timesfm-3.0-pytorch`](https://huggingface.co/google/timesfm-3.0-pytorch).
-*   Checkpoints (up to 2.5):
-    [TimesFM Hugging Face Collection](https://huggingface.co/collections/google/timesfm-release-66e4be5fdb56e960c1e482a6).
-*   [Google Research blog](https://research.google/blog/a-decoder-only-foundation-model-for-time-series-forecasting/)
-    (New blog post for TimesFM 3.0 coming soon!).
-*   TimesFM in Google 1P Products:
-    *   [BigQuery ML](https://cloud.google.com/bigquery/docs/timesfm-model):
-        Enterprise level SQL queries for scalability and reliability.
-    *   [Google Sheets](https://workspaceupdates.googleblog.com/2026/02/forecast-data-in-connected-sheets-BigQueryML-TimesFM.html):
-        For your daily spreadsheet.
-    *   [Vertex Model Garden](https://pantheon.corp.google.com/vertex-ai/publishers/google/model-garden/timesfm):
-        Dockerized endpoint for agentic calling.
+> [!IMPORTANT]
+> The source code is Apache-2.0. The default TimesFM-3 pretrained weights use
+> the separate TimesFM Non-Commercial License v1.0 and are restricted to
+> non-commercial, non-production use. See
+> [Licensing and versions](docs/explanation/licensing-and-versions.md).
 
-This open version is not an officially supported Google product.
+## Quick start
 
-**Latest Model Version:** TimesFM 3.0
+### Requirements
 
-**Archived Model Versions:**
+- Windows 11, macOS, or Linux
+- Python 3.10 or newer
+- [uv](https://docs.astral.sh/uv/)
+- Internet access for the first Hugging Face checkpoint download
 
--   2.5: relevant code under `src/timesfm`.
--   1.0 and 2.0: relevant code archived in the subdirectory `v1`. You can `pip
-    install timesfm==1.3.0` to install an older version of this package to load
-    them.
-
---------------------------------------------------------------------------------
-
-## Update — August 2026
-
-**TimesFM 3.0 is out!**
-
-TimesFM 3.0 introduces native **multivariate time-series forecasting**, flexible
-**covariate support** (both past-only and past-and-future covariates), superior
-zero-shot generalist capabilities, and top performance across all three major
-time-series foundation model benchmarks.
-
-### Key Highlights:
-
--   **Native Multivariate & Univariate Forecasting with Covariates**: Seamlessly
-    forecast multi-channel multivariate series as well as individual univariate
-    series, with native support for past-only and past-and-future dynamic
-    covariates without per-task tuning.
--   **Top Benchmark Performance**:
-    -   🥇 **fev-bench**: **Rank #1 overall** across 100 diverse real-world
-        forecasting tasks.
-    -   🥇 **TIME Benchmark**: **Rank #1 overall** across 50 domain datasets and
-        98 evaluation tasks.
-    -   🥇 **GIFT-Eval**: **Rank #1 among all foundation models**.
-
-### License notice for pretrained weights
-
-> **Important:** The TimesFM source code in this repository is licensed under
-> Apache-2.0, and model weights up to version 2.5 remain Apache-2.0. However,
-> for the time being, TimesFM 3.0 pretrained weights are distributed under the
-> separate `timesfm-non-commercial-license-v1.0` license and are restricted to
-> non-commercial, non-production use. Commercial or production use of the
-> default pretrained weights is **not permitted**.
-
---------------------------------------------------------------------------------
-
-## Update - July 2, 2026
-
-Updated PyPI to `timesfm=2.0.2`. See
-[Install](https://github.com/google-research/timesfm#from-pypi).
-
-## Update - Apr. 9, 2026
-
-Added fine-tuning example using HuggingFace Transformers + PEFT (LoRA) — see
-[`timesfm-forecasting/examples/finetuning/`](timesfm-forecasting/examples/finetuning/).
-Also added unit tests (`tests/`) and incorporated several community fixes.
-
-Shoutout to [@kashif](https://github.com/kashif) and
-[@darkpowerxo](https://github.com/darkpowerxo).
-
-## Update - Mar. 19, 2026
-
-Huge shoutout to [@borealBytes](https://github.com/borealBytes) for adding the
-support for
-[AGENTS](https://github.com/google-research/timesfm/blob/master/AGENTS.md)!
-TimesFM
-[SKILL.md](https://github.com/google-research/timesfm/tree/master/timesfm-forecasting)
-is out.
-
-## Update - Oct. 29, 2025
-
-Added back the covariate support through XReg for TimesFM 2.5.
-
-## Update - Sept. 15, 2025
-
-TimesFM 2.5 is out!
-
-Comparing to TimesFM 2.0, this new 2.5 model:
-
--   uses 200M parameters, down from 500M.
--   supports up to 16k context length, up from 2048.
--   supports continuous quantile forecast up to 1k horizon via an optional 30M
-    quantile head.
--   gets rid of the `frequency` indicator.
--   has a couple of new forecasting flags.
-
-Since the Sept. 2025 launch, the following improvements have been completed for
-TimesFM 2.5:
-
-1.  ✅ Flax version of the model for faster inference.
-2.  ✅ Covariate support via XReg (see Oct. 2025 update).
-3.  ✅ Documentation, examples, and agent skill (see `timesfm-forecasting/`).
-4.  ✅ Fine-tuning example with LoRA via HuggingFace Transformers + PEFT (see
-    `timesfm-forecasting/examples/finetuning/`).
-5.  ✅ Unit tests for core layers, configs, and utilities (see `tests/`).
-
-### Install
-
-#### From `PyPI`
-
-```shell
-# Install TimesFM with PyTorch
-pip install timesfm[torch]
-```
-
-#### Local Install
-
-1.  Clone the repository:
-
-    ```shell
-    git clone https://github.com/pypi-ahmad/google-timesfm.git
-    cd timesfm
-    ```
-
-2.  Create a virtual environment and install with PyTorch:
-
-    ```shell
-    # Using uv
-    uv venv
-    source .venv/bin/activate
-
-     # Install the package in editable mode with torch
-     uv pip install -e .[torch]
-    ```
-
-### Local Streamlit explorer
-
-This checkout includes a local TimesFM-3 lab for CSV and Parquet uploads,
-multivariate forecasting, covariates, quantiles, holdout evaluation, and
-in-memory run comparison.
+Clone and install the application:
 
 ```powershell
-uv sync --extra app --group dev
-uv pip install -e ".[torch]" --torch-backend=auto
-uv run streamlit run streamlit_app.py
+git clone https://github.com/pypi-ahmad/google-timesfm.git
+cd google-timesfm
+uv sync --extra torch --extra app --group dev
 ```
 
-Each uploaded file must use wide format: one optional timestamp column plus
-numeric target and covariate columns. Known-future covariates require appended
-rows covering the forecast horizon, with target cells left empty. Multiple
-files must share the mapped column names.
+On Windows, start the explorer on port `9587`:
 
-The app processes uploads in local RAM and exports forecasts plus a
-reproducibility manifest. The default TimesFM-3 weights remain restricted to
-non-commercial, non-production use under their separate model license.
+```powershell
+.\launch_app.cmd
+```
 
---------------------------------------------------------------------------------
+Then open <http://localhost:9587>. The launcher stops an earlier instance of
+this exact application, but refuses to stop an unrelated process using the
+port. If that happens, follow the
+[alternate-port instructions](docs/troubleshooting.md#the-launcher-says-port-9587-belongs-to-another-process).
 
-### Code Examples: TimesFM 3.0
+For other platforms, or to launch directly:
 
-#### 1. Univariate Forecasting (Variable Lengths)
+```powershell
+uv run streamlit run streamlit_app.py --server.port=9587
+```
 
-Pass a batch of 1D NumPy arrays of different context lengths to forecast
-univariate time series:
+Start with the built-in multivariate demo. It exercises targets, past-only
+covariates, known-future covariates, quantiles, charts, and ZIP export without
+requiring a data file.
+
+## Use your own data
+
+Upload one or more wide CSV or Parquet files. Each row is a time step and each
+numeric series is a column.
+
+```csv
+date,sales,temperature,promotion
+2026-01-01,101,20.1,0
+2026-01-02,107,20.4,1
+2026-01-03,103,20.2,0
+```
+
+In the app:
+
+1. Choose the optional timestamp column.
+2. Assign at least one target.
+3. Optionally assign past-only and past-and-future covariates.
+4. Choose forecast or holdout evaluation.
+5. Accept the model-weights restriction and run the forecast.
+6. Inspect charts and metrics, then download the ZIP result bundle.
+
+Known-future covariates need appended rows for the complete horizon. Leave
+target cells empty in those future rows. See
+[Prepare data](docs/how-to/prepare-data.md) for complete examples.
+
+## Python API
 
 ```python
 import numpy as np
-from timesfm3 import TimesFM3Evaluator, ModelConfig
 
-# Initialize TimesFM 3.0
-config = ModelConfig(
-    checkpoint_path="google/timesfm-3.0-pytorch",
-    per_core_batch_size=32,
-    device="cuda"
+from timesfm3 import TimesFM3Forecaster
+
+model = TimesFM3Forecaster.from_pretrained(
+  "google/timesfm-3.0-pytorch",
+  device="cpu",
 )
-forecaster = TimesFM3Evaluator(config)
+context = np.sin(np.linspace(0, 12, 128)).astype(np.float32)
+output = model.predict(
+  context=context,
+  horizon=24,
+  return_quantiles=True,
+)
 
-# Two univariate series of different lengths (100 and 72 steps)
-ts1 = np.linspace(0, 1, 100).astype(np.float32)
-ts2 = np.sin(np.linspace(0, 24, 72)).astype(np.float32)
-
-# Generate forecast (point predictions + 9 quantiles: 0.1 to 0.9)
-outputs = list(forecaster.predict_batch([ts1, ts2], horizon=12, return_quantiles=True, use_symmetric_averaging=False))
-
-print("Series 1 forecast shape:", outputs[0].forecast.shape)   # (12,)
-print("Series 1 quantiles shape:", outputs[0].quantiles.shape) # (12, 9)
-
-print("Series 2 forecast shape:", outputs[1].forecast.shape)   # (12,)
-print("Series 2 quantiles shape:", outputs[1].quantiles.shape) # (12, 9)
+assert output.forecast is not None
+assert output.forecast.shape == (24,)
+assert output.quantiles is not None
+assert output.quantiles.shape == (24, 9)
 ```
 
-#### 2. Multivariate Forecasting with Covariates
+The first run downloads the checkpoint from Hugging Face. Use `device="cuda"`
+on a compatible NVIDIA setup. For batching, multivariate arrays, evaluator
+defaults, and covariate shapes, see the
+[TimesFM-3 API guide](docs/how-to/use-python-api.md).
 
-Pass a 2D array of shape `(num_variates, context_length)` along with optional
-past-only and past-and-future covariates:
+## Documentation
 
-```python
-import numpy as np
-from timesfm3 import TimesFM3Evaluator, ModelConfig
+| Goal | Document |
+|---|---|
+| Complete a first forecast | [First forecast tutorial](docs/tutorials/first-forecast.md) |
+| Learn the explorer workflow | [Use the Streamlit explorer](docs/how-to/use-streamlit-explorer.md) |
+| Format CSV or Parquet data | [Prepare data](docs/how-to/prepare-data.md) |
+| Forecast from Python | [Use the TimesFM-3 API](docs/how-to/use-python-api.md) |
+| Run the legacy CSV helper | [Use the CSV helper](docs/how-to/use-csv-helper.md) |
+| Look up settings and outputs | [Explorer reference](docs/reference/explorer.md) |
+| Look up Python interfaces | [Python API reference](docs/reference/python-api.md) |
+| Understand the design | [Architecture](docs/explanation/architecture.md) |
+| Resolve a problem | [Troubleshooting](docs/troubleshooting.md) |
+| Work on the repository | [Contributing](CONTRIBUTING.md) |
 
-# Initialize TimesFM 3.0
-config = ModelConfig(
-    checkpoint_path="google/timesfm-3.0-pytorch",
-    per_core_batch_size=16,
-    device="cuda"
-)
-forecaster = TimesFM3Evaluator(config)
+Begin at the [documentation home](docs/README.md) for the full map, including
+maintainer-oriented codebase notes and the research knowledge base.
 
-context_len = 128
-horizon = 24
+## What is included
 
-# 3 target variates across past context: (3, 128)
-target = np.random.randn(3, context_len).astype(np.float32)
+- `streamlit_app.py`: local interactive explorer
+- `src/timesfm3/`: current TimesFM-3 PyTorch implementation
+- `src/timesfm/`: TimesFM 2.5 implementation
+- `timesfm-forecasting/`: agent skill, TimesFM 2.5 helper, and examples
+- `v1/`: archived TimesFM 1 and 2 code
+- `knowledge/`: draft research and source extracts in OKF format
 
-# 1 past-only covariate channel across past context: (1, 128)
-past_only_cov = np.random.randn(1, context_len).astype(np.float32)
+The TimesFM 2.5 CSV helper is retained for compatibility; it does not use the
+TimesFM-3 explorer pipeline. The documentation calls out version-specific APIs
+where this distinction matters.
 
-# 2 past-and-future covariate channels across context + horizon: (2, 152)
-past_future_cov = np.random.randn(2, context_len + horizon).astype(np.float32)
+## Development checks
 
-# Generate joint forecast across all 3 target variates
-outputs = list(
-    forecaster.predict_batch(
-        contexts=[target],
-        horizon=horizon,
-        past_only_covariates=[past_only_cov],
-        past_future_covariates=[past_future_cov],
-        return_quantiles=True,
-        use_symmetric_averaging=False,
-    )
-)
-
-print("Multivariate forecast shape:", outputs[0].forecast.shape)   # (3, 24)
-print("Multivariate quantiles shape:", outputs[0].quantiles.shape) # (3, 24, 9)
+```powershell
+uv run pytest -q tests src/timesfm3
+uv run ruff check streamlit_app.py src/timesfm3 tests
+uv run ty check streamlit_app.py src/timesfm3/explorer.py
+uv build
 ```
+
+See [Contributing](CONTRIBUTING.md) for focused checks and known CUDA-host test
+behavior.
+
+## Upstream project
+
+TimesFM was developed by Google Research. This fork is not an officially
+supported Google product.
+
+- [Google Research TimesFM repository](https://github.com/google-research/timesfm)
+- [TimesFM-3 announcement][timesfm3-announcement]
+- [TimesFM-3 checkpoint](https://huggingface.co/google/timesfm-3.0-pytorch)
+- [Original TimesFM paper](https://arxiv.org/abs/2310.10688)
+
+## License
+
+Repository source: [Apache License 2.0](LICENSE).
+
+Default TimesFM-3 model materials: separate non-commercial license distributed
+with the checkpoint. Review the current checkpoint terms before use.
+
+[timesfm3-announcement]: https://research.google/blog/timesfm-3-a-zero-shot-foundation-model-for-multivariate-forecasting/
