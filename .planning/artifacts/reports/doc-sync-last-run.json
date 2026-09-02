@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "direction": "full",
+  "mode": "incremental",
+  "audited_at": "2026-09-02T09:59:11Z",
+  "base_revision": "1a44cbffca1704bc87d24244ad07a00fe53091ae",
+  "scope": "current DuckDB integration changes",
+  "report": "reports/doc-sync-20260902-152911.md",
+  "files_changed_by_sync": [],
+  "validation": {
+    "tests": "41 passed",
+    "ruff": "passed",
+    "ty": "passed",
+    "diff_check": "passed"
+  },
+  "human_review_items": 1
+}
