@@ -20,8 +20,8 @@ configured and Windows NumPy/Pandas coverage behavior requires verification.
 
 - Package/application tests are under `tests/test_*.py`.
 - TimesFM 3 model tests are co-located as `src/timesfm3/*_test.py`.
-- Archived v1 tests are under `v1/tests/` and require their own dependency
-  environment.
+- Historical v1 tests are available from earlier Git revisions and require
+  their own dependency environment.
 - No global pytest setup file is present.
 
 ## Test Scope Matrix

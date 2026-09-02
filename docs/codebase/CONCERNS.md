@@ -6,7 +6,6 @@
 |---|---|---|---|---|
 | High | Default TimesFM 3 weights prohibit production/commercial use | `README.md` | Accidental license breach | Keep acknowledgement and license notice |
 | Medium | Model/checkpoint memory can exhaust local GPU/RAM | `streamlit_app.py`, `explorer.py` | Failed forecasts | Keep hard data limits and clear OOM guidance |
-| Medium | Archived and current packages overlap | `v1/`, `src/timesfm/` | Import/test ambiguity | Test archived code separately |
 | Low | Run history is ephemeral | `streamlit_app.py` | Results lost on restart | Export ZIP; add persistence only if required |
 
 ## Technical Debt
@@ -38,7 +37,6 @@
 |---|---|---|---|
 | `src/timesfm3/` | Core inference shapes and device behavior | Recent TimesFM 3 commits | Run co-located model/forecaster tests |
 | `streamlit_app.py` / `explorer.py` | New upload-to-model flow | Added in recent explorer commit | Test helpers and AppTest together |
-| `v1/` | Archived dependency constraints | Separate historical implementation | Avoid drive-by modernization |
 
 ## `[ASK USER]` Questions
 
@@ -53,4 +51,3 @@
 - `README.md`
 - `streamlit_app.py`
 - `src/timesfm3/explorer.py`
-- `v1/`

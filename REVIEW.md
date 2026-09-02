@@ -36,8 +36,8 @@ in the current working tree; validation status is recorded separately.
 
 - Keep the Streamlit page declarative and route forecast execution through one
   helper interface; this improves locality and makes the inference seam testable.
-- Treat `v1/` as an archived, separate environment because it contains an older
-  package with the same import name.
+- Retrieve historical TimesFM 1 and 2 code from earlier revisions only when
+  compatibility work requires it; do not mix it into the current environment.
 - Add an enforced coverage threshold after the Windows NumPy/coverage tooling
   incompatibility is resolved.
 

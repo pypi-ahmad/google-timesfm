@@ -129,7 +129,6 @@ maintainer-oriented codebase notes and the research knowledge base.
 - `src/timesfm3/`: current TimesFM-3 PyTorch implementation
 - `src/timesfm/`: TimesFM 2.5 implementation
 - `timesfm-forecasting/`: agent skill, TimesFM 2.5 helper, and examples
-- `v1/`: archived TimesFM 1 and 2 code
 - `knowledge/`: draft research and source extracts in OKF format
 
 The TimesFM 2.5 CSV helper is retained for compatibility; it does not use the

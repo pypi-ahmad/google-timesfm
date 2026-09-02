@@ -6,7 +6,6 @@
 |---|---|---|
 | `src/timesfm3/` | Current TimesFM 3 PyTorch model and forecast interfaces | `src/timesfm3/__init__.py` |
 | `src/timesfm/` | TimesFM 2.5 PyTorch/Flax implementation | `README.md` |
-| `v1/` | Archived TimesFM 1/2 code | `README.md` |
 | `tests/` | Package and Streamlit tests | `tests/test_explorer.py` |
 | `timesfm-forecasting/` | Agent skill, scripts, and examples | `timesfm-forecasting/SKILL.md` |
 | `timesfm3-usage/` | Benchmark runners and results | `timesfm3-usage/benchmarks/README.md` |
@@ -29,7 +28,6 @@
 | `timesfm3.explorer` | Upload validation, preparation, artifacts | Widget rendering |
 | Forecaster/evaluator | Model loading and inference | CSV/Parquet UI policy |
 | Model modules | Neural network operations/configuration | App session state |
-| `v1/` | Archived releases | Current-package test discovery |
 
 ## Naming and Organization Rules
 

@@ -22,7 +22,7 @@ of rights.
 |---|---|---|
 | TimesFM 3 | `src/timesfm3/` | `TimesFM3Forecaster`, `TimesFM3Evaluator`, explorer |
 | TimesFM 2.5 | `src/timesfm/` | `TimesFM_2p5_200M_torch`, CSV helper |
-| TimesFM 1 and 2 | `v1/` | Archived implementation and tests |
+| TimesFM 1 and 2 | Earlier Git revisions/releases | Historical implementation |
 
 The Streamlit application always loads `google/timesfm-3.0-pytorch`. The
 `timesfm-forecasting/scripts/forecast_csv.py` helper loads TimesFM 2.5 and uses

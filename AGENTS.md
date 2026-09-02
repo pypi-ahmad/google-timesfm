@@ -25,13 +25,7 @@ Any agent that supports the open [Agent Skills standard](https://agentskills.io)
 ## Working in this repo
 
 If you are developing TimesFM itself (not using it), the source lives in `src/timesfm/`.
-Archived v1/v2 code and notebooks are in `v1/`.
-
-Run tests:
-
-```bash
-pytest v1/tests/
-```
+Historical v1/v2 code is available from earlier Git revisions and releases.
 
 See `README.md` for full developer setup.
 

@@ -23,7 +23,6 @@ checkpoints, datasets, caches, or `.streamlit/secrets.toml`.
 | `streamlit_app.py` | Explorer widgets and session state |
 | `src/timesfm3/explorer.py` | App validation, orchestration, and artifacts |
 | `src/timesfm/` | TimesFM 2.5 implementation |
-| `v1/` | Archived TimesFM 1 and 2 code |
 | `tests/` | Package and application tests |
 | `timesfm-forecasting/` | Agent skill, compatibility scripts, examples |
 | `docs/` | User and developer documentation |
@@ -65,8 +64,8 @@ uv run ty check streamlit_app.py src/timesfm3/explorer.py
 uv build
 ```
 
-The archived `v1/` code has separate historical dependencies and should not be
-mixed into the current-package test command.
+Historical TimesFM 1 and 2 code is available from earlier Git revisions and
+releases; it is not part of the current-package test command.
 
 On the CUDA host used for the 2026-09-02 review, the full suite had two
 documented TimesFM 2.5 device-placement failures. Do not automatically treat
