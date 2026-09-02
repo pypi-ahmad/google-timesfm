@@ -1,7 +1,11 @@
+# Copyright 2026 Ahmad Mujtaba
+# Licensed under the Apache License, Version 2.0 (the "License");
+
 """Interactive local explorer for TimesFM-3."""
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -13,7 +17,9 @@ import torch
 from timesfm3.explorer import (
   CHECKPOINT_ID,
   MAX_CONTEXT,
+  MAX_DECODED_BYTES,
   MAX_TOTAL_UPLOAD_BYTES,
+  MAX_VARIATES,
   DatasetMapping,
   ExplorerError,
   ForecastSettings,
@@ -22,12 +28,11 @@ from timesfm3.explorer import (
   artifact_zip,
   capability_report,
   demo_dataset,
+  execute_forecast,
   load_forecaster,
-  make_run_artifact,
   parse_upload,
-  prepare_batch,
   repository_revision,
-  run_forecast,
+  validate_upload_total,
 )
 
 st.set_page_config(
@@ -35,12 +40,6 @@ st.set_page_config(
   page_icon=":material/query_stats:",
   layout="wide",
 )
-
-
-@st.cache_data(max_entries=12, show_spinner=False)
-def cached_parse(data: bytes, suffix: str, dataset_id: str) -> UploadedDataset:
-  """Cache upload parsing across harmless widget reruns."""
-  return parse_upload(data, suffix, dataset_id)
 
 
 @st.cache_resource(max_entries=1, show_spinner=False)
@@ -51,6 +50,17 @@ def cached_forecaster(device: str, batch_size: int):
 
 def _initialize_state() -> None:
   st.session_state.setdefault("runs", [])
+  st.session_state.setdefault("upload_cache", {})
+
+
+def _parse_in_session(data: bytes, suffix: str, dataset_id: str) -> UploadedDataset:
+  """Cache decoded uploads only for the current browser session."""
+  key = (hashlib.sha256(data).hexdigest(), suffix.lower(), dataset_id)
+  cached = st.session_state.upload_cache.get(key)
+  if cached is None:
+    cached = parse_upload(data, suffix, dataset_id)
+  st.session_state.next_upload_cache[key] = cached
+  return cached
 
 
 def _numeric_candidates(frame: pd.DataFrame, timestamp: str | None) -> list[str]:
@@ -194,6 +204,7 @@ with data_tab:
     key="data_source",
   )
   try:
+    st.session_state.next_upload_cache = {}
     if source == "Upload":
       files = st.file_uploader(
         "Upload wide CSV or Parquet files",
@@ -207,7 +218,9 @@ with data_tab:
         raise ExplorerError("Combined uploads must be 200 MB or smaller.")
       for index, uploaded in enumerate(files or [], start=1):
         suffix = Path(uploaded.name).suffix
-        datasets.append(cached_parse(uploaded.getvalue(), suffix, f"dataset_{index}"))
+        datasets.append(
+          _parse_in_session(uploaded.getvalue(), suffix, f"dataset_{index}")
+        )
     else:
       demo_kind = st.segmented_control(
         "Demo",
@@ -217,8 +230,12 @@ with data_tab:
       )
       demo = demo_dataset("univariate" if demo_kind == "Univariate" else "multivariate")
       demo_bytes = demo.to_csv(index=False).encode()
-      datasets.append(cached_parse(demo_bytes, "csv", "demo"))
+      datasets.append(_parse_in_session(demo_bytes, "csv", "demo"))
+    validate_upload_total(datasets)
+    st.session_state.upload_cache = st.session_state.next_upload_cache
   except ExplorerError as exc:
+    datasets = []
+    st.session_state.upload_cache = {}
     st.error(str(exc), icon=":material/error:")
 
   if datasets:
@@ -286,6 +303,11 @@ with configure_tab:
   if not datasets or mapping is None:
     st.info("Choose data first.")
   else:
+    acknowledged = st.checkbox(
+      "I understand the default TimesFM-3 weights are restricted to "
+      "non-commercial, non-production use.",
+      key="license_acknowledged",
+    )
     with st.form("forecast_settings"):
       task = st.segmented_control(
         "Task",
@@ -322,7 +344,7 @@ with configure_tab:
         allow_chunking = st.checkbox(
           "Allow benchmark chunking above 32 variates",
           value=False,
-          disabled=variate_count <= 32 or mode == "Independent univariate",
+          disabled=variate_count <= MAX_VARIATES or mode == "Independent univariate",
           help="Evaluator uses fixed seed 42 and may subsample covariates.",
         )
         if mode == "Independent univariate" and (
@@ -334,10 +356,6 @@ with configure_tab:
         if horizon > 1024:
           st.warning("Large horizons can exhaust GPU memory. Start with batch size 1.")
 
-      acknowledged = st.checkbox(
-        "I understand the default TimesFM-3 weights are restricted to "
-        "non-commercial, non-production use."
-      )
       submitted = st.form_submit_button(
         "Run forecast",
         type="primary",
@@ -361,17 +379,15 @@ with configure_tab:
         allow_benchmark_chunking=allow_chunking,
       )
       try:
-        batch = prepare_batch(datasets, mapping, settings)
         with st.status("Running TimesFM-3", expanded=True) as status:
           st.write("Loading checkpoint")
           predictor = cached_forecaster(device, settings.batch_size)
           st.write("Forecasting")
-          outputs, runtime = run_forecast(predictor, batch)
-          artifact = make_run_artifact(
-            batch,
-            outputs,
-            runtime,
-            str(predictor.device),
+          artifact = execute_forecast(
+            predictor,
+            datasets,
+            mapping,
+            settings,
             repository_revision(Path(__file__).parent),
           )
           _append_run(artifact)
@@ -461,8 +477,11 @@ with about_tab:
       "Inputs": "Univariate, multivariate, past-only and known-future covariates",
       "Outputs": "Median point forecast and q0.1–q0.9 quantiles",
       "Maximum context": f"{MAX_CONTEXT:,} steps",
-      "Model variates": "32 per forward pass; evaluator can chunk targets",
-      "Data handling": "Uploads and run history stay in local process memory",
+      "Model variates": f"{MAX_VARIATES} per forward pass; evaluator can chunk targets",
+      "Data handling": (
+        f"Uploads stay in browser-session memory; {MAX_DECODED_BYTES // 1024**2} MB "
+        "decoded limit per file"
+      ),
     },
     border="horizontal",
     width="content",

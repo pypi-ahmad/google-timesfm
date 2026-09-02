@@ -1,3 +1,6 @@
+# Copyright 2026 Ahmad Mujtaba
+# Licensed under the Apache License, Version 2.0 (the "License");
+
 """Tests for TimesFM-3 explorer business logic."""
 
 from __future__ import annotations
@@ -83,11 +86,26 @@ def test_parse_csv_and_parquet() -> None:
   csv_upload = upload(frame)
   assert csv_upload.dataset_id == "dataset_1"
   assert len(csv_upload.sha256) == 64
+  assert csv_upload.memory_bytes > 0
 
   buffer = io.BytesIO()
   frame.to_parquet(buffer, index=False)
   parquet = explorer.parse_upload(buffer.getvalue(), ".parquet", "dataset_2")
   assert list(parquet.frame.columns) == list(frame.columns)
+
+
+def test_parse_rejects_decoded_memory_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+  monkeypatch.setattr(explorer, "MAX_DECODED_BYTES", 1)
+  with pytest.raises(explorer.ExplorerError, match="memory limit"):
+    upload(simple_frame())
+
+
+@pytest.mark.parametrize("value", [np.inf, -np.inf, float(np.finfo(np.float32).max) * 2])
+def test_prepare_rejects_nonfinite_or_float32_overflow(value: float) -> None:
+  frame = simple_frame()
+  frame.loc[0, "target"] = value
+  with pytest.raises(explorer.ExplorerError):
+    explorer.prepare_batch([upload(frame)], mapping(), settings())
 
 
 @pytest.mark.parametrize("suffix", ["xlsx", "json", "txt"])
@@ -280,6 +298,39 @@ def test_forecast_table_rejects_bad_outputs() -> None:
     explorer.forecast_table(batch, [ForecastOutput()])
   with pytest.raises(explorer.ExplorerError, match="Unexpected forecast shape"):
     explorer.forecast_table(batch, [ForecastOutput(forecast=np.ones((2, 2)))])
+  with pytest.raises(explorer.ExplorerError, match="non-finite"):
+    explorer.forecast_table(
+      batch, [ForecastOutput(forecast=np.full((1, 3), np.inf))]
+    )
+
+
+def test_two_timestamp_history_uses_last_interval() -> None:
+  axis = pd.Series(pd.date_range("2026-01-01", periods=2, freq="2D"))
+  future = explorer._future_axis(axis, history_end=2, horizon=2, uploaded_end=2)
+  assert future == (pd.Timestamp("2026-01-05"), pd.Timestamp("2026-01-07"))
+
+
+def test_execute_forecast_is_complete_pipeline() -> None:
+  artifact = explorer.execute_forecast(
+    FakePredictor(),
+    [upload(simple_frame())],
+    mapping(),
+    settings(),
+    repository_revision="revision",
+  )
+  assert artifact.device == "cpu"
+  assert artifact.manifest["repository_revision"] == "revision"
+
+
+def test_csv_export_neutralizes_formula_cells() -> None:
+  current_mapping = explorer.DatasetMapping("date", ("=SUM(A1:A2)",))
+  frame = simple_frame().rename(columns={"target": "=SUM(A1:A2)"})
+  artifact = explorer.execute_forecast(
+    FakePredictor(), [upload(frame)], current_mapping, settings()
+  )
+  with zipfile.ZipFile(io.BytesIO(explorer.artifact_zip(artifact))) as archive:
+    exported = pd.read_csv(io.BytesIO(archive.read("forecast.csv")))
+  assert exported.loc[0, "target"].startswith("'=")
 
 
 def test_point_only_artifact_has_no_holdout_metrics_file() -> None:

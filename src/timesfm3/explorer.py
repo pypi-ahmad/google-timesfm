@@ -1,3 +1,6 @@
+# Copyright 2026 Ahmad Mujtaba
+# Licensed under the Apache License, Version 2.0 (the "License");
+
 """Core data and inference helpers for the TimesFM-3 Streamlit explorer."""
 
 from __future__ import annotations
@@ -28,6 +31,8 @@ CHECKPOINT_ID = "google/timesfm-3.0-pytorch"
 MAX_CONTEXT = 15_360
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 MAX_TOTAL_UPLOAD_BYTES = 200 * 1024 * 1024
+MAX_DECODED_BYTES = 256 * 1024 * 1024
+MAX_TOTAL_DECODED_BYTES = 512 * 1024 * 1024
 MAX_VARIATES = 32
 QUANTILES = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
 
@@ -87,6 +92,7 @@ class UploadedDataset:
   frame: pd.DataFrame
   sha256: str
   byte_size: int
+  memory_bytes: int
 
 
 @dataclasses.dataclass(frozen=True)
@@ -174,6 +180,15 @@ def parse_upload(data: bytes, suffix: str, dataset_id: str) -> UploadedDataset:
     if normalized_suffix == "csv":
       frame = pd.read_csv(io.BytesIO(data), encoding="utf-8-sig")
     elif normalized_suffix in {"parquet", "pq"}:
+      from pyarrow import parquet
+
+      metadata = parquet.ParquetFile(io.BytesIO(data)).metadata
+      decoded_size = sum(
+        metadata.row_group(index).total_byte_size
+        for index in range(metadata.num_row_groups)
+      )
+      if decoded_size > MAX_DECODED_BYTES:
+        raise ExplorerError(f"{dataset_id} expands beyond the 256 MB memory limit.")
       frame = pd.read_parquet(io.BytesIO(data))
     else:
       raise ExplorerError("Only CSV and Parquet files are supported.")
@@ -187,11 +202,15 @@ def parse_upload(data: bytes, suffix: str, dataset_id: str) -> UploadedDataset:
   if len(normalized_columns) != len(set(normalized_columns)):
     raise ExplorerError(f"{dataset_id} contains duplicate column names.")
   frame.columns = normalized_columns
+  memory_bytes = int(frame.memory_usage(index=True, deep=True).sum())
+  if memory_bytes > MAX_DECODED_BYTES:
+    raise ExplorerError(f"{dataset_id} expands beyond the 256 MB memory limit.")
   return UploadedDataset(
     dataset_id=dataset_id,
     frame=frame,
     sha256=hashlib.sha256(data).hexdigest(),
     byte_size=len(data),
+    memory_bytes=memory_bytes,
   )
 
 
@@ -199,6 +218,8 @@ def validate_upload_total(datasets: Sequence[UploadedDataset]) -> None:
   """Bound aggregate upload memory before dataframe processing."""
   if sum(item.byte_size for item in datasets) > MAX_TOTAL_UPLOAD_BYTES:
     raise ExplorerError("Combined uploads must be 200 MB or smaller.")
+  if sum(item.memory_bytes for item in datasets) > MAX_TOTAL_DECODED_BYTES:
+    raise ExplorerError("Combined decoded uploads must use 512 MB or less.")
 
 
 def _validate_mapping(frame: pd.DataFrame, mapping: DatasetMapping) -> None:
@@ -225,6 +246,11 @@ def _coerce_numeric(frame: pd.DataFrame, columns: Sequence[str]) -> pd.DataFrame
     invalid = frame[column].notna() & converted.isna()
     if invalid.any():
       raise ExplorerError(f"Column '{column}' contains non-numeric values.")
+    finite = converted.dropna().to_numpy(dtype=np.float64)
+    if not np.isfinite(finite).all():
+      raise ExplorerError(f"Column '{column}' contains infinite values.")
+    if np.abs(finite).max(initial=0) > np.finfo(np.float32).max:
+      raise ExplorerError(f"Column '{column}' contains values outside float32 range.")
     numeric[column] = converted.astype(float)
   return numeric
 
@@ -237,7 +263,14 @@ def _time_axis(
     axis = pd.Series(np.arange(len(frame)), index=frame.index, name="step")
     return frame.reset_index(drop=True), axis.reset_index(drop=True), lineage
 
-  parsed = pd.to_datetime(frame[timestamp], errors="coerce", format="mixed")
+  try:
+    parsed = pd.to_datetime(frame[timestamp], errors="coerce", format="mixed")
+    if parsed.dtype == object:
+      parsed = pd.to_datetime(
+        frame[timestamp], errors="coerce", format="mixed", utc=True
+      )
+  except (TypeError, ValueError, OverflowError) as exc:
+    raise ExplorerError(f"Timestamp column '{timestamp}' contains invalid values.") from exc
   if parsed.isna().any():
     raise ExplorerError(f"Timestamp column '{timestamp}' contains invalid values.")
   if parsed.duplicated().any():
@@ -263,10 +296,16 @@ def _future_axis(
     return tuple(range(1, horizon + 1))
   if pd.api.types.is_datetime64_any_dtype(axis):
     history = pd.DatetimeIndex(axis.iloc[:history_end])
-    frequency = pd.infer_freq(history[-min(len(history), 10) :])
+    frequency = (
+      pd.infer_freq(history[-min(len(history), 10) :]) if len(history) >= 3 else None
+    )
     if frequency:
       generated = pd.date_range(history[-1], periods=horizon + 1, freq=frequency)[1:]
       return tuple(generated.tolist())
+    if len(history) >= 2:
+      delta = history[-1] - history[-2]
+      if delta > pd.Timedelta(0):
+        return tuple((history[-1] + delta * step) for step in range(1, horizon + 1))
   start = (
     int(axis.iloc[history_end - 1]) + 1
     if pd.api.types.is_numeric_dtype(axis.dtype)
@@ -476,10 +515,16 @@ def forecast_table(
       raise ExplorerError(
         f"Unexpected forecast shape {point.shape}; expected {expected}."
       )
+    if not np.isfinite(point).all():
+      raise ExplorerError(f"Forecast for {prepared.dataset_id} contains non-finite values.")
     expected_quantiles = (*expected, len(QUANTILES))
     if quantiles is not None and quantiles.shape != expected_quantiles:
       raise ExplorerError(
         f"Unexpected quantile shape {quantiles.shape}; expected {expected_quantiles}."
+      )
+    if quantiles is not None and not np.isfinite(quantiles).all():
+      raise ExplorerError(
+        f"Quantiles for {prepared.dataset_id} contain non-finite values."
       )
     for target_index, target_name in enumerate(prepared.target_names):
       for step in range(batch.settings.horizon):
@@ -657,13 +702,47 @@ def make_run_artifact(
   )
 
 
+def execute_forecast(
+  predictor: BatchPredictor,
+  datasets: Sequence[UploadedDataset],
+  mapping: DatasetMapping,
+  settings: ForecastSettings,
+  repository_revision: str = "unknown",
+) -> RunArtifact:
+  """Validate, forecast, and package one complete explorer run."""
+  batch = prepare_batch(datasets, mapping, settings)
+  outputs, runtime_seconds = run_forecast(predictor, batch)
+  return make_run_artifact(
+    batch,
+    outputs,
+    runtime_seconds,
+    str(predictor.device),
+    repository_revision,
+  )
+
+
+def _csv_safe(frame: pd.DataFrame) -> pd.DataFrame:
+  """Neutralize spreadsheet formulas in user-controlled CSV cells."""
+  safe = frame.copy()
+  dangerous = ("=", "+", "-", "@", "\t", "\r")
+  for column in safe.select_dtypes(include=["object", "string"]).columns:
+    safe[column] = safe[column].map(
+      lambda value: (
+        "'" + value
+        if isinstance(value, str) and value.lstrip(" ").startswith(dangerous)
+        else value
+      )
+    )
+  return safe
+
+
 def artifact_zip(artifact: RunArtifact) -> bytes:
   """Create a portable result bundle entirely in memory."""
   output = io.BytesIO()
   with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-    archive.writestr("forecast.csv", artifact.forecast.to_csv(index=False))
+    archive.writestr("forecast.csv", _csv_safe(artifact.forecast).to_csv(index=False))
     if not artifact.metrics.empty:
-      archive.writestr("metrics.csv", artifact.metrics.to_csv(index=False))
+      archive.writestr("metrics.csv", _csv_safe(artifact.metrics).to_csv(index=False))
     archive.writestr(
       "run.json",
       json.dumps(artifact.manifest, indent=2, default=str),

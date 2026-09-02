@@ -27,3 +27,6 @@ uv.lock
 development_setup.md
 debug.log
 *.log
+
+# Local Streamlit credentials
+.streamlit/secrets.toml
