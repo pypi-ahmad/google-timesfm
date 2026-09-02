@@ -2,9 +2,9 @@ name: Python package build
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -19,10 +19,13 @@ jobs:
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - name: Create virtual environment
-        run: uv venv
-      - name: Install build dependencies
-        run: |
-          uv pip install build ".[torch,flax]"
+      - name: Install project dependencies
+        run: uv sync --extra torch --extra app --group dev
       - name: Build package
-        run: uv run python -m build
+        run: uv run --with build python -m build
+      - name: Lint current application code
+        run: uv run ruff check streamlit_app.py src/timesfm3 tests/test_explorer.py tests/test_streamlit_app.py
+      - name: Type-check current application code
+        run: uv run ty check streamlit_app.py src/timesfm3/explorer.py tests/test_explorer.py tests/test_streamlit_app.py
+      - name: Test current package
+        run: uv run pytest -q tests src/timesfm3

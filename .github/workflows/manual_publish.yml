@@ -5,6 +5,7 @@ on:
 
 jobs:
   build-and-publish:
+    if: github.repository == 'google-research/timesfm'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
