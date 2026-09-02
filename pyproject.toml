@@ -35,6 +35,12 @@ xreg = [
     "jax[cuda]",
     "scikit-learn",
 ]
+app = [
+    "altair>=6.2.2",
+    "pandas>=2.3.3",
+    "pyarrow>=25.0.1",
+    "streamlit>=1.57",
+]
 
 [tool.ruff]
 line-length = 88
@@ -46,5 +52,13 @@ where = ["src"]
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.16.5",
+    "ty>=0.0.77",
+]
 
 
