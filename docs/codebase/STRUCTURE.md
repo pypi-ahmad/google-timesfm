@@ -4,7 +4,7 @@
 
 | Path | Purpose | Evidence |
 |---|---|---|
-| `src/timesfm3/` | Current TimesFM 3 PyTorch model and forecast interfaces | `src/timesfm3/__init__.py` |
+| `src/timesfm3/` | Current TimesFM 3 model, Explorer workflows, and forecast interfaces | `src/timesfm3/__init__.py` |
 | `src/timesfm/` | TimesFM 2.5 PyTorch/Flax implementation | `README.md` |
 | `tests/` | Package and Streamlit tests | `tests/test_explorer.py` |
 | `timesfm-forecasting/` | Agent skill, scripts, and examples | `timesfm-forecasting/SKILL.md` |
@@ -26,7 +26,10 @@
 |---|---|---|
 | Streamlit page | Widgets, session state, presentation | Model tensor implementation |
 | `timesfm3.explorer` | Upload validation, preparation, artifacts | Widget rendering |
-| `timesfm3.run_store` | DuckDB schema and derived run persistence | Raw upload retention |
+| `timesfm3.data_preparation` | Bulk groups, calendar covariates, data quality | Model execution |
+| `timesfm3.analysis` | Historical comparisons and diagnostics | Widget rendering |
+| `timesfm3.tracking` | Forecast-vintage assessment and refresh matching | Raw upload retention |
+| `timesfm3.run_store` | DuckDB schema and derived result persistence | Raw upload retention |
 | Forecaster/evaluator | Model loading and inference | CSV/Parquet UI policy |
 | Model modules | Neural network operations/configuration | App session state |
 

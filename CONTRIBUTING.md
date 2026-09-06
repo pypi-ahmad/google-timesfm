@@ -22,6 +22,9 @@ checkpoints, datasets, caches, or `.streamlit/secrets.toml`.
 | `src/timesfm3/` | Current TimesFM-3 PyTorch package |
 | `streamlit_app.py` | Explorer widgets and session state |
 | `src/timesfm3/explorer.py` | App validation, orchestration, and artifacts |
+| `src/timesfm3/analysis.py` | Historical analysis and comparisons |
+| `src/timesfm3/data_preparation.py` | Bulk grouping, calendar features, and data quality |
+| `src/timesfm3/tracking.py` | Forecast assessment and refresh matching |
 | `src/timesfm/` | TimesFM 2.5 implementation |
 | `tests/` | Package and application tests |
 | `timesfm-forecasting/` | Agent skill, compatibility scripts, examples |
@@ -35,8 +38,9 @@ change.
 
 - Follow the local two-space Python indentation and 88-character line length.
 - Keep Streamlit widgets in `streamlit_app.py` and forecast behavior outside it.
-- Keep tabular app policy in `timesfm3.explorer` and tensor behavior in the
-  forecaster/model layers.
+- Keep tabular app policy in `timesfm3.explorer`; place preparation, analysis,
+  tracking, model-resolution, and persistence behavior in their focused
+  Explorer modules; keep tensor behavior in the forecaster/model layers.
 - Preserve archived code unless the task explicitly targets it.
 - Add a focused regression test for behavior changes.
 - Keep TimesFM-3 and TimesFM 2.5 APIs clearly separated in code and docs.
@@ -60,7 +64,7 @@ Quality checks:
 ```powershell
 uv run ruff check streamlit_app.py src/timesfm3 tests
 uv run ruff format --check streamlit_app.py src/timesfm3 tests
-uv run ty check streamlit_app.py src/timesfm3/explorer.py
+uv run ty check streamlit_app.py src/timesfm3
 uv build
 ```
 
@@ -90,7 +94,8 @@ and download its ZIP. Stop the process when finished.
 2. Keep internal links relative and use descriptive link text.
 3. Mark code fences with a language.
 4. Test commands and parse Python examples.
-5. Update the coverage matrix in [docs/README.md](docs/README.md).
+5. Update the coverage matrix in [docs/README.md](docs/README.md) and the
+   Explorer handbook when a workflow changes.
 6. Treat current source and tests as authoritative over draft OKF entries.
 
 ## Submit a change

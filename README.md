@@ -4,8 +4,9 @@ A local Streamlit application and Python toolkit for testing Google's
 TimesFM-3 zero-shot forecasting model with CSV or Parquet data.
 
 This fork provides a guided upload workflow, univariate and multivariate
-forecasts, covariates, holdout evaluation, quantile outputs, run comparison,
-and portable result bundles.
+forecasts, covariates, holdout evaluation, nested quantile bands, rolling
+backtests, scenarios, baseline comparisons, forecast tracking, local or pinned
+checkpoints, and portable result bundles.
 
 > [!IMPORTANT]
 > The source code is Apache-2.0. The default TimesFM-3 pretrained weights use
@@ -56,8 +57,9 @@ ignored by Git.
 
 ## Use your own data
 
-Upload one or more wide CSV or Parquet files. Each row is a time step and each
-numeric series is a column.
+Upload wide or long-format CSV or Parquet files. Each row is a time step; long
+tables can use group identifiers such as `store_id` to create one series per
+group.
 
 ```csv
 date,sales,temperature,promotion
@@ -110,12 +112,14 @@ multivariate arrays, evaluator defaults, and covariate shapes.
 |---|---|
 | Complete a first forecast | [First forecast tutorial](docs/tutorials/first-forecast.md) |
 | Learn the explorer workflow | [Use the Streamlit explorer](docs/how-to/use-streamlit-explorer.md) |
+| Follow the complete operational path | [TimesFM-3 Explorer handbook](docs/how-to/timesfm3-explorer-handbook.md) |
 | Format CSV or Parquet data | [Prepare data](docs/how-to/prepare-data.md) |
 | Forecast from Python | [Use the TimesFM-3 API](docs/how-to/use-python-api.md) |
 | Run the legacy CSV helper | [Use the CSV helper](docs/how-to/use-csv-helper.md) |
 | Look up settings and outputs | [Explorer reference](docs/reference/explorer.md) |
 | Look up Python interfaces | [Python API reference](docs/reference/python-api.md) |
 | Understand the design | [Architecture](docs/explanation/architecture.md) |
+| Explore the application structure | [Interactive Explorer architecture](docs/diagrams/timesfm3-explorer-architecture.html) |
 | Resolve a problem | [Troubleshooting](docs/troubleshooting.md) |
 | Work on the repository | [Contributing](CONTRIBUTING.md) |
 

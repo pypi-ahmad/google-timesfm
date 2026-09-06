@@ -5,29 +5,35 @@ orchestration, and tensor computation. The boundary keeps Streamlit concerns
 out of inference code and allows the app pipeline to be tested without loading
 the checkpoint.
 
+Open the [interactive Explorer architecture diagram](../diagrams/timesfm3-explorer-architecture.html)
+to trace Forecast, Evaluate, and Track paths. Its editable
+[source specification](../diagrams/timesfm3-explorer-architecture.json) describes
+the current working-tree architecture.
+
 ```mermaid
 flowchart LR
-  A[CSV, Parquet, or demo] --> B[Upload parsing and limits]
-  B --> C[Column mapping and time alignment]
-  C --> D[Prepared target and covariate arrays]
-  D --> E[Cached TimesFM3Evaluator]
-  E --> F[TimesFM3Forecaster]
-  F --> G[TimesFM3Torch]
-  G --> H[ForecastOutput]
-  H --> I[Tables, metrics, manifest]
-  I --> J[Charts, comparison, ZIP]
+  A[CSV, Parquet, or demo] --> B[Prepare: parse, map, group, validate]
+  B --> C[Prepared target and covariate arrays]
+  C --> D[Resolved cached TimesFM3Evaluator]
+  D --> E[Forecast artifacts and ZIP]
+  C --> F[Historical analysis]
+  F --> G[Analysis metrics and calibration]
+  E --> H[DuckDB forecast vintages]
+  G --> I[DuckDB analysis history]
+  H --> J[Track: assess actuals or refresh]
 ```
 
 ## UI boundary
 
-`streamlit_app.py` owns widgets, tabs, session state, model resource caching,
+`streamlit_app.py` owns widgets, the Prepare/Forecast/Evaluate/Track workspaces,
+session state, model resource caching,
 and presentation. It does not implement model transformations. Upload parsing
 is session-scoped so decoded user data is not retained in a global Streamlit
 cache.
 
 ## Explorer boundary
 
-`timesfm3.explorer` owns application-domain policy:
+`timesfm3.explorer` owns forecast-domain policy:
 
 - file parsing and memory limits
 - timestamp sorting and future-axis generation
@@ -38,6 +44,13 @@ cache.
 
 The `BatchPredictor` protocol is the test seam. Tests substitute a deterministic
 predictor and exercise the complete pipeline without model weights.
+
+Adjacent Explorer modules own separable workflows: `data_preparation` handles
+long-format grouping, calendar generation, and quality previews; `analysis`
+creates leak-free historical schedules and comparisons; `tracking` matches
+issued forecasts to new actuals; `model_loading` resolves reproducible model
+identity; `uncertainty` derives display bands and descriptive coverage; and
+`run_store` persists derived local artifacts.
 
 ## Model boundary
 
@@ -51,9 +64,13 @@ know about files, Streamlit sessions, dataframes, or export formats.
 
 ## State and external systems
 
-- Hugging Face supplies and caches the checkpoint.
+- Hugging Face supplies cached Hub checkpoints; compatible local checkpoints are
+  also supported.
 - Streamlit session state retains decoded current uploads.
-- DuckDB reads uploaded files and stores the newest 25 derived run artifacts.
+- Temporary upload files are parsed with DuckDB and deleted immediately. The
+  local DuckDB database stores only derived forecast, analysis, tracking, and
+  assessment artifacts. It retains 25 untracked
+  forecasts and 25 analyses; tracked forecast vintages are protected.
 - Git is queried with a two-second timeout to record the source revision.
 - No queue or remote application store is configured.
 
@@ -68,7 +85,7 @@ summarized at the UI boundary. Partial upload batches are not retained.
 - Temporary upload files are deleted immediately after DuckDB reads them;
   decoded data remains session-scoped.
 - One cached model reduces reload latency but shares finite process/GPU memory.
-- DuckDB retains 25 derived runs; ZIP export remains the portable record.
+- DuckDB retains derived artifacts; ZIP export remains the portable record.
 - Evaluator chunking supports more than 32 combined variates but can subsample
   covariates, so it requires explicit acknowledgement in the app.
 

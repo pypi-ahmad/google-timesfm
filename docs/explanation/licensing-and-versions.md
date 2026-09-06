@@ -24,7 +24,10 @@ of rights.
 | TimesFM 2.5 | `src/timesfm/` | `TimesFM_2p5_200M_torch`, CSV helper |
 | TimesFM 1 and 2 | Earlier Git revisions/releases | Historical implementation |
 
-The Streamlit application always loads `google/timesfm-3.0-pytorch`. The
+The Streamlit application defaults to `google/timesfm-3.0-pytorch`, but users
+can choose a pinned Hugging Face revision, compatible local folder, or local
+state-dictionary file. Every Explorer run records its resolved revision or
+local-file fingerprints. The
 `timesfm-forecasting/scripts/forecast_csv.py` helper loads TimesFM 2.5 and uses
 the older `ForecastConfig` API. Examples cannot be copied between those APIs
 without adaptation.

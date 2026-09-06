@@ -6,6 +6,7 @@ Choose the shortest path for what you need to do.
 
 - Learning the model: [read the complete TimesFM-3 guide](timesfm3-guide.md).
 - New to the app: [complete your first forecast](tutorials/first-forecast.md).
+- Running the app end to end: [follow the Explorer handbook](how-to/timesfm3-explorer-handbook.md).
 - Bringing your own file: [prepare CSV or Parquet data](how-to/prepare-data.md).
 - Integrating Python: [use the TimesFM-3 API](how-to/use-python-api.md).
 - Something failed: [open the troubleshooting guide](troubleshooting.md).
@@ -18,6 +19,8 @@ Choose the shortest path for what you need to do.
 ## How-to guides
 
 - [Use the Streamlit explorer](how-to/use-streamlit-explorer.md)
+- [TimesFM-3 Explorer handbook](how-to/timesfm3-explorer-handbook.md)
+- [Run historical analyses and what-if scenarios](how-to/use-streamlit-explorer.md#analyze-historical-accuracy-and-future-scenarios)
 - [Prepare data](how-to/prepare-data.md)
 - [Use the TimesFM-3 Python API](how-to/use-python-api.md)
 - [Use the TimesFM 2.5 CSV helper](how-to/use-csv-helper.md)
@@ -31,6 +34,7 @@ Choose the shortest path for what you need to do.
 
 - [Learn Google TimesFM-3](timesfm3-guide.md)
 - [Architecture and data flow](explanation/architecture.md)
+- [Interactive Explorer architecture](diagrams/timesfm3-explorer-architecture.html)
 - [Licensing and model versions](explanation/licensing-and-versions.md)
 
 ## Operations and development
@@ -61,6 +65,10 @@ precedence.
 | Demo and file upload | Yes | Yes | Explorer reference |
 | Targets and covariates | Yes | Yes | Explorer and API reference |
 | Forecast and holdout modes | Yes | Yes | Explorer reference |
+| Bulk series, readiness, and calendar features | No | Yes | Explorer reference |
+| Backtesting, anomalies, scenarios, and usefulness comparisons | No | Yes | Explorer analysis reference |
+| Settings, baselines, and interval calibration | No | Yes | Explorer analysis reference |
+| Tracking, refresh, and checkpoint selection | No | Yes | Explorer reference |
 | Quantiles and exports | Yes | Yes | Explorer reference |
 | Python integration | No | Yes | Python API reference |
 | CSV helper | No | Yes | Version explanation |

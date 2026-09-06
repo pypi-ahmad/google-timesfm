@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "TimesFM-3 Explorer Architecture",
+    "subtitle": "Local preparation, forecasting, historical evaluation, and tracked refresh",
+    "output": "timesfm3-explorer-architecture.html",
+    "animation": "trace",
+    "visual_preset": "blueprint",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "forecast",
+        "label": "Forecast",
+        "focus": [
+          "inputs",
+          "ui",
+          "prepare",
+          "model",
+          "artifacts"
+        ],
+        "note": "A submitted forecast follows validated preparation and an explicitly resolved TimesFM-3 model."
+      },
+      {
+        "id": "evaluate",
+        "label": "Evaluate",
+        "focus": [
+          "prepare",
+          "analysis",
+          "store",
+          "artifacts"
+        ],
+        "note": "Historical analyses create derived predictions and accuracy diagnostics from pre-cutoff contexts."
+      },
+      {
+        "id": "track",
+        "label": "Track",
+        "focus": [
+          "inputs",
+          "prepare",
+          "tracking",
+          "store",
+          "model"
+        ],
+        "note": "Updated uploads assess immutable issued forecasts or create a linked refresh."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "inputs",
+      "type": "external",
+      "label": "Local data sources",
+      "sublabel": "CSV, Parquet, or demo",
+      "tag": "session-scoped",
+      "pos": [
+        30,
+        290
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "ui",
+      "type": "frontend",
+      "label": "Streamlit Explorer",
+      "sublabel": "Prepare \u00b7 Forecast \u00b7 Evaluate \u00b7 Track",
+      "pos": [
+        230,
+        290
+      ],
+      "size": [
+        185,
+        64
+      ]
+    },
+    {
+      "id": "prepare",
+      "type": "backend",
+      "label": "Preparation and validation",
+      "sublabel": "roles, grouping, calendar, readiness",
+      "pos": [
+        470,
+        290
+      ],
+      "size": [
+        205,
+        64
+      ]
+    },
+    {
+      "id": "model",
+      "type": "backend",
+      "label": "Resolved TimesFM-3 model",
+      "sublabel": "evaluator and forecaster",
+      "tag": "one cached resource",
+      "pos": [
+        730,
+        290
+      ],
+      "size": [
+        190,
+        64
+      ]
+    },
+    {
+      "id": "artifacts",
+      "type": "external",
+      "label": "Results and exports",
+      "sublabel": "charts, metrics, ZIP manifests",
+      "pos": [
+        980,
+        290
+      ],
+      "size": [
+        175,
+        64
+      ]
+    },
+    {
+      "id": "checkpoint",
+      "type": "cloud",
+      "label": "Checkpoint source",
+      "sublabel": "Hub cache or local files",
+      "pos": [
+        730,
+        115
+      ],
+      "size": [
+        190,
+        64
+      ]
+    },
+    {
+      "id": "analysis",
+      "type": "backend",
+      "label": "Historical analysis",
+      "sublabel": "backtests, scenarios, baselines",
+      "pos": [
+        470,
+        485
+      ],
+      "size": [
+        205,
+        64
+      ]
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "Local DuckDB",
+      "sublabel": "runs, analyses, links, assessments",
+      "pos": [
+        730,
+        485
+      ],
+      "size": [
+        190,
+        64
+      ]
+    },
+    {
+      "id": "tracking",
+      "type": "backend",
+      "label": "Forecast tracking",
+      "sublabel": "actual matching and refresh",
+      "pos": [
+        980,
+        485
+      ],
+      "size": [
+        175,
+        64
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Local Explorer process",
+      "wraps": [
+        "ui",
+        "prepare",
+        "model",
+        "analysis",
+        "store",
+        "tracking"
+      ],
+      "pad": 24
+    },
+    {
+      "kind": "region",
+      "label": "User-controlled or external",
+      "wraps": [
+        "inputs",
+        "checkpoint",
+        "artifacts"
+      ],
+      "pad": 18
+    }
+  ],
+  "connections": [
+    {
+      "from": "inputs",
+      "to": "ui",
+      "variant": "emphasis"
+    },
+    {
+      "from": "ui",
+      "to": "prepare",
+      "variant": "emphasis"
+    },
+    {
+      "from": "prepare",
+      "to": "model",
+      "variant": "emphasis"
+    },
+    {
+      "from": "model",
+      "to": "artifacts",
+      "variant": "emphasis"
+    },
+    {
+      "from": "checkpoint",
+      "to": "model",
+      "variant": "dashed"
+    },
+    {
+      "from": "prepare",
+      "to": "analysis"
+    },
+    {
+      "from": "analysis",
+      "to": "store"
+    },
+    {
+      "from": "model",
+      "to": "store"
+    },
+    {
+      "from": "store",
+      "to": "tracking"
+    }
+  ]
+}

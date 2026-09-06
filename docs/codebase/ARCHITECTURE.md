@@ -18,7 +18,8 @@ upload/demo -> parse and validate -> map columns -> prepare arrays
 1. `streamlit_app.py` collects files or builds a deterministic demo.
 2. `parse_upload` creates an `UploadedDataset` and enforces input limits.
 3. `prepare_batch` maps table columns into targets and covariate arrays.
-4. `load_forecaster` obtains a cached `TimesFM3Evaluator` checkpoint instance.
+4. `model_loading.resolve_model` resolves a pinned Hub revision or compatible
+   local checkpoint, then the app obtains a cached `TimesFM3Evaluator`.
 5. `run_forecast` calls the evaluator and records runtime.
 6. `make_run_artifact` creates tables, metrics, lineage, and export metadata.
 
@@ -28,6 +29,9 @@ upload/demo -> parse and validate -> map columns -> prepare arrays
 |---|---|---|---|
 | `streamlit_app.py` | UI state and rendering | Forecast algorithms | `streamlit_app.py` |
 | `timesfm3.explorer` | App-domain validation and artifacts | Streamlit widgets | `src/timesfm3/explorer.py` |
+| `timesfm3.data_preparation` | Bulk grouping, calendar features, readiness | Model execution | `src/timesfm3/data_preparation.py` |
+| `timesfm3.analysis` | Leak-free historical comparisons | Widget rendering | `src/timesfm3/analysis.py` |
+| `timesfm3.tracking` | Actual matching and immutable assessments | Upload parsing | `src/timesfm3/tracking.py` |
 | `TimesFM3Evaluator` | Benchmark-compatible batching | Upload formats | `src/timesfm3/evaluator.py` |
 | `TimesFM3Forecaster` | Checkpoint and model inference | UI policy | `src/timesfm3/timesfm3_forecaster.py` |
 | `TimesFM3Torch` | Neural model computation | File parsing | `src/timesfm3/model.py` |
@@ -47,7 +51,8 @@ upload/demo -> parse and validate -> map columns -> prepare arrays
   could reduce locality unless rendering stays separate from forecast execution.
 - Current and archived packages share the `timesfm` name, so broad test
   discovery can import the wrong generation.
-- DuckDB retains the newest 25 derived runs; raw uploads remain session-only.
+- DuckDB retains 25 untracked runs and 25 analyses; tracked runs are protected.
+  Raw uploads remain session-only.
 
 ## Evidence
 
