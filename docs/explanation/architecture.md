@@ -1,5 +1,13 @@
 # Architecture and Data Flow
 
+> [!NOTE]
+> This page describes the retained Streamlit Explorer. The primary local
+> interface is documented in the
+> [React + FastAPI workbench architecture](workbench-architecture.md).
+
+This page describes the retained Streamlit explorer. For the new default UI,
+see [React + FastAPI workbench architecture](workbench-architecture.md).
+
 The repository separates user interaction, tabular preparation, model
 orchestration, and tensor computation. The boundary keeps Streamlit concerns
 out of inference code and allows the app pipeline to be tested without loading

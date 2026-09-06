@@ -1,7 +1,8 @@
-# TimesFM-3 Explorer
+# TimesFM-3 Workbench
 
-A local Streamlit application and Python toolkit for testing Google's
-TimesFM-3 zero-shot forecasting model with CSV or Parquet data.
+A local React + FastAPI workbench and Python toolkit for Google's TimesFM-3
+zero-shot forecasting model with CSV or Parquet data. Persistent jobs, datasets,
+drafts, results, and tracking survive browser restarts.
 
 This fork provides a guided upload workflow, univariate and multivariate
 forecasts, covariates, holdout evaluation, nested quantile bands, rolling
@@ -15,6 +16,44 @@ checkpoints, and portable result bundles.
 > [Licensing and versions](docs/explanation/licensing-and-versions.md).
 
 ## Quick start
+
+### React workbench on Windows 11
+
+Install uv, Node.js 24 or newer, and Git. From this repository:
+
+Double-click **`launch_workbench.cmd`**. It sets up missing components on first
+launch, starts the services, waits for readiness, and opens the browser. Running
+it again reopens the existing workbench. The terminal stays open with live,
+service-labeled logs. Ctrl+C closes the log view; `.\dev.ps1 stop` stops the app.
+
+For manual setup and startup:
+
+```powershell
+.\dev.ps1 setup
+.\dev.ps1 start
+```
+
+Open <http://localhost:3000>. API documentation: <http://127.0.0.1:8001/docs>.
+Setup provisions private PostgreSQL and Memurai processes and builds the frontend.
+Use `.\dev.ps1 doctor` to inspect service health, `.\dev.ps1 stop` to stop the
+workbench, and `.\dev.ps1 dev` for frontend hot reload.
+
+The seven sections cover data, forecasting, experiments, scenarios, tracking,
+models, and an overview dashboard. Uploads and derived artifacts are retained;
+PostgreSQL stores immutable versions, jobs, results, and revisioned drafts.
+Retention is opt-in in Workspace settings.
+
+See [Run the native workbench](docs/how-to/native-workbench.md) for service ports,
+CPU selection, recovery, legacy imports, and monitoring.
+
+### Legacy Streamlit Explorer
+
+The following setup and port 9587 apply to the retained Streamlit UI. Its DuckDB
+history is separate from the new workbench. For an API-only diagnostic client:
+
+```powershell
+uv run --no-sync streamlit run diagnostic_app.py --server.port=9588
+```
 
 ### Requirements
 
@@ -111,15 +150,16 @@ multivariate arrays, evaluator defaults, and covariate shapes.
 | Goal | Document |
 |---|---|
 | Complete a first forecast | [First forecast tutorial](docs/tutorials/first-forecast.md) |
-| Learn the explorer workflow | [Use the Streamlit explorer](docs/how-to/use-streamlit-explorer.md) |
-| Follow the complete operational path | [TimesFM-3 Explorer handbook](docs/how-to/timesfm3-explorer-handbook.md) |
+| Use the native workbench | [Native workbench guide](docs/how-to/native-workbench.md) |
+| Inspect local API resources | [Workbench API reference](docs/reference/workbench-api.md) |
+| Use the legacy diagnostic UI | [Legacy Streamlit Explorer](docs/how-to/use-streamlit-explorer.md) |
 | Format CSV or Parquet data | [Prepare data](docs/how-to/prepare-data.md) |
 | Forecast from Python | [Use the TimesFM-3 API](docs/how-to/use-python-api.md) |
 | Run the legacy CSV helper | [Use the CSV helper](docs/how-to/use-csv-helper.md) |
-| Look up settings and outputs | [Explorer reference](docs/reference/explorer.md) |
+| Look up legacy Explorer settings | [Legacy Explorer reference](docs/reference/explorer.md) |
 | Look up Python interfaces | [Python API reference](docs/reference/python-api.md) |
 | Understand the design | [Architecture](docs/explanation/architecture.md) |
-| Explore the application structure | [Interactive Explorer architecture](docs/diagrams/timesfm3-explorer-architecture.html) |
+| Understand the workbench design | [Workbench architecture](docs/explanation/workbench-architecture.md) |
 | Resolve a problem | [Troubleshooting](docs/troubleshooting.md) |
 | Work on the repository | [Contributing](CONTRIBUTING.md) |
 
@@ -129,14 +169,16 @@ codebase notes, and the research knowledge base.
 ## What is included
 
 - `streamlit_app.py`: local interactive explorer
+- `src/timesfm_app/`: FastAPI API, persistence, workers, and local supervisor
+- `web/`: Next.js workbench
 - `src/timesfm3/`: current TimesFM-3 PyTorch implementation
 - `src/timesfm/`: TimesFM 2.5 implementation
 - `timesfm-forecasting/`: agent skill, TimesFM 2.5 helper, and examples
 - `knowledge/`: draft research and source extracts in OKF format
 
-The TimesFM 2.5 CSV helper is retained for compatibility; it does not use the
-TimesFM-3 explorer pipeline. The documentation calls out version-specific APIs
-where this distinction matters.
+The TimesFM 2.5 CSV helper and examples are archived compatibility material.
+They do not use the TimesFM-3 workbench pipeline. See the
+[archived compatibility note](timesfm-forecasting/SKILL.md).
 
 ## Development checks
 

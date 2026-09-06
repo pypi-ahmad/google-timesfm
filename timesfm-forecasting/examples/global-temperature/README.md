@@ -1,4 +1,8 @@
-# TimesFM Forecast Report: Global Temperature Anomaly (2025)
+# Archived: TimesFM Forecast Report: Global Temperature Anomaly (2025)
+
+> [!NOTE]
+> This historical example uses TimesFM 1.0. It is not a TimesFM-3 workbench
+> result and should not be used as current product guidance.
 
 **Model:** TimesFM 1.0 (200M) PyTorch  
 **Generated:** 2026-02-21  
@@ -87,7 +91,7 @@ TimesFM forecasts a mean temperature anomaly of **1.19°C** for 2025, slightly b
 
 ## Visualization
 
-![Temperature Anomaly Forecast](forecast_visualization.png)
+![Temperature Anomaly Forecast](output/forecast_visualization.png)
 
 ---
 

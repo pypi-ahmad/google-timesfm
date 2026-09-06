@@ -5,12 +5,16 @@
 - Framework: pytest `>=9.1.1`.
 - Assertions/mocking: Python assertions, pytest parametrization/fixtures, and
   `unittest.mock`.
+- Browser: Vitest plus Playwright in `web/`.
 
 ```powershell
 uv run pytest -q tests src/timesfm3
 uv run pytest -q tests/test_explorer.py tests/test_streamlit_app.py
 uv run pytest -q src/timesfm3/timesfm3_forecaster_test.py
-uv run pytest --cov=timesfm3 tests
+uv run --no-sync pytest -q tests/test_app_api.py tests/test_app_store.py tests/test_app_jobs.py tests/test_app_migration.py tests/test_app_services.py tests/test_app_native.py tests/test_tracking_jobs.py tests/test_diagnostic_client.py
+npm --prefix web test
+npm --prefix web run typecheck
+npm --prefix web run test:e2e
 ```
 
 The coverage command is available through `pytest-cov`, but no threshold is
@@ -31,7 +35,7 @@ configured and Windows NumPy/Pandas coverage behavior requires verification.
 | Unit | Yes | validation, layers, configs, transforms | deterministic arrays/fakes |
 | Integration | Yes | checkpoint save/load, artifact ZIP | local temp files |
 | UI startup | Yes | Streamlit page | Streamlit AppTest |
-| Browser E2E | No | full uploaded forecast | `[TODO]` no browser suite |
+| Browser E2E | Yes | navigation, drafts, jobs, charts, tracking, calibration | mocked API plus opt-in live checks |
 | GPU smoke | Manual | real TimesFM 3 forecast | hardware/checkpoint dependent |
 
 ## Mocking and Isolation Strategy
@@ -45,7 +49,7 @@ configured and Windows NumPy/Pandas coverage behavior requires verification.
 ## Coverage and Quality Signals
 
 - Coverage tool: pytest-cov; threshold: `[TODO]` not configured.
-- CI builds, runs targeted Ruff/ty, and executes current package tests.
+- CI builds, runs targeted Ruff/ty, application tests, and frontend checks.
 - Real downloads and CUDA behavior are not required by CI.
 
 ## Evidence

@@ -5,14 +5,14 @@
 | Severity | Concern | Evidence | Impact | Suggested action |
 |---|---|---|---|---|
 | High | Default TimesFM 3 weights prohibit production/commercial use | `README.md` | Accidental license breach | Keep acknowledgement and license notice |
-| Medium | Model/checkpoint memory can exhaust local GPU/RAM | `streamlit_app.py`, `explorer.py` | Failed forecasts | Keep hard data limits and clear OOM guidance |
-| Low | Local run store can be unavailable | `run_store.py` | History falls back to session memory | Warn clearly; keep ZIP export |
+| Medium | Model/checkpoint memory can exhaust local GPU/RAM | `timesfm_app.worker`, `services.py` | Failed forecasts | Keep bounded batches and clear OOM guidance |
+| Medium | Local PostgreSQL, broker, or artifact state can be unavailable | `timesfm_app` | Jobs or saved artifacts unavailable | Use `dev.ps1 doctor`, backups, and recovery guidance |
 
 ## Technical Debt
 
 | Item | Why | Where | Risk | Suggested fix |
 |---|---|---|---|---|
-| Single-page UI | Initial local explorer | `streamlit_app.py` | Lower locality as features grow | Split rendering only after another workflow appears |
+| Legacy single-page UI | Retained diagnostic Explorer | `streamlit_app.py` | Divergence from the primary workbench | Keep documentation visibly legacy |
 | Two test layouts | Upstream evolution | `tests/`, `src/timesfm3/*_test.py` | Commands can omit tests | Keep the CI command explicit |
 | No coverage gate | Not configured | `pyproject.toml` | Regressions may lack tests | Establish threshold after tool stability is proven |
 
@@ -22,14 +22,14 @@
 |---|---|---|---|---|
 | Untrusted uploads | OWASP A04 | `parse_upload` | Type/raw/decoded-size and value validation | Parquet decoding still depends on PyArrow |
 | Local checkpoint files | OWASP A08 | `timesfm3_forecaster.py` | safetensors or `weights_only=True` | Users still choose trusted files/directories |
-| Local unauthenticated UI | OWASP A01 | `streamlit_app.py` | Localhost-oriented launcher | No auth if deliberately exposed remotely |
+| Local unauthenticated API | OWASP A01 | `timesfm_app.api` | Loopback binding and origin checks | No auth if deliberately exposed remotely |
 
 ## Performance and Scaling Concerns
 
 | Concern | Evidence | Symptom | Scaling risk | Suggested improvement |
 |---|---|---|---|---|
-| Large checkpoint | cached forecaster in `streamlit_app.py` | Slow first run/high VRAM | Concurrent sessions share finite GPU | Keep one cached model and bounded batches |
-| In-memory tables/artifacts | `RunArtifact`, session history | RAM increases per run | Large result tables multiply memory | 25-run cap and decoded limits |
+| Large checkpoint | resident GPU worker | Slow first run/high VRAM | One owned worker limits throughput | Keep one owned worker and bounded batches |
+| Large result artifacts | PostgreSQL metadata plus artifact store | Disk growth | Retention is opt-in | Preview retention before applying it |
 
 ## Fragile/High-Churn Areas
 

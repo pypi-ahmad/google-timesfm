@@ -1,99 +1,67 @@
-# Tutorial: Complete Your First Forecast
+# Tutorial: Your first TimesFM-3 workbench forecast
 
-This tutorial launches the local TimesFM-3 Explorer, runs the built-in
-multivariate demo, reads its uncertainty chart, and exports a reproducible
-forecast. You do not need a data file.
+This tutorial takes you from a local checkout to a saved TimesFM-3 forecast in
+the React workbench. It uses the included demand demo, so you do not need a
+file of your own.
 
-**Time:** about 10 minutes, plus the first checkpoint download.
+**Time:** about ten minutes, plus the first checkpoint download.
+
+> [!IMPORTANT]
+> The default TimesFM-3 weights have a separate non-commercial,
+> non-production license. A polished local workbench does not change those
+> terms.
 
 ## Before you begin
 
-Install Python 3.10 or newer and
-[uv](https://docs.astral.sh/uv/getting-started/installation/). The default
-TimesFM-3 weights are restricted to non-commercial, non-production use.
+Use Windows 11 with Git, Node.js 24 or newer, and
+[uv](https://docs.astral.sh/uv/getting-started/installation/). Clone this
+repository, then double-click `launch_workbench.cmd`. It prepares missing
+components on its first run, opens the workbench, and keeps service logs in the
+launcher terminal.
 
-## 1. Install the project
+Open <http://localhost:3000> when the launcher prints `Workbench ready`.
 
-```powershell
-git clone https://github.com/pypi-ahmad/google-timesfm.git
-cd google-timesfm
-uv sync --extra torch --extra app --group dev
-```
+## 1. Create demo data
 
-## 2. Start the Explorer
+1. Open **Data** from the navigation.
+2. Select **Load demo data**.
+3. Select the new dataset version when the page returns to the library.
 
-On Windows, run:
+Dataset versions are immutable. A later upload to the same logical dataset
+creates another version instead of changing an earlier forecast's source data.
 
-```powershell
-.\launch_app.cmd
-```
+## 2. Configure the forecast
 
-On another platform, run:
+1. Open **Forecasts**.
+2. Select the demo version in **Dataset versions**.
+3. Set `date` as the timestamp and `demand` as the target.
+4. Keep the default multivariate mode, horizon, context, and quantile settings.
+5. Select **Preview data quality** and resolve any reported issue.
+6. Select **Run forecast**.
 
-```shell
-uv run streamlit run streamlit_app.py --server.port=9587
-```
+The workbench saves this configuration as a revisioned draft. You can navigate
+away while the job waits for a worker or runs.
 
-Open <http://localhost:9587>. The sidebar shows the runtime, model selection,
-and memory controls. The page has four workspaces: **Prepare**, **Forecast**,
-**Evaluate**, and **Track**.
+## 3. Read the result
 
-## 3. Prepare the demo
+When the job completes, the centre panel shows observed history, the forecast,
+and nested 20%, 40%, 60%, and 80% intervals. Narrower bands sit inside wider
+ones. A band is a model quantile interval, not a guarantee of future coverage.
 
-Open **Prepare**.
+Use the result controls to choose a target, dataset, or variant. The result
+tables retain every returned quantile, while the chart keeps gaps and crossed
+intervals visible rather than repairing them.
 
-1. Leave **Data source** set to **Demo**.
-2. Select **Multivariate + covariates**.
-3. Confirm `date` is the timestamp.
-4. Confirm `sales` and `demand` are targets.
-5. Confirm `temperature` is past-only and `promotion` is past-and-future.
+## 4. Save and export
 
-The data-readiness panel reports the context available to the model and any
-input issue before a checkpoint is loaded.
+The completed job publishes an immutable saved run. Select **Export run bundle**
+from run details to download its tables, configuration, and provenance. Select
+**Copy run settings** to begin another draft with the same settings.
 
-## 4. Run the forecast
+## Next steps
 
-Open **Forecast**.
-
-1. Accept the model-weights restriction.
-2. Keep **Forecast future**, **Joint multivariate**, horizon `32`, and the
-   default probabilistic controls.
-3. In **Advanced inference**, choose `cuda` when it is available; otherwise
-   use `cpu`.
-4. Select **Run forecast**.
-
-The first run downloads the default checkpoint. Later forecasts reuse the
-cached resolved checkpoint until you select **Clear model from memory** or
-change the model selection.
-
-## 5. Read the result
-
-The **Latest result** panel shows a selected dataset and target.
-
-- The historical line is the supplied context.
-- The point line is the median forecast.
-- Nested shading shows central 20%, 40%, 60%, and 80% nominal prediction
-  bands when quantiles are enabled.
-- A holdout forecast also shows actual values, accuracy metrics, and observed
-  interval coverage.
-
-Prediction bands describe model uncertainty. Check observed coverage on your
-own historical data before using them for decisions.
-
-## 6. Export the run
-
-Select **Download result bundle**. The ZIP contains:
-
-- `forecast.csv`: one row per dataset, target, and forecast step
-- `metrics.csv`: holdout metrics, when applicable
-- `calibration.csv`: interval coverage, when actuals and bounds exist
-- `run.json`: settings, mappings, model identity, source hashes, runtime, and
-  code revision
-
-The app saves derived forecast outputs in `data/timesfm.duckdb`. It retains the
-newest 25 untracked runs; tracked forecast vintages are protected. Original
-uploads and historical context arrays are never stored in DuckDB.
-
-You have now run a joint TimesFM-3 forecast and exported its record. Continue
-with the [Explorer handbook](../how-to/timesfm3-explorer-handbook.md), or
-[prepare your own data](../how-to/prepare-data.md).
+- Bring your own data with [Prepare data](../how-to/prepare-data.md).
+- Compare historical performance in [Run a native workbench](../how-to/native-workbench.md).
+- Inspect API resources in the [workbench API reference](../reference/workbench-api.md).
+- Use the [legacy Streamlit Explorer guide](../how-to/use-streamlit-explorer.md)
+  only when you need the retained diagnostic interface.

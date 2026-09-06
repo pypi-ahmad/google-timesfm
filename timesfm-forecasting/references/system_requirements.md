@@ -1,4 +1,8 @@
-# System Requirements for TimesFM
+# Archived TimesFM 2.5 System Requirements
+
+> [!NOTE]
+> These historical sizing notes do not describe the TimesFM-3 workbench. Use
+> [the native workbench guide](../../docs/how-to/native-workbench.md) instead.
 
 ## Hardware Tiers
 

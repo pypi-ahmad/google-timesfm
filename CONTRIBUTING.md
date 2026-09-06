@@ -1,10 +1,14 @@
 # Contributing
 
-This fork contains the current TimesFM-3 package, a local Streamlit explorer,
+This fork contains the current TimesFM-3 package, a React/FastAPI workbench, a retained Streamlit explorer,
 TimesFM 2.5 compatibility code, archived versions, examples, and research
 knowledge. Keep changes within the relevant generation and test boundary.
 
 ## Set up the repository
+
+For native Windows workbench development, run `.\dev.ps1 setup` followed by
+`.\dev.ps1 dev`. This preserves the installed CUDA Torch build. See the
+[native guide](docs/how-to/native-workbench.md). The older explorer setup follows.
 
 ```powershell
 git clone https://github.com/pypi-ahmad/google-timesfm.git
@@ -20,6 +24,10 @@ checkpoints, datasets, caches, or `.streamlit/secrets.toml`.
 | Path | Responsibility |
 |---|---|
 | `src/timesfm3/` | Current TimesFM-3 PyTorch package |
+| `src/timesfm_app/` | FastAPI, durable jobs, storage, services, native supervisor |
+| `web/` | Next.js product UI and generated API types |
+| `migrations/` | PostgreSQL schema migrations |
+| `diagnostic_app.py` | Streamlit API-only diagnostic client |
 | `streamlit_app.py` | Explorer widgets and session state |
 | `src/timesfm3/explorer.py` | App validation, orchestration, and artifacts |
 | `src/timesfm3/analysis.py` | Historical analysis and comparisons |
@@ -37,7 +45,8 @@ change.
 ## Make focused changes
 
 - Follow the local two-space Python indentation and 88-character line length.
-- Keep Streamlit widgets in `streamlit_app.py` and forecast behavior outside it.
+- Treat the React/FastAPI workbench as the primary product path. Keep Streamlit
+  widgets in `streamlit_app.py` as a legacy diagnostic client.
 - Keep tabular app policy in `timesfm3.explorer`; place preparation, analysis,
   tracking, model-resolution, and persistence behavior in their focused
   Explorer modules; keep tensor behavior in the forecaster/model layers.
@@ -46,6 +55,29 @@ change.
 - Keep TimesFM-3 and TimesFM 2.5 APIs clearly separated in code and docs.
 
 ## Run checks
+
+Workbench checks (inference is injected in unit tests):
+
+```powershell
+uv run --no-sync ruff check src/timesfm_app diagnostic_app.py
+uv run --no-sync ty check src/timesfm_app
+uv run --no-sync pytest -q tests/test_app_api.py tests/test_app_store.py tests/test_app_jobs.py tests/test_app_migration.py tests/test_app_services.py tests/test_app_native.py tests/test_tracking_jobs.py tests/test_diagnostic_client.py
+npm --prefix web test
+npm --prefix web run build
+```
+
+Set `TIMESFM_TEST_DATABASE_URL` in the test process to enable real PostgreSQL
+concurrency tests; these skip when no test database is provided. Native process
+tests run only on Windows and spawn their own dummy processes. Browser tests use
+Playwright; see `web/README.md` for fixture and live-server modes.
+
+After changing API contracts, export and regenerate the TypeScript definitions:
+
+```powershell
+uv run --no-sync python -m timesfm_app.openapi .native/openapi.json
+npm --prefix web run generate:api
+npm --prefix web run typecheck
+```
 
 Application and current package tests:
 
@@ -94,8 +126,9 @@ and download its ZIP. Stop the process when finished.
 2. Keep internal links relative and use descriptive link text.
 3. Mark code fences with a language.
 4. Test commands and parse Python examples.
-5. Update the coverage matrix in [docs/README.md](docs/README.md) and the
-   Explorer handbook when a workflow changes.
+5. Update the coverage matrix in [docs/README.md](docs/README.md), the native
+   workbench guide, and the workbench API reference when a workflow changes.
+   Update legacy Explorer material only when that retained client changes.
 6. Treat current source and tests as authoritative over draft OKF entries.
 
 ## Submit a change

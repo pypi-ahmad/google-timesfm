@@ -1,5 +1,8 @@
 # Learn Google TimesFM-3
 
+For a guided local workflow, start with
+[Your first TimesFM-3 workbench forecast](tutorials/first-forecast.md).
+
 TimesFM-3 is Google Research's time-series foundation model for zero-shot
 univariate and multivariate forecasting. This guide explains the model from
 first principles and then shows how to use the PyTorch API in this repository.

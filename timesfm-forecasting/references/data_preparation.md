@@ -1,4 +1,8 @@
-# Data Preparation for TimesFM
+# Archived TimesFM 2.5 Data Preparation
+
+> [!NOTE]
+> This historical reference does not describe TimesFM-3. Use
+> [Prepare data](../../docs/how-to/prepare-data.md) for the current workbench.
 
 ## Input Format
 

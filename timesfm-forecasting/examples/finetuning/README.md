@@ -1,4 +1,8 @@
-# Fine-Tuning TimesFM 2.5 with LoRA
+# Archived: Fine-Tuning TimesFM 2.5 with LoRA
+
+> [!NOTE]
+> This is retained historical TimesFM 2.5 material. The repository's supported
+> forecasting workflow is the [TimesFM-3 native workbench](../../../docs/how-to/native-workbench.md).
 
 Parameter-efficient fine-tuning of
 [TimesFM 2.5](https://huggingface.co/google/timesfm-2.5-200m-transformers)

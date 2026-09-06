@@ -1,4 +1,9 @@
-# TimesFM API Reference
+# Archived TimesFM 2.5 API Reference
+
+> [!NOTE]
+> This historical reference does not describe TimesFM-3. Use the repository's
+> [TimesFM-3 Python API reference](../../docs/reference/python-api.md) for new
+> work.
 
 ## Model Classes
 
