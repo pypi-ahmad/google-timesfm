@@ -142,13 +142,14 @@ def test_calendar_extends_numeric_covariates_without_filling_targets() -> None:
 
 
 def test_holidays_use_country_subdivision_and_displayed_local_dates() -> None:
-  source = upload(
-    pd.DataFrame(
-      {
-        "date": pd.date_range("2026-01-01", periods=3, tz="Asia/Kolkata"),
-        "value": [1, 2, 3],
-      }
-    )
+  frame = pd.DataFrame(
+    {
+      "date": pd.date_range("2026-01-01", periods=3, tz="Asia/Kolkata"),
+      "value": [1, 2, 3],
+    }
+  )
+  source = explorer.UploadedDataset(
+    "file_1", frame, "hash", 100, int(frame.memory_usage(deep=True).sum())
   )
   datasets, _ = prepare_sources(
     [source],
