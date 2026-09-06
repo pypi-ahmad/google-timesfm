@@ -23,12 +23,22 @@ gift-eval/
 TimesFM-3_multivariate/
 time_benchmark_leaderboard.csv
 *.html
+!docs/diagrams/workbench-architecture.html
 
 # Logs & Temporary files
-uv.lock
 development_setup.md
 debug.log
 *.log
 
 # Local Streamlit credentials
 .streamlit/secrets.toml
+
+# Native workbench services, immutable inputs, and build outputs
+/build/
+.native/
+data/product/
+web/node_modules/
+web/.next/
+web/playwright-report/
+web/test-results/
+web/*.tsbuildinfo
