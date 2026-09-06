@@ -108,7 +108,9 @@ def test_parse_rejects_decoded_memory_limit(monkeypatch: pytest.MonkeyPatch) -> 
     upload(simple_frame())
 
 
-@pytest.mark.parametrize("value", [np.inf, -np.inf, float(np.finfo(np.float32).max) * 2])
+@pytest.mark.parametrize(
+  "value", [np.inf, -np.inf, float(np.finfo(np.float32).max) * 2]
+)
 def test_prepare_rejects_nonfinite_or_float32_overflow(value: float) -> None:
   frame = simple_frame()
   frame.loc[0, "target"] = value
@@ -293,7 +295,12 @@ def test_artifact_metrics_and_zip_are_reproducible() -> None:
   assert "HF_TOKEN" not in json.dumps(artifact.manifest)
 
   with zipfile.ZipFile(io.BytesIO(explorer.artifact_zip(artifact))) as archive:
-    assert set(archive.namelist()) == {"forecast.csv", "metrics.csv", "run.json"}
+    assert set(archive.namelist()) == {
+      "forecast.csv",
+      "metrics.csv",
+      "calibration.csv",
+      "run.json",
+    }
     manifest = json.loads(archive.read("run.json"))
     assert manifest["run_id"] == artifact.run_id
 
@@ -307,9 +314,7 @@ def test_forecast_table_rejects_bad_outputs() -> None:
   with pytest.raises(explorer.ExplorerError, match="Unexpected forecast shape"):
     explorer.forecast_table(batch, [ForecastOutput(forecast=np.ones((2, 2)))])
   with pytest.raises(explorer.ExplorerError, match="non-finite"):
-    explorer.forecast_table(
-      batch, [ForecastOutput(forecast=np.full((1, 3), np.inf))]
-    )
+    explorer.forecast_table(batch, [ForecastOutput(forecast=np.full((1, 3), np.inf))])
 
 
 def test_two_timestamp_history_uses_last_interval() -> None:

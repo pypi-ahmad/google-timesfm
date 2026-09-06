@@ -283,7 +283,9 @@ def _time_axis(
         frame[timestamp], errors="coerce", format="mixed", utc=True
       )
   except (TypeError, ValueError, OverflowError) as exc:
-    raise ExplorerError(f"Timestamp column '{timestamp}' contains invalid values.") from exc
+    raise ExplorerError(
+      f"Timestamp column '{timestamp}' contains invalid values."
+    ) from exc
   if parsed.isna().any():
     raise ExplorerError(f"Timestamp column '{timestamp}' contains invalid values.")
   if parsed.duplicated().any():
@@ -358,6 +360,8 @@ def prepare_batch(
   datasets: Sequence[UploadedDataset],
   mapping: DatasetMapping,
   settings: ForecastSettings,
+  *,
+  cutoffs: Sequence[int] | None = None,
 ) -> PreparedBatch:
   """Validate uploads and create aligned TimesFM arrays."""
   settings.validate()
@@ -376,7 +380,14 @@ def prepare_batch(
       "More than 32 combined variates requires benchmark chunking approval."
     )
 
-  prepared = tuple(_prepare_series(dataset, mapping, settings) for dataset in datasets)
+  if cutoffs is not None and len(cutoffs) != len(datasets):
+    raise ExplorerError("Provide one forecast cutoff per dataset.")
+  prepared = tuple(
+    _prepare_series(
+      dataset, mapping, settings, None if cutoffs is None else cutoffs[index]
+    )
+    for index, dataset in enumerate(datasets)
+  )
   return PreparedBatch(
     series=prepared,
     mapping=mapping,
@@ -389,6 +400,7 @@ def _prepare_series(
   dataset: UploadedDataset,
   mapping: DatasetMapping,
   settings: ForecastSettings,
+  cutoff: int | None = None,
 ) -> PreparedSeries:
   _validate_mapping(dataset.frame, mapping)
   frame, axis, lineage = _time_axis(dataset.frame, mapping.timestamp)
@@ -400,7 +412,19 @@ def _prepare_series(
     raise ExplorerError(f"{dataset.dataset_id} has no observed target values.")
   history_end = int(np.flatnonzero(observed_rows.to_numpy())[-1]) + 1
 
-  if settings.task == "holdout":
+  if cutoff is not None:
+    if not isinstance(cutoff, int) or cutoff < 2 or cutoff > len(frame):
+      raise ExplorerError("Forecast cutoff must follow at least two context rows.")
+    forecast_start = cutoff
+    forecast_end = cutoff + settings.horizon
+    if settings.task == "holdout" and forecast_end > len(frame):
+      raise ExplorerError("Holdout extends beyond the uploaded observations.")
+    actual = (
+      target.iloc[forecast_start:forecast_end].to_numpy(dtype=np.float32).T
+      if settings.task == "holdout"
+      else None
+    )
+  elif settings.task == "holdout":
     if history_end <= settings.horizon:
       raise ExplorerError(
         f"{dataset.dataset_id} needs more observed rows than the holdout horizon."
@@ -529,7 +553,9 @@ def forecast_table(
         f"Unexpected forecast shape {point.shape}; expected {expected}."
       )
     if not np.isfinite(point).all():
-      raise ExplorerError(f"Forecast for {prepared.dataset_id} contains non-finite values.")
+      raise ExplorerError(
+        f"Forecast for {prepared.dataset_id} contains non-finite values."
+      )
     expected_quantiles = (*expected, len(QUANTILES))
     if quantiles is not None and quantiles.shape != expected_quantiles:
       raise ExplorerError(
@@ -590,7 +616,10 @@ def evaluation_metrics(forecast: pd.DataFrame) -> pd.DataFrame:
       "rmse": float(np.sqrt(np.mean(np.square(error)))),
       "smape_percent": float(np.mean(smape_terms) * 100),
     }
-    if all(column in current for column in quantile_columns):
+    if (
+      all(column in current for column in quantile_columns)
+      and np.isfinite(current[quantile_columns].to_numpy(dtype=float)).all()
+    ):
       losses = []
       for quantile, column in zip(QUANTILES, quantile_columns, strict=True):
         quantile_error = actual - current[column].to_numpy(dtype=float)
@@ -725,13 +754,22 @@ def execute_forecast(
   """Validate, forecast, and package one complete explorer run."""
   batch = prepare_batch(datasets, mapping, settings)
   outputs, runtime_seconds = run_forecast(predictor, batch)
-  return make_run_artifact(
+  artifact = make_run_artifact(
     batch,
     outputs,
     runtime_seconds,
     str(predictor.device),
     repository_revision,
   )
+  provenance = getattr(predictor, "model_provenance", None)
+  if provenance:
+    artifact.manifest["model_provenance"] = provenance
+    artifact.manifest["checkpoint"] = provenance["selection"]["source"]
+  artifact.manifest["preparation"] = {
+    item.dataset_id: item.frame.attrs.get("preparation", {}) for item in datasets
+  }
+  artifact.manifest["schema_version"] = 2
+  return artifact
 
 
 def _csv_safe(frame: pd.DataFrame) -> pd.DataFrame:
@@ -751,11 +789,16 @@ def _csv_safe(frame: pd.DataFrame) -> pd.DataFrame:
 
 def artifact_zip(artifact: RunArtifact) -> bytes:
   """Create a portable result bundle entirely in memory."""
+  from .uncertainty import calibration_table
+
   output = io.BytesIO()
   with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
     archive.writestr("forecast.csv", _csv_safe(artifact.forecast).to_csv(index=False))
     if not artifact.metrics.empty:
       archive.writestr("metrics.csv", _csv_safe(artifact.metrics).to_csv(index=False))
+    coverage = calibration_table(artifact.forecast)
+    if not coverage.empty:
+      archive.writestr("calibration.csv", _csv_safe(coverage).to_csv(index=False))
     archive.writestr(
       "run.json",
       json.dumps(artifact.manifest, indent=2, default=str),

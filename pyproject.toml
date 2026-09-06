@@ -36,6 +36,7 @@ xreg = [
     "scikit-learn",
 ]
 app = [
+    "holidays>=0.103",
     "altair>=6.2.2",
     "duckdb>=1.5.5",
     "pandas>=2.3.3",
