@@ -31,6 +31,10 @@ def store():
 
 
 def forecast(identifier="legacy-forecast"):
+  # "private" in the history frame is a canary value: it must never survive
+  # into the migrated record, its export archive, or the artifact store,
+  # since legacy history data is intentionally not carried over (see the
+  # `source_data_available` / "private" not in archive assertions below).
   return RunArtifact(
     run_id=identifier,
     created_at="2026-01-01T00:00:00+00:00",
@@ -42,6 +46,9 @@ def forecast(identifier="legacy-forecast"):
         "dataset": ["east", "west"],
         "target": ["sales", "sales"],
         "step": [1, 1],
+        # Two different per-row timezones (not just tz-aware vs. naive) to
+        # confirm import preserves each dataset's own offset instead of
+        # normalizing everything to one timezone.
         "timestamp": pd.Series(
           [
             pd.Timestamp("2026-01-02", tz="Asia/Kolkata"),
@@ -157,6 +164,11 @@ def test_missing_source_is_not_created(tmp_path, store):
 def test_import_resumes_after_artifacts_written_before_record_commit(
   tmp_path, store, monkeypatch
 ):
+  # Import writes artifacts (e.g. export.zip) before committing the store
+  # record that references them — not atomic. This simulates crashing in
+  # that gap: the export must be left on disk but no run record created,
+  # and a subsequent import must complete cleanly (treating the orphaned
+  # artifact as disposable) rather than erroring or double-importing.
   source = tmp_path / "legacy.duckdb"
   save_run(source, forecast())
   artifacts = ArtifactStore(tmp_path / "artifacts")
@@ -244,6 +256,10 @@ def test_orphan_apply_waits_until_legacy_import_has_published(
 ):
   from timesfm_app.maintenance import cleanup_orphans
 
+  # Pauses import mid-write (inside put_frame) using Events to force a
+  # deterministic race window, then starts orphan cleanup while the import
+  # is suspended: cleanup must not treat the import's in-flight artifacts
+  # as orphans just because no run record references them yet.
   source = tmp_path / "legacy.duckdb"
   save_run(source, forecast())
   artifacts = ArtifactStore(tmp_path / "artifacts")

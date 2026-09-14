@@ -1,4 +1,12 @@
-"""Versioned local HTTP API. Inference runs exclusively in durable workers."""
+"""Versioned local HTTP API. Inference runs exclusively in durable workers.
+
+FastAPI app factory: validates and stages requests (schemas.py) into
+store.py (durable records/jobs) and artifacts.py (immutable files), but never
+runs a model itself — job execution happens out-of-process in worker.py,
+delivered via jobs.py's outbox dispatcher. Read schemas.py first for the
+request/response contracts, then store.py for what persisting a request
+actually does.
+"""
 
 from __future__ import annotations
 
@@ -166,6 +174,9 @@ def create_app(store=None, artifacts=None, settings: Settings | None = None) -> 
 
   @app.exception_handler(SQLAlchemyError)
   async def database_error(request, exc):
+    # Log only the exception type, not str(exc): SQLAlchemy driver errors can
+    # include the connection URL/credentials. The client response is likewise
+    # a fixed generic message, never exc detail.
     LOGGER.error("database_error", extra={"error_type": type(exc).__name__})
     return JSONResponse(
       {
@@ -191,6 +202,10 @@ def create_app(store=None, artifacts=None, settings: Settings | None = None) -> 
     return repository.get_record(workspace_id, "workspace")
 
   def validate_spec(spec, workspace_id):
+    # Referential checks pydantic (schemas.RunSpec) cannot do on its own: the
+    # spec's ids must actually exist and belong to this workspace. Runs after
+    # RunSpec.model_validate in enqueue(), which already enforced field-level
+    # shape/range constraints.
     workspace(workspace_id)
     for version_id in spec["dataset_version_ids"]:
       version = repository.get_record(version_id, "dataset_version")
@@ -283,6 +298,10 @@ def create_app(store=None, artifacts=None, settings: Settings | None = None) -> 
     from .services import ingest_metadata
 
     workspace(workspace_id)
+    # The client-supplied filename is untrusted: strip any directory
+    # component (including a Windows-style path smuggled past PurePosixPath)
+    # so it can only ever contribute a bare name to the artifact key built
+    # below, never a path segment.
     filename = Path(filename.replace("\\", "/")).name
     metadata = ingest_metadata(data, filename, name)
     if dataset_id:
@@ -291,6 +310,9 @@ def create_app(store=None, artifacts=None, settings: Settings | None = None) -> 
         raise HTTPException(422, "The dataset belongs to another workspace.")
     else:
       dataset = repository.create_record("dataset", name, {}, workspace_id=workspace_id)
+    # Content-based dedup: re-uploading identical bytes for this dataset
+    # returns the existing version instead of creating a duplicate artifact
+    # and record, making repeated uploads of the same file idempotent.
     digest = hashlib.sha256(data).hexdigest()
     for version in repository.list_records("dataset_version", workspace_id):
       if (
@@ -337,6 +359,9 @@ def create_app(store=None, artifacts=None, settings: Settings | None = None) -> 
     workspace_id: str = Form("local"),
     dataset_id: str | None = Form(None),
   ):
+    # Read one byte past the cap: this bounds memory for an oversized upload
+    # (no unbounded buffering before the size check) while still requiring
+    # only a single read call.
     data = await file.read(MAX_UPLOAD + 1)
     await file.close()
     if len(data) > MAX_UPLOAD:

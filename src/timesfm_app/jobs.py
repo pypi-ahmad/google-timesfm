@@ -1,4 +1,10 @@
-"""Deliver the PostgreSQL outbox to Dramatiq; duplicate delivery is safe."""
+"""Deliver the PostgreSQL outbox to Dramatiq; duplicate delivery is safe.
+
+Polls store.py's outbox table and hands pending job ids to worker.py's
+Dramatiq actors. See store.py's Outbox class for the on-disk delivery
+contract this module relies on, and worker.py for how a delivered job id
+is claimed and executed.
+"""
 
 from __future__ import annotations
 
@@ -18,6 +24,10 @@ def dispatch_once(store: Store, send_job: Callable[[str], object] | None = None)
     from .worker import submit_cpu_job, submit_job
 
     def send_job(job_id: str) -> object:
+      # Route by job kind to the matching queue/actor. worker.py.run_job
+      # re-checks this same condition against the claimed job's spec and
+      # fails the job outright on a mismatch, so a routing bug here is
+      # caught rather than silently executed on the wrong device.
       actor = (
         submit_cpu_job
         if store.get_job(job_id)["kind"] in {"assessment", "model_check"}

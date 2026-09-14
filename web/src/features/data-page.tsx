@@ -29,6 +29,10 @@ import {
   Select,
 } from "@/components/ui/controls";
 
+// Dataset library page: upload/version a CSV or Parquet file (or load the
+// bundled demo dataset), browse existing versions, and preview a
+// selected version's rows. Each upload is an immutable new "version" —
+// see hooks/use-records.ts useDatasets and lib/types.ts DatasetVersion.
 export function DataPage() {
   const context = useAnalyticalContext();
   const client = useQueryClient();
@@ -47,6 +51,10 @@ export function DataPage() {
       api<TableData>(`/datasets/versions/${selected!.id}/preview`, { signal }),
     enabled: !!selected,
   });
+  // One mutation covers both paths: loading the bundled demo dataset (no
+  // file needed) and uploading a real file. FormData is used for the real
+  // upload so lib/api.ts's fetch wrapper skips setting a JSON
+  // Content-Type and lets the browser set the multipart boundary itself.
   const upload = useMutation({
     mutationFn: async (demo: boolean) => {
       if (demo)

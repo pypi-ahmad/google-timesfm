@@ -1,4 +1,13 @@
-"""Durable application inputs and artifacts around the unchanged TimesFM core."""
+"""Durable application inputs and artifacts around the unchanged TimesFM core.
+
+Wraps the timesfm3 library (data preparation, analysis, model loading) with
+persistence-aware plumbing: reading pinned dataset/model records, checkpoint
+freezing/integrity checks, and staging result tables/exports as artifacts.
+``execute_spec`` is the entry point called by worker.py for job execution;
+``preview_inputs``/``ingest_metadata`` are also called directly by api.py for
+synchronous, non-job endpoints. See store.py for the job/record ledger and
+artifacts.py for how tables/exports are actually written to disk.
+"""
 
 from __future__ import annotations
 
@@ -225,7 +234,14 @@ def _file_digest(path: Path) -> str:
 
 
 def resolve_frozen_model(spec: dict, freeze_model: Callable | None = None):
-  """Copy resolved weights to a verified snapshot before recording ownership."""
+  """Copy resolved weights to a verified snapshot before recording ownership.
+
+  Model resolution (e.g. a Hub revision) must not change between a job's
+  retries, so the resolved checkpoint is snapshotted to a content-addressed
+  directory and the choice is persisted once via ``freeze_model`` (backed by
+  store.freeze_job_model). Later attempts pass an already-frozen spec and
+  skip straight to the integrity check below.
+  """
   frozen = spec.get("_resolved_model")
   if frozen is None:
     resolved = model_loading.resolve_model(
@@ -270,6 +286,10 @@ def resolve_frozen_model(spec: dict, freeze_model: Callable | None = None):
   return resolved
 
 
+# Process-wide cache: each worker process (worker.py) hosts at most one GPU
+# evaluator, guarded by GPUProcessLock so only one such process runs per
+# machine. Safe as module globals only because of that single-process,
+# single-threaded worker invariant (see worker.py's --threads 1 requirement).
 _cached_predictor: Any = None
 _cached_identity: tuple | None = None
 
@@ -378,7 +398,13 @@ def execute_spec(
   *,
   freeze_model: Callable | None = None,
 ) -> dict:
-  """Execute one frozen request and stage complete artifacts before publication."""
+  """Execute one frozen request and stage complete artifacts before publication.
+
+  ``cancel_check``/``_checkpoint`` calls bracket every phase that can run for
+  a while (data prep, model load, inference, artifact writes) so a
+  cancellation or lost lease (see worker.py's checkpoint()) is observed at a
+  boundary outside any native model call rather than mid-kernel.
+  """
   _checkpoint(cancel_check)
   kind = spec["kind"]
   progress("preparing", 0, None)
@@ -503,6 +529,10 @@ def execute_spec(
       tables = _analysis_tables(result)
       exported = analysis.analysis_zip(result)
   _checkpoint(cancel_check)
+  # The prefix is per-attempt (jobs/{job_id}/attempt-{attempt}/...), so a
+  # retried attempt writes to fresh keys; artifacts.py's immutable-key
+  # contract makes re-running this same attempt (e.g. after a lost heartbeat)
+  # safe, since identical bytes at the same key are a no-op.
   prefix = spec.get("_artifact_prefix", f"runs/{uuid.uuid4().hex}")
   progress("saving", 0, len(tables) + 1)
   descriptors = {}

@@ -1,7 +1,30 @@
 # Copyright 2026 Ahmad Mujtaba
 # Licensed under the Apache License, Version 2.0 (the "License");
 
-"""Interactive local explorer for TimesFM-3."""
+"""Interactive local explorer for TimesFM-3.
+
+Standalone Streamlit dashboard for uploading or generating a demo dataset,
+running TimesFM-3 forecasts, and inspecting/comparing/tracking the results.
+All business logic (data prep, model loading, inference, run persistence)
+lives in ``src/timesfm3/*`` — this module is UI orchestration only. There is
+no separate API/job backend involved (contrast with ``diagnostic_app.py``,
+which talks to a FastAPI service); this app loads the model in-process and
+runs inference directly on the Streamlit rerun thread.
+
+Non-obvious inputs/state:
+- Reads and writes a local DuckDB file at ``data/timesfm.duckdb`` (relative
+  to this file's directory) for run history; failures there degrade to
+  session-only history rather than raising.
+- Model checkpoints are cached process-wide via ``st.cache_resource``, so
+  only one model configuration is held in memory at a time; switching
+  checkpoints evicts the previous one and frees any CUDA memory.
+- Expects to be launched with ``uv run streamlit run streamlit_app.py``
+  (see ``launch_app.cmd``, which also pins the port to 9587).
+
+Next stop for a reviewer: ``src/timesfm3/explorer.py`` for the forecast
+pipeline (upload validation, forecasting, run artifacts) and
+``src/timesfm3/model_loading.py`` for checkpoint resolution/loading.
+"""
 
 from __future__ import annotations
 
@@ -81,11 +104,16 @@ def _acquire_forecaster(
 ):
   resolved = resolve_model(selection)
   if expected_files is not None and expected_files != dict(resolved.fingerprints):
+    # Guards a "refresh" run (see _refresh_run) against silently forecasting
+    # against a different local checkpoint than the one the original run used.
     raise ExplorerError(
       "The previous local checkpoint changed. Restore its original files before refreshing."
     )
   cache_identity = (resolved, device, batch_size)
   if st.session_state.get("active_model") != cache_identity:
+    # Only one model configuration is kept resident; switching checkpoint,
+    # device, or batch size evicts the previous instance so CUDA memory is
+    # freed before the new one is constructed.
     cached_forecaster.clear()
     if torch.cuda.is_available():
       torch.cuda.empty_cache()
@@ -103,6 +131,8 @@ def _initialize_state() -> None:
     try:
       st.session_state.runs = load_recent_runs(DATABASE_PATH)
     except RunStoreError as exc:
+      # DuckDB history is best-effort: fall back to an empty, in-memory run
+      # list rather than failing the whole app if the database is unreadable.
       st.session_state.runs = []
       st.session_state.persistence_warning = str(exc)
   st.session_state.setdefault("upload_cache", {})
@@ -111,10 +141,17 @@ def _initialize_state() -> None:
 
 def _parse_in_session(data: bytes, suffix: str, dataset_id: str) -> UploadedDataset:
   """Cache decoded uploads only for the current browser session."""
+  # Keyed by content hash (not filename), so re-uploading identical bytes
+  # under a different dataset slot reuses the parsed result, but any byte
+  # change forces a re-parse.
   key = (hashlib.sha256(data).hexdigest(), suffix.lower(), dataset_id)
   cached = st.session_state.upload_cache.get(key)
   if cached is None:
     cached = parse_upload(data, suffix, dataset_id)
+  # Written to a fresh "next" generation (reset per rerun in the Prepare tab,
+  # see next_upload_cache below) rather than back into upload_cache directly,
+  # so a dataset removed from this rerun's upload set is dropped from the
+  # cache instead of accumulating forever.
   st.session_state.next_upload_cache[key] = cached
   return cached
 
@@ -131,6 +168,8 @@ def _numeric_candidates(frame: pd.DataFrame, timestamp: str | None) -> list[str]
 
 
 def _timestamp_default(columns: list[str]) -> str | None:
+  # Best-effort column-name heuristic for pre-selecting the timestamp column;
+  # the user can always override it, so a wrong guess is not fatal.
   for column in columns:
     if any(token in column.lower() for token in ("date", "time", "timestamp")):
       return column
@@ -139,6 +178,8 @@ def _timestamp_default(columns: list[str]) -> str | None:
 
 def _append_run(run: RunArtifact) -> None:
   runs: list[RunArtifact] = st.session_state.runs
+  # In-session list is capped independently of persisted history so the UI
+  # stays bounded even if DuckDB persistence (below) is failing.
   st.session_state.runs = [*runs, run][-MAX_SAVED_RUNS:]
   try:
     save_run(DATABASE_PATH, run)
@@ -151,6 +192,9 @@ def _series_chart(run: RunArtifact, dataset: str, target: str) -> Any:
   history = run.history.query("dataset == @dataset and target == @target").copy()
   forecast = run.forecast.query("dataset == @dataset and target == @target").copy()
   temporal_source = history if len(history) else forecast
+  # Timestamp column is either real dates or a synthetic row-number axis
+  # (see the "Use row number" option in the Prepare tab); Altair needs to
+  # know which so it picks a temporal vs. quantitative x-axis scale.
   temporal = bool(len(temporal_source)) and isinstance(
     temporal_source.iloc[0]["timestamp"], pd.Timestamp
   )
@@ -415,6 +459,9 @@ with prepare_tab:
     key="data_source",
   )
   try:
+    # Start a new cache generation for this rerun; _parse_in_session fills it
+    # as uploads are parsed, and it replaces upload_cache below only on
+    # success (see next_upload_cache in _parse_in_session).
     st.session_state.next_upload_cache = {}
     if source == "Upload":
       files = st.file_uploader(
@@ -452,6 +499,9 @@ with prepare_tab:
 
   if datasets:
     st.markdown("#### 2. Series mapping")
+    # Only columns present in every uploaded/demo dataset can be mapped to a
+    # role, since a single mapping (timestamp/targets/covariates) is applied
+    # to the whole batch.
     common_columns = set(map(str, datasets[0].frame.columns))
     for item in datasets[1:]:
       common_columns.intersection_update(map(str, item.frame.columns))
@@ -474,6 +524,10 @@ with prepare_tab:
       source == "Demo" and st.session_state.demo_kind == "Multivariate + covariates"
     )
     default_targets = ["sales", "demand"] if demo_multivariate else numeric[:1]
+    # Role selections persist across reruns via session_state keys, but a
+    # new data source can drop columns a previous selection referenced; drop
+    # those stale picks (falling back to the default only for targets, since
+    # an empty target list blocks forecasting while empty covariates do not).
     for role in ("target_columns", "past_only_columns", "past_future_columns"):
       if role in st.session_state:
         old = st.session_state[role]
@@ -659,6 +713,9 @@ with forecast_tab:
     if submitted:
       try:
         with st.status("Running TimesFM-3", expanded=True) as status:
+          # Output-size ceiling, not a model limit: guards against a batch
+          # that would produce more forecast rows than the UI/DuckDB history
+          # can comfortably hold, before any inference work is done.
           if len(datasets) * len(mapping.targets) * settings.horizon > 250_000:
             raise ExplorerError(
               "Batch exceeds 250,000 output rows; select fewer series or a shorter horizon."

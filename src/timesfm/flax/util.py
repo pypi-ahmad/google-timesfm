@@ -12,7 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Flax utility functions for TimesFM layers."""
+"""Flax utility functions for TimesFM layers.
+
+Holds the `DecodeCache` structure consumed by `transformer.py`'s attention
+during autoregressive decoding, plus small numeric helpers (running-stat
+merge, scan-over-axis, reversible instance normalization) used by the
+model's input normalization path. See `../timesfm_2p5/timesfm_2p5_flax.py`
+for where these are called end-to-end.
+"""
 
 import dataclasses
 import functools
@@ -31,7 +38,15 @@ _TOLERANCE = 1e-6
 @jax.tree_util.register_dataclass
 @dataclasses.dataclass(frozen=False)
 class DecodeCache:
-  """Cache for decoding."""
+  """Cache for decoding.
+
+  `key`/`value` are pre-allocated to the full cache length `n` (not the
+  number of tokens written so far); `next_index` is the per-batch write
+  cursor into that buffer, advanced via `lax.dynamic_update_slice` in
+  transformer.py. `num_masked` tracks how many leading positions in the
+  original (unpadded) sequence were padding, so rotary position ids can
+  stay aligned with real (non-padded) tokens across decode steps.
+  """
 
   next_index: Integer[Array, "b"]
   num_masked: Integer[Array, "b"]
@@ -50,7 +65,15 @@ def update_running_stats(
   tuple[Float[Array, "b"], Float[Array, "b"], Float[Array, "b"]],
   tuple[Float[Array, "b"], Float[Array, "b"], Float[Array, "b"]],
 ]:
-  """Updates the running stats."""
+  """Updates the running stats.
+
+  Merges the (n, mu, sigma) running mean/std computed over prior chunks
+  with the stats of a new chunk `x`, using the parallel-variance
+  combination formula (pooled variance across two partitions), and returns
+  the merged stats twice (as `(carry, y)`) for use with `lax.scan`. `mask`
+  marks positions to exclude (e.g. padding); a chunk contributing zero
+  valid (unmasked) elements leaves the running stats unchanged.
+  """
   is_legit = jnp.logical_not(mask)
   inc_n = jnp.sum(is_legit.astype(jnp.float32), axis=-1, keepdims=False)
   inc_mu = jnp.where(
@@ -94,7 +117,15 @@ def revin(
   sigma: Float[Array, "b ..."],
   reverse: bool = False,
 ):
-  """Reversible per-instance normalization."""
+  """Reversible per-instance normalization.
+
+  `mu`/`sigma` are broadcast onto `x` by inferring how many trailing axes
+  `x` has beyond them (1 or 2, e.g. a time axis and optionally a channel
+  axis); other rank differences are not handled and will broadcast-fail.
+  `reverse=False` normalizes (forward pass); `reverse=True` denormalizes
+  outputs/quantiles back to the original scale, so callers must pass the
+  same `mu`/`sigma` on both calls.
+  """
   if len(mu.shape) == len(x.shape) - 1:
     mu = mu[..., None]
     sigma = sigma[..., None]
@@ -104,4 +135,6 @@ def revin(
   if reverse:
     return x * sigma + mu
   else:
+    # Guard against near-zero sigma (e.g. a constant input series) to avoid
+    # dividing by ~0; treat it as sigma=1 instead of NaN/inf.
     return (x - mu) / jnp.where(sigma < _TOLERANCE, 1.0, sigma)

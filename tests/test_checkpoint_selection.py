@@ -39,6 +39,10 @@ def test_local_files_are_fingerprinted_and_never_downloaded(tmp_path, extension)
   file.write_bytes(b"first")
   with mock.patch("timesfm3.model_loading.snapshot_download") as download:
     original = resolve_model(ModelSelection(str(file), "local", offline=True))
+    # Rewrite the same path with different bytes (same mtime granularity) to
+    # confirm identity is derived from a content fingerprint, not just the
+    # path, so a locally-edited checkpoint isn't mistaken for the one seen
+    # before.
     file.write_bytes(b"second")
     updated = resolve_model(ModelSelection(str(file), "local", offline=True))
   download.assert_not_called()
@@ -86,6 +90,10 @@ def test_resolved_loader_is_local_and_records_provenance(tmp_path):
 
 
 def test_bad_weights_raise_without_default_checkpoint_retry(tmp_path):
+  # Guards against silently falling back to the bundled default checkpoint
+  # when an explicitly selected local checkpoint fails to load: the loader
+  # must be called exactly once (no retry-with-default), so the caller sees
+  # a clear error instead of unexpectedly running a different model.
   resolved = resolve_model(ModelSelection(str(folder(tmp_path)), "local"))
   with (
     mock.patch(

@@ -1,4 +1,11 @@
-"""Reconcile tracked forecasts against new immutable logical dataset versions."""
+"""Reconcile tracked forecasts against new immutable logical dataset versions.
+
+Called from jobs.py's dispatch loop on every poll. Safe to call repeatedly:
+the job idempotency key folds in a digest of the proposed submission, so
+store.create_job (see store.py) de-duplicates re-submissions of the same
+version combination rather than this module needing to track what it already
+enqueued across polls.
+"""
 
 from __future__ import annotations
 

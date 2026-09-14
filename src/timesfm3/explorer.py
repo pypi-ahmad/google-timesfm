@@ -1,7 +1,22 @@
 # Copyright 2026 Ahmad Mujtaba
 # Licensed under the Apache License, Version 2.0 (the "License");
 
-"""Core data and inference helpers for the TimesFM-3 Streamlit explorer."""
+"""Core data and inference helpers for the TimesFM-3 Streamlit explorer.
+
+Pipeline: `parse_upload` (untrusted CSV/Parquet bytes -> `UploadedDataset`,
+enforcing size limits) -> `prepare_batch`/`_prepare_series` (user-selected
+`DatasetMapping` + `ForecastSettings` -> aligned `PreparedBatch` of
+float32 numpy arrays, one `PreparedSeries` per uploaded file) ->
+`run_forecast` (calls a `BatchPredictor`, i.e. `evaluator.py`'s
+`TimesFM3Evaluator`) -> `make_run_artifact`/`execute_forecast` (outputs ->
+a `RunArtifact` with a reproducibility manifest). See `run_store.py` for
+how `RunArtifact` is persisted and `evaluator.py`/`timesfm3_forecaster.py`
+for what `predict_batch` actually does. Everything upstream of
+`prepare_batch` treats uploaded file contents and user-chosen settings as
+untrusted: sizes, dtypes, and column roles are all re-validated
+server-side (`ForecastSettings.validate`, `_validate_mapping`,
+`_coerce_numeric`) rather than trusted from the client.
+"""
 
 from __future__ import annotations
 
@@ -185,6 +200,13 @@ def parse_upload(data: bytes, suffix: str, dataset_id: str) -> UploadedDataset:
     if normalized_suffix in {"parquet", "pq"}:
       from pyarrow import parquet
 
+      # Parquet can compress far beyond its encoded size (a
+      # "decompression bomb" risk for untrusted uploads); check the
+      # metadata's declared decoded size *before* materializing any row
+      # data, so an oversized file is rejected without ever fully
+      # decoding it. The `memory_bytes` check near the end of this
+      # function is the backstop for cases this estimate misses (and the
+      # only such check for CSV, which has no equivalent metadata).
       metadata = parquet.ParquetFile(io.BytesIO(data)).metadata
       decoded_size = sum(
         metadata.row_group(index).total_byte_size
@@ -207,6 +229,9 @@ def parse_upload(data: bytes, suffix: str, dataset_id: str) -> UploadedDataset:
   except Exception as exc:
     raise ExplorerError(f"Could not parse {dataset_id}: {exc}") from exc
   finally:
+    # missing_ok=True: the temp file may never have been created (an
+    # error before the `with` block) or DuckDB/the OS may have already
+    # removed it; cleanup should never itself raise.
     if temporary_path is not None:
       temporary_path.unlink(missing_ok=True)
   if frame.empty or not len(frame.columns):
@@ -221,6 +246,10 @@ def parse_upload(data: bytes, suffix: str, dataset_id: str) -> UploadedDataset:
   return UploadedDataset(
     dataset_id=dataset_id,
     frame=frame,
+    # Content hash, not the filename: used as a privacy-safe, stable
+    # identity for the same bytes (e.g. for run_id derivation in
+    # make_run_artifact and for deduping/lineage) without retaining any
+    # user-chosen filename.
     sha256=hashlib.sha256(data).hexdigest(),
     byte_size=len(data),
     memory_bytes=memory_bytes,
@@ -278,6 +307,12 @@ def _time_axis(
 
   try:
     parsed = pd.to_datetime(frame[timestamp], errors="coerce", format="mixed")
+    # A successful parse of genuinely mixed UTC-offset strings (e.g. some
+    # rows "+00:00", others "+05:00") leaves pandas unable to use one
+    # tz-aware dtype, so it stays object-dtype holding a mix of
+    # tz-naive/tz-aware Timestamps -- which can't be sorted or compared
+    # consistently below. Retrying with utc=True forces a single
+    # tz-aware dtype (converting every value to UTC) in that case.
     if parsed.dtype == object:
       parsed = pd.to_datetime(
         frame[timestamp], errors="coerce", format="mixed", utc=True
@@ -291,6 +326,9 @@ def _time_axis(
   if parsed.duplicated().any():
     raise ExplorerError(f"Timestamp column '{timestamp}' contains duplicates.")
   order = np.argsort(parsed.to_numpy(), kind="stable")
+  # Only record a "sort" lineage entry if the data wasn't already in
+  # timestamp order -- a stable sort of already-ordered input is a no-op
+  # on the data but shouldn't be reported as a transformation applied.
   if not np.array_equal(order, np.arange(len(frame))):
     lineage.append({"operation": "sort", "column": timestamp})
   sorted_frame = frame.iloc[order].reset_index(drop=True)
@@ -304,6 +342,14 @@ def _future_axis(
   horizon: int,
   uploaded_end: int,
 ) -> tuple[Any, ...]:
+  # Fallback ladder for the horizon's time labels, most-trustworthy first:
+  # (1) real uploaded timestamps for the horizon rows, if the caller
+  #     provided a full horizon's worth (e.g. a holdout backtest, where
+  #     the future is already in the upload); (2) for a datetime axis,
+  #     an inferred regular frequency continued from history; (3) a
+  #     constant step size inferred from just the last two history
+  #     points, if a frequency couldn't be inferred; (4) plain integer
+  #     positions as a last resort (non-temporal or too little history).
   uploaded = axis.iloc[history_end : min(uploaded_end, history_end + horizon)]
   if len(uploaded) == horizon:
     return tuple(uploaded.tolist())
@@ -337,6 +383,10 @@ def _chunking_plan(mapping: DatasetMapping) -> ChunkingPlan:
   selected_pf = mapping.past_future
   selected_po = mapping.past_only
   if total > MAX_VARIATES:
+    # Fixed seed (42): which covariates get dropped when over the
+    # variate budget must be reproducible given the same mapping, so
+    # re-running the same forecast (or reproducing a saved run's
+    # manifest) selects the exact same subset, not a different random one.
     rng = np.random.default_rng(42)
     max_pf = min(num_pf, MAX_VARIATES - 1)
     if num_pf > max_pf:
@@ -413,6 +463,9 @@ def _prepare_series(
   history_end = int(np.flatnonzero(observed_rows.to_numpy())[-1]) + 1
 
   if cutoff is not None:
+    # Explicit backtest origin (used for repeated/scripted evaluation):
+    # forecast from an arbitrary historical row instead of the end of
+    # the observed data.
     if not isinstance(cutoff, int) or cutoff < 2 or cutoff > len(frame):
       raise ExplorerError("Forecast cutoff must follow at least two context rows.")
     forecast_start = cutoff
@@ -425,6 +478,10 @@ def _prepare_series(
       else None
     )
   elif settings.task == "holdout":
+    # "holdout": pretend the forecast horizon is unobserved by moving the
+    # forecast window backward from the true end of observed data, so
+    # the real values held out from the model are available afterward as
+    # `actual` for scoring (see evaluation_metrics).
     if history_end <= settings.horizon:
       raise ExplorerError(
         f"{dataset.dataset_id} needs more observed rows than the holdout horizon."
@@ -433,10 +490,16 @@ def _prepare_series(
     forecast_end = history_end
     actual = target.iloc[forecast_start:forecast_end].to_numpy(dtype=np.float32).T
   else:
+    # "forecast": genuinely unknown future immediately after the
+    # observed data; no actuals to score against.
     forecast_start = history_end
     forecast_end = history_end + settings.horizon
     actual = None
 
+  # Context window is silently truncated to whatever precedes
+  # forecast_start (never an error just for being short); the only hard
+  # requirement enforced below is at least 2 non-null target values in
+  # whatever window results.
   context_start = max(0, forecast_start - settings.context_length)
   context_frame = target.iloc[context_start:forecast_start]
   insufficient = [
@@ -455,6 +518,10 @@ def _prepare_series(
         "kept_rows": forecast_start - context_start,
       }
     )
+  # Missing values are NOT filled here -- NaNs pass through into
+  # context/po below unchanged. This only records that
+  # timesfm3_forecaster.py's linear_interpolation will fill them
+  # downstream, for the reproducibility manifest/lineage.
   missing_counts = (
     numeric.loc[context_start : forecast_start - 1, model_columns].isna().sum()
   )
@@ -485,6 +552,11 @@ def _prepare_series(
       )
     future_cov = numeric.loc[context_start : forecast_end - 1, mapping.past_future]
     future_slice = numeric.loc[forecast_start : forecast_end - 1, mapping.past_future]
+    # Unlike the target/past-only columns above (gaps tolerated, filled
+    # downstream by interpolation), past-future covariates must be fully
+    # known over the horizon by definition -- a gap there can't be
+    # interpolated away without contradicting "known future", so it's a
+    # hard error instead of lineage-tracked interpolation.
     if future_slice.isna().any().any():
       raise ExplorerError(
         f"{dataset.dataset_id} has missing known-future covariate values."
@@ -541,6 +613,9 @@ def forecast_table(
   for prepared, output in zip(batch.series, outputs, strict=True):
     if output.forecast is None:
       raise ExplorerError(f"No forecast returned for {prepared.dataset_id}.")
+    # A single-target series's forecast/quantiles may come back without
+    # the leading target axis; normalize to always have it so the shape
+    # checks and indexing below can assume a consistent rank.
     point = np.asarray(output.forecast)
     if point.ndim == 1:
       point = point[np.newaxis, :]
@@ -602,6 +677,9 @@ def evaluation_metrics(forecast: pd.DataFrame) -> pd.DataFrame:
     point = current["point"].to_numpy(dtype=float)
     error = actual - point
     denominator = np.abs(actual) + np.abs(point)
+    # Where both actual and point are exactly 0 (denominator 0, and thus
+    # error 0 too), define the sMAPE term as 0 (a perfect match) instead
+    # of the 0/0 NaN that plain division would produce.
     smape_terms = np.divide(
       2 * np.abs(error),
       denominator,
@@ -679,6 +757,10 @@ def capability_report() -> CapabilityReport:
       Path.home() / ".cache" / "huggingface" / "hub",
     )
   )
+  # "models--<org>--<repo>" is the Hugging Face Hub cache's own directory
+  # naming convention (repo id with "/" replaced by "--"); this is
+  # hand-derived from CHECKPOINT_ID rather than computed from it, so the
+  # two must be kept in sync if CHECKPOINT_ID ever changes.
   checkpoint_cached = (cache_root / "models--google--timesfm-3.0-pytorch").exists()
   return CapabilityReport(
     python=platform.python_version(),
@@ -704,6 +786,9 @@ def make_run_artifact(
   metrics = evaluation_metrics(table)
   history = history_table(batch)
   created_at = pd.Timestamp.now(tz="UTC").isoformat()
+  # run_id: content hash of the input datasets plus the creation instant,
+  # truncated to 10 hex chars for a short, still effectively-unique id
+  # (see run_store.py, which treats run_id as an immutable primary key).
   seed = "|".join(item.sha256 for item in batch.series) + created_at
   run_id = hashlib.sha256(seed.encode()).hexdigest()[:10]
   manifest = {
@@ -768,6 +853,9 @@ def execute_forecast(
   artifact.manifest["preparation"] = {
     item.dataset_id: item.frame.attrs.get("preparation", {}) for item in datasets
   }
+  # Bump schema_version last: it must reflect the manifest shape *after*
+  # the model_provenance/preparation fields above have (possibly) been
+  # added, so reorder with care if adding further fields here.
   artifact.manifest["schema_version"] = 2
   return artifact
 
@@ -775,6 +863,11 @@ def execute_forecast(
 def _csv_safe(frame: pd.DataFrame) -> pd.DataFrame:
   """Neutralize spreadsheet formulas in user-controlled CSV cells."""
   safe = frame.copy()
+  # Leading =, +, -, @ trigger formula evaluation in Excel/Sheets; a
+  # leading tab/CR can also be (mis)interpreted by some spreadsheet CSV
+  # parsers. Prefixing with a single quote forces text interpretation --
+  # the standard CSV-injection mitigation -- without altering the value
+  # for any consumer that isn't a spreadsheet application.
   dangerous = ("=", "+", "-", "@", "\t", "\r")
   for column in safe.select_dtypes(include=["object", "string"]).columns:
     safe[column] = safe[column].map(
@@ -789,6 +882,8 @@ def _csv_safe(frame: pd.DataFrame) -> pd.DataFrame:
 
 def artifact_zip(artifact: RunArtifact) -> bytes:
   """Create a portable result bundle entirely in memory."""
+  # Local import: only this export path needs calibration_table, so the
+  # rest of this module doesn't pay for importing uncertainty.py.
   from .uncertainty import calibration_table
 
   output = io.BytesIO()
@@ -858,5 +953,7 @@ def repository_revision(root: Path | None = None) -> str:
       timeout=2,
     )
   except (OSError, subprocess.SubprocessError):
+    # git missing, not a checkout, or slow (timeout=2s) -- never let
+    # provenance lookup block or fail a forecast run.
     return "unknown"
   return completed.stdout.strip() or "unknown"

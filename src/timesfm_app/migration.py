@@ -1,4 +1,12 @@
-"""Read-only DuckDB import into immutable application records and artifacts."""
+"""Read-only DuckDB import into immutable application records and artifacts.
+
+Copies rows out of a legacy DuckDB file (opened read_only) into store.py's
+Record table and artifacts.py's artifact store, without ever writing back to
+the source. Every derived id is a deterministic hash (import_id) of the
+source path plus legacy id, so re-running the import against the same file
+is idempotent: existing records are detected and skipped rather than
+duplicated.
+"""
 
 from __future__ import annotations
 

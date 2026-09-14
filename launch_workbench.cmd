@@ -1,3 +1,9 @@
+:: One-click entry point for the native TimesFM-3 workbench. Delegates to
+:: `.\dev.ps1 launch` (see that script's header for what it starts: Postgres,
+:: Memurai, the FastAPI backend, and the Next.js frontend under .native\ and
+:: web\, running first-time setup automatically if needed). Requires `uv` on
+:: PATH; PowerShell's default execution policy is bypassed only for this one
+:: script invocation (-ExecutionPolicy Bypass), not set globally.
 @echo off
 setlocal
 pushd "%~dp0"

@@ -5,6 +5,11 @@ import { ModelsPage } from "@/features/models-page";
 import { OverviewPage } from "@/features/overview-page";
 import { TrackingPage } from "@/features/tracking-page";
 
+// Catch-all dynamic route mapping a URL page segment to a feature page
+// component; all segments are statically enumerated via
+// generateStaticParams. app/page.tsx handles the "/" root separately by
+// rendering OverviewPage directly. See features/*.tsx for the pages
+// themselves.
 export function generateStaticParams() {
   return [
     "overview",

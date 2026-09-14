@@ -9,6 +9,12 @@ import { Button } from "./ui/button";
 import { Empty, Field, Input, Section, Select } from "./ui/controls";
 import { SettingsFields } from "./forecast-form";
 
+// Two form-connected editors used only for the "experiment"/"scenario"
+// job kinds in features/forecasts-page.tsx: ConfigurationEditor compares
+// up to 8 named inference-setting configurations (each reusing the
+// SettingsFields from forecast-form.tsx), and ScenarioEditor edits
+// known-future covariate overrides for up to 3 what-if scenarios. The
+// 8/3 limits mirror lib/spec.ts's configurations/scenarios array caps.
 export function ConfigurationEditor() {
   const { control, register, setValue } = useFormContext<Spec>();
   const spec = useWatch({ control }) as Spec;
@@ -93,7 +99,12 @@ export function ScenarioEditor({ template }: { template: Row[] }) {
   const [page, setPage] = useState(0);
   const index = Math.min(selected, Math.max(0, spec.scenarios.length - 1));
   const scenario = spec.scenarios[index];
+  // Pagination here is a display-only window into the future-covariate
+  // template; it doesn't affect which overrides exist, so edits on any
+  // page are preserved when paging away and back.
   const rows = template.slice(page * 50, (page + 1) * 50);
+  // Composite identity for a future-covariate cell, since no single
+  // column uniquely identifies a (series, row, covariate) combination.
   const key = (row: Row) => `${row.dataset}:${row.row}:${row.covariate}`;
   const edit = (row: Row, value: string) => {
     if (!scenario) return;
@@ -103,6 +114,8 @@ export function ScenarioEditor({ template }: { template: Row[] }) {
     const number = value === "" ? Number.NaN : Number(value);
     setValue(
       `scenarios.${index}.overrides`,
+      // Editing a cell back to its baseline value removes the override
+      // entirely, rather than storing a redundant no-op override.
       number === row.value
         ? remaining
         : [

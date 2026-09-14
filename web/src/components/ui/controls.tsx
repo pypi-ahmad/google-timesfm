@@ -3,6 +3,10 @@ import { AlertCircle, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { errorMessage } from "@/lib/api";
 
+// Shared low-level form/status/layout primitives reused across every
+// feature page (Input/Select/Field/Check for forms, Badge/ErrorNotice/
+// Loading/Empty for status, PageHeading/Section for page structure). See
+// ui/dialog.tsx for the Drawer that wraps some of these in a side panel.
 export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cn("control", className)} {...props} />;
 }

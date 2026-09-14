@@ -274,6 +274,10 @@ def test_scenario_zero_baseline_has_no_percentage_delta() -> None:
 
 
 def test_preflight_rejects_excess_variates_even_with_chunking_enabled() -> None:
+  # allow_benchmark_chunking raises the per-request variate limit for plain
+  # forecasting, but analysis workflows issue one forecast call per window
+  # and must still refuse an unreasonably wide dataset outright rather than
+  # silently chunking it.
   frame = pd.DataFrame({f"x{i}": np.arange(10, dtype=float) for i in range(33)})
   with pytest.raises(explorer.ExplorerError):
     analysis.prepare_analysis(
@@ -494,6 +498,10 @@ def test_cropped_context_preserves_absolute_integer_forecast_axis() -> None:
 
 
 def test_different_dataset_lengths_share_cutoffs_between_variants() -> None:
+  # "short" has 12 rows and "long" has 16; cutoffs are chosen relative to
+  # each dataset's own end (not a shared absolute row index), so origins
+  # differ per dataset while joint/independent variants still line up
+  # against the same origins within each dataset.
   short = dataclasses.replace(
     dataset(dataset().frame.iloc[:12].copy()), dataset_id="short"
   )
@@ -527,6 +535,10 @@ def test_different_dataset_lengths_share_cutoffs_between_variants() -> None:
 
 
 def test_scenario_blank_future_targets_keep_absolute_edit_rows_after_crop() -> None:
+  # Scenario edits are recorded against absolute row positions in the
+  # uploaded frame. When the context fed to the model is later cropped
+  # (rows before the forecast origin dropped), the edit at row 0 of the
+  # template must still land on the correct absolute row/timestamp.
   frame = pd.DataFrame(
     {"a": np.arange(20, dtype=float), "known": np.arange(20, dtype=float)}
   )

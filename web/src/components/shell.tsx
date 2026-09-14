@@ -28,6 +28,12 @@ import { Button } from "./ui/button";
 import { Drawer } from "./ui/dialog";
 import { WorkspaceSettings } from "./workspace-settings";
 
+// Persistent app chrome rendered around every route by app/layout.tsx:
+// sidebar/mobile-drawer navigation, the topbar (theme switcher, API health
+// indicator), and the "analytical context" bar showing the current
+// dataset version/draft/run selection. See hooks/use-context.ts for the
+// context values and app/globals.css for the layout-critical class names
+// (.sidebar, .workspace-main, .topbar, .context-bar) this relies on.
 const routes = [
   { path: "/overview", label: "Overview", icon: Gauge },
   { path: "/data", label: "Data", icon: Database },
@@ -41,6 +47,9 @@ export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const context = useAnalyticalContext();
   const { theme, setTheme } = useTheme();
+  // next-themes can't know the resolved theme during server render;
+  // `mounted` defers theme-dependent UI (icon, select value) to the client
+  // to avoid a hydration mismatch.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const health = useQuery({
@@ -48,6 +57,8 @@ export function Shell({ children }: { children: ReactNode }) {
     queryFn: ({ signal }) =>
       api<Record<string, unknown>>("/health", { signal }),
     refetchInterval: 15_000,
+    // No retry: the "API unavailable" indicator should reflect the latest
+    // poll immediately rather than retry-storming a down backend.
     retry: false,
   });
   const nav = (

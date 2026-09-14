@@ -12,6 +12,13 @@ type Draft = RecordItem<{ spec: Spec }>;
 type SaveState = "saved" | "saving" | "unsaved" | "conflict" | "error";
 type Recovery = { spec: Spec; revision: number | null };
 
+// Autosaving react-hook-form binding for the forecast Spec: debounces
+// edits into a PATCH/POST to the drafts API, mirrors unsaved edits into
+// sessionStorage for crash/reload recovery, and surfaces optimistic-
+// concurrency conflicts (another tab saved the same draft) as a distinct
+// state rather than silently overwriting. Sole consumer is
+// features/forecasts-page.tsx. See lib/spec.ts for the Spec shape and
+// hooks/use-context.ts for how draftId/versions drive which draft loads.
 export function useDraft() {
   const context = useAnalyticalContext();
   const client = useQueryClient();
@@ -30,7 +37,15 @@ export function useDraft() {
   const inFlight = useRef(false);
   const mounted = useRef(true);
   const loadedRecovery = useRef("");
+  // Keyed by draft id, or by the pending dataset-version selection when
+  // there's no draft yet — so an unsaved "new draft" recovers correctly
+  // even before it has a server id.
   const recoveryKey = `timesfm:draft:${context.workspace}:${context.draftId ?? `new:${context.versions.join(",")}`}`;
+  // Snapshot of the key a save was started under, checked after the async
+  // save resolves: if the user has since switched to a different draft
+  // (context.draftId changed), that save's result must not be applied to
+  // the now-current draft state — this guards the race between navigating
+  // away and an in-flight save/load resolving late.
   const activeRecoveryKey = useRef(recoveryKey);
   activeRecoveryKey.current = recoveryKey;
   latest.current = values;
@@ -48,6 +63,9 @@ export function useDraft() {
   }, []);
 
   useEffect(() => {
+    // Wait for the server draft (if any) to actually load before deciding
+    // what to restore — loading a stale/empty state here would otherwise
+    // race the query and momentarily show the wrong spec.
     if (
       context.draftId &&
       (!selected.data || selected.data.id !== context.draftId)
@@ -67,6 +85,10 @@ export function useDraft() {
     savedSnapshot.current = JSON.stringify(initial);
     if (recovered?.spec) {
       form.reset(recovered.spec);
+      // A locally recovered draft only conflicts with the server if it was
+      // captured against a different revision AND actually differs from
+      // what the server now has — recovering the same content the server
+      // already saved is not a conflict.
       if (
         server &&
         recovered.revision !== server.revision &&
@@ -96,6 +118,9 @@ export function useDraft() {
 
   const save = useCallback(
     async (copy = false) => {
+      // A conflict blocks further silent autosaves until the user
+      // explicitly resolves it (save as copy, or reload the server draft)
+      // — otherwise a background save could clobber the other tab's write.
       if (inFlight.current || (!copy && state === "conflict")) return;
       inFlight.current = true;
       setState("saving");
@@ -104,6 +129,9 @@ export function useDraft() {
       const savedKey = recoveryKey;
       try {
         const payload = { spec: submitted };
+        // If-Match with the last-known revision makes this an optimistic-
+        // concurrency update: the server rejects with 409 (caught below)
+        // if another writer has since changed the draft.
         const result =
           previous && !copy
             ? await api<Draft>(`/drafts/${previous.id}`, {
@@ -124,6 +152,9 @@ export function useDraft() {
         sessionStorage.removeItem(savedKey);
         client.setQueryData(["draft", result.id], result);
         void client.invalidateQueries({ queryKey: ["drafts"] });
+        // Only apply this save's result if the component is still mounted
+        // and the user hasn't switched to a different draft while the
+        // request was in flight (see activeRecoveryKey above).
         if (mounted.current && activeRecoveryKey.current === savedKey) {
           record.current = result;
           savedSnapshot.current = JSON.stringify(submitted);
@@ -149,6 +180,9 @@ export function useDraft() {
         }
       } catch (cause) {
         if (mounted.current && activeRecoveryKey.current === savedKey) {
+          // A 409 means another writer changed the draft since our last
+          // known revision — surfaced as "conflict", distinct from other
+          // failures which are recoverable by retrying the same save.
           setState(
             cause instanceof ApiError && cause.status === 409
               ? "conflict"
@@ -158,6 +192,10 @@ export function useDraft() {
         }
       } finally {
         inFlight.current = false;
+        // Bumping epoch re-triggers the autosave effect below even when
+        // `snapshot` hasn't changed, so a save that finishes with
+        // unsaved edits still queued (edited again mid-save) gets a fresh
+        // debounce timer instead of being left unscheduled.
         if (mounted.current) setEpoch((value) => value + 1);
       }
     },
@@ -170,6 +208,9 @@ export function useDraft() {
       snapshot === savedSnapshot.current
     )
       return;
+    // Mirror every edit into sessionStorage immediately (ahead of the
+    // debounce) so a reload or crash before the debounced save fires can
+    // still recover the latest keystrokes.
     try {
       sessionStorage.setItem(
         recoveryKey,
@@ -179,6 +220,8 @@ export function useDraft() {
       /* Server persistence remains available when browser storage is full. */
     }
     if (state === "conflict" || state === "error" || inFlight.current) return;
+    // Debounced autosave: waits 900ms of no further edits before writing
+    // to the server draft.
     const timer = setTimeout(() => {
       void save();
     }, 900);

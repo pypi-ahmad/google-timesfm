@@ -31,6 +31,12 @@ type Tracking = RecordItem<{
   associations: Record<string, string>;
   [key: string]: unknown;
 }>;
+// Follows a previously issued forecast run over time: matches newly
+// uploaded dataset versions back to the run's original series identities
+// ("associations"), then either scores the issued forecast against new
+// actuals ("assess") or issues a fresh forecast from the same saved
+// settings ("refresh"). Embeds components/run-viewer.tsx RunViewer to show
+// the tracked run itself once selected via the URL context.
 export function TrackingPage() {
   const context = useAnalyticalContext();
   const client = useQueryClient();
@@ -52,12 +58,18 @@ export function TrackingPage() {
   const [confirmStop, setConfirmStop] = useState(false);
   const selected = tracks.data?.find((item) => item.id === selectedId);
   const selectedRun = useRun(selected?.payload.run_id ?? null);
+  // `manifest.datasets` is server-saved run metadata, not covered by
+  // lib/types.ts's Run type — read defensively rather than assumed shape.
   const manifest = selectedRun.data?.payload.manifest as
     { datasets?: { dataset_id: string }[] } | undefined;
   const priorIds = [
     ...new Set((manifest?.datasets ?? []).map((item) => item.dataset_id)),
   ];
   const sourceSpec = selectedRun.data?.payload.spec ?? {};
+  // Rebuilds a Spec using only the keys defaultSpec() knows about, copied
+  // from the run's saved spec — a defensive filter against schema drift
+  // (an older/newer run's spec having extra or missing fields) before
+  // this gets sent to /preview with the updated dataset_version_ids.
   const matchingSpec = {
     ...defaultSpec(),
     ...Object.fromEntries(
@@ -79,12 +91,19 @@ export function TrackingPage() {
   const currentSeries = (matching.data?.series ?? []).map((item) =>
     String(item.dataset),
   );
+  // Default association is identity (a prior series id maps to itself in
+  // the new data) when that id still exists in the current series;
+  // otherwise falls back to the user's manual choice, and drops the
+  // mapping entirely if the chosen target no longer exists.
   const effectiveAssociations = Object.fromEntries(
     priorIds.flatMap((id) => {
       const chosen = associations[id] ?? (currentSeries.includes(id) ? id : "");
       return currentSeries.includes(chosen) ? [[id, chosen]] : [];
     }),
   );
+  // Assessing/refreshing requires at least one resolved association, and
+  // no two prior series mapped to the same current series (a 1:1 mapping
+  // invariant enforced here, not by the server).
   const canAssess =
     Object.keys(effectiveAssociations).length > 0 &&
     new Set(Object.values(effectiveAssociations)).size ===

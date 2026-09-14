@@ -424,6 +424,9 @@ def test_gpu_lock_excludes_second_process_without_loading_torch(tmp_path):
   from timesfm_app.worker import GPUProcessLock
 
   path = tmp_path / "gpu.lock"
+  # The assert 'torch' not in sys.modules check confirms the lock is a cheap,
+  # OS-level exclusion primitive (e.g. a file lock) that can fail fast for a
+  # second process without first paying for torch's (and CUDA's) import cost.
   code = """
 import sys
 from pathlib import Path

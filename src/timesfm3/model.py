@@ -18,6 +18,18 @@ Supports:
   - forward(): equivalent to Flax __call__, full-sequence forward pass.
   - decode(): non-autoregressive and cached decoding with frozen stats and
     configurable output_patch_len.
+
+`decode()` is the public entry point: it patches/pads a multivariate
+(target + optional past-only/past-future covariates) input into the
+`(b, v, n, p)` shape `forward()`/`_preprocess()` expect, builds the
+horizon "CPM" mask that tells the model which patches have no real
+target values, optionally detrends per-series before patching, calls
+`forward()`, then un-patches (optionally via overlap-stitching, see
+`util.py:stitch_patches`) and re-trends the result. See `transformer.py`
+for the stacked attention layers and `cpm_revin_refine.py` for how CPM
+positions' RevIN stats are refined. `model_loading.py` / `evaluator.py`
+are the next files for how checkpoints are resolved and loaded into this
+class.
 """
 
 from __future__ import annotations
@@ -141,9 +153,17 @@ class TimesFM3Torch(
     if self.use_stitching:
       if self.output_patch_len <= self.input_patch_len:
         raise ValueError("use_stitching requires output_patch_len > input_patch_len")
+      # Extract at most 2 input patches' worth of overlap region per
+      # forecast patch (enough for one patch_len of blend, see
+      # util.stitch_patches), capped by output_patch_len itself.
       self._stitching_extract_len = min(2 * self.input_patch_len, self.output_patch_len)
 
     self.pre_transformer_resblock = dense.ResidualBlock(config=residual_block_config)
+    # Must match resblock_input's actual last-dim size built in
+    # _preprocess: values_cat and masks_cat are each
+    # (input_patch_len + output_patch_len) wide (own patch + rolled future
+    # covariate patch), and resblock_input concatenates value channels
+    # with their (float) mask channels, hence the factor of 2.
     self.pre_transformer_resblock.set_input_dims(
       2 * (input_patch_len + output_patch_len)
     )
@@ -218,6 +238,11 @@ class TimesFM3Torch(
     """
     running_n, running_mean, running_std = util.get_running_stats(values, masks)
     if freeze_after is not None:
+      # Used during decode() for the horizon region: instead of letting
+      # RevIN stats keep accumulating into masked/CPM (horizon) patches
+      # -- which have no real data and would otherwise pull stats toward
+      # 0 -- freeze every position after `freeze_after` at that last
+      # real-context patch's stats.
       _, _, n, _ = values.shape
       if 0 <= freeze_after < n - 1:
         running_mean[:, :, freeze_after + 1 :] = running_mean[
@@ -230,6 +255,10 @@ class TimesFM3Torch(
     # Apply CPM mask: mask target variates at CPM positions.
     if patch_cpm_mask is not None:
       cpm_bvnp = patch_cpm_mask[:, None, :, None]  # (b, 1, n, 1)
+      # Only the *target* variates are masked at CPM positions -- known
+      # covariates (past_only/past_future) may legitimately have real
+      # values there (e.g. a known future covariate for the horizon) and
+      # must stay visible.
       cpm_target_only = cpm_bvnp & patch_is_target.unsqueeze(-1)
       masks = masks | cpm_target_only
 
@@ -242,6 +271,13 @@ class TimesFM3Torch(
 
     # Roll the (CPM-modified) masks for future covariate masking.
     masks_fcov_raw, _ = util.get_output_patch_via_roll(masks, self.rolls)
+    # Critical no-leakage guard: values_fcov is built by rolling the RAW
+    # target values forward, so for a target variate this would otherwise
+    # leak the true future value (exactly what the model is being asked
+    # to forecast) into its own input as a "future covariate". Masking
+    # every target-variate position here (patch_is_target), regardless of
+    # CPM status, prevents that leak; wrap_mask additionally excludes
+    # positions where the roll wrapped around past the end of the sequence.
     masks_fcov = masks_fcov_raw | patch_is_target.unsqueeze(-1) | wrap_mask
     values_fcov = torch.where(masks_fcov, 0.0, values_fcov)
 
@@ -397,7 +433,11 @@ class TimesFM3Torch(
     if horizon <= 0:
       raise ValueError("Decode function requires horizon > 0.")
 
-    # 1. Pad context to multiple of input_patch_len
+    # 1. Pad context to multiple of input_patch_len.
+    # Padding goes on the LEFT (front) so the most recent, real
+    # observations stay anchored at the end of the context and patch
+    # boundaries align with "now" -- the padded positions are then
+    # marked True (masked) below rather than treated as real zeros.
     ctx_padding = (
       self.input_patch_len - (context % self.input_patch_len)
     ) % self.input_patch_len
@@ -430,13 +470,22 @@ class TimesFM3Torch(
       if ctx_padding > 0:
         mask[:, :ctx_padding] = True
 
-    # 2. Pad horizon
+    # 2. Pad horizon.
+    # use_stitching walks the horizon one input_patch_len at a time
+    # (rather than one output_patch_len chunk at a time) and blends the
+    # overlap between consecutive patches' predictions (see
+    # util.stitch_patches), avoiding a visible seam every output_patch_len
+    # points; the non-stitching branch instead emits independent,
+    # non-overlapping output_patch_len chunks.
     if self.use_stitching:
       extract_len = self._stitching_extract_len
       overlap = extract_len - self.input_patch_len
       num_forecast_patches = max(
         math.ceil((horizon - overlap) / self.input_patch_len), 1
       )
+      # +rolls-1 extra input-patch-len positions so the model has enough
+      # trailing context patches for the LAST forecast patch's own
+      # rolls-wide output window to be fully computed.
       num_horizon_patches = num_forecast_patches + self.rolls - 1
       padded_horizon = num_horizon_patches * self.input_patch_len
       hor_padding = padded_horizon - horizon
@@ -485,6 +534,12 @@ class TimesFM3Torch(
         dim=-1, keepdim=True
       )
 
+      # Closed-form OLS fit of y = m*t + c over only the unmasked (valid)
+      # context points, via the normal-equations determinant `det`. `det`
+      # is 0 when there are too few valid points to fit a line (n_v < 2,
+      # so the design matrix is singular); in that case, skip the slope
+      # entirely and fall back to a constant (mean) or zero intercept
+      # rather than dividing by zero.
       det = n_v * sum_t2 - sum_t**2
       safe_det = torch.where(det == 0.0, 1.0, det)
       m_trend = torch.where(det == 0.0, 0.0, (n_v * sum_ty - sum_t * sum_y) / safe_det)
@@ -507,6 +562,11 @@ class TimesFM3Torch(
       var_det = torch.clamp_min(sum_yd2 / torch.clamp_min(n_v, 1.0) - mean_yd**2, 0.0)
       std_det = torch.sqrt(var_det)
 
+      # Only actually detrend a series if doing so reduces its residual
+      # std by at least linear_detrending_threshold -- e.g. a mostly-flat
+      # or noisy series (where the fitted line barely changes std, or
+      # only fits noise) is left untouched rather than risk extrapolating
+      # a spurious trend into the forecast.
       apply_detrend = std_det < self.linear_detrending_threshold * std_orig
       ctx_vals = torch.where(apply_detrend, ctx_vals_detrended, ctx_vals)
     else:
@@ -558,6 +618,10 @@ class TimesFM3Torch(
         ]
         t_hor_pf_normalized = t_hor_pf / context
         pf_trend_hor = m_pf * t_hor_pf_normalized + c_pf
+        # Remove the SAME per-series trend fit on the context from this
+        # covariate's horizon values, so it lines up with the (detrended)
+        # context representation the model sees -- consistency, not a
+        # second independent fit.
         pf_future_vals = torch.where(
           apply_detrend_pf, pf_future_vals - pf_trend_hor, pf_future_vals
         )
@@ -616,6 +680,10 @@ class TimesFM3Torch(
       num_forecast_patches = max(
         math.ceil((horizon - overlap) / self.input_patch_len), 1
       )
+      # forecast_indices starts at num_context_patches - 1 (the LAST real
+      # context patch): its output_patch_len-long prediction already
+      # covers the first patch_len points of the horizon, so overlapping
+      # patches begin one step before the first "new" position.
       forecast_indices = torch.arange(num_forecast_patches, device=device) + (
         num_context_patches - 1
       )
@@ -626,6 +694,9 @@ class TimesFM3Torch(
       )[:, :, :horizon, :]
     else:
       num_forecast_chunks = padded_horizon // self.output_patch_len
+      # Same last-context-patch anchor as above, but stepping by
+      # self.rolls input patches (= one output_patch_len) per chunk,
+      # since here forecasts are non-overlapping output_patch_len blocks.
       forecast_indices = torch.arange(
         num_forecast_chunks, device=device
       ) * self.rolls + (num_context_patches - 1)
@@ -635,6 +706,10 @@ class TimesFM3Torch(
       )[:, :, :horizon, :]
 
     if self.use_linear_detrending:
+      # Add the per-series trend (fit on the context above) back onto the
+      # model's (detrended-domain) forecast, extrapolated forward past
+      # the context window -- the model only ever saw detrended values,
+      # so this undoes that transform for the final output.
       t_forecast = torch.arange(1, horizon + 1, dtype=torch.float32, device=device)
       t_forecast_normalized = t_forecast / context
       trend_forecast = (

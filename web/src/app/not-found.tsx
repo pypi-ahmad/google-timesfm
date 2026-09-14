@@ -1,4 +1,5 @@
 import Link from "next/link";
+// Catch-all 404 for any route not matched by app/[page]/page.tsx.
 export default function NotFound() {
   return (
     <div className="panel p-8">

@@ -4,6 +4,9 @@ import { X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
+// Right-side sheet built on Radix Dialog. Used for the mobile nav panel,
+// workspace settings, and run-details/metadata panels. Closes itself on
+// route change so navigating away doesn't leave it open over the new page.
 export function Drawer({
   title,
   description,

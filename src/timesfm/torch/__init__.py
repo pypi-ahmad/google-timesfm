@@ -11,3 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""PyTorch layer implementations of TimesFM (dense, normalization, transformer).
+
+Mirrors the `flax/` package's module set field-for-field so both backends
+can be driven by the same configs in `../configs.py`. See
+`transformer.py` for the top-level stack and `../timesfm_2p5/timesfm_2p5_torch.py`
+for how these layers are assembled into a full model.
+"""

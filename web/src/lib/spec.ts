@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+// Runtime (zod) mirror of the server's RunSpec contract, used to validate
+// and default the forecast-builder form before /preview or job submission.
+// This is a client-side re-implementation of a server-side schema — if the
+// two diverge, the server is authoritative and this file needs updating.
+// See hooks/use-draft.ts (form binding), components/forecast-form.tsx and
+// components/experiment-editors.tsx (the fields built against this shape),
+// and lib/types.ts ApiRunSpec/JobSubmission for the wire types.
 export const settingsSchema = z.object({
   horizon: z.number().int().min(1).max(15360),
   context_length: z.number().int().min(1).max(15360),
@@ -76,6 +83,10 @@ export const specSchema = z
       .max(3),
   })
   .superRefine((spec, ctx) => {
+    // Invariant: timestamp, group, target, and covariate roles are
+    // mutually exclusive — the same column can't be assigned two roles.
+    // roleAvailable() below enforces this in the UI; this check is the
+    // authoritative guard for specs built or edited outside that UI path.
     const roles = [
       ...spec.mapping.targets,
       ...spec.mapping.past_only,
@@ -145,6 +156,9 @@ export function schemaMessage(spec: unknown): string | null {
     ? null
     : result.error.issues.map((issue) => issue.message).join(" ");
 }
+// A column is pickable for a role if it's already in `current` (so it can
+// be unchecked) or not yet claimed by any other role (see the superRefine
+// invariant above).
 export function roleAvailable(column: string, current: string[], spec: Spec) {
   return (
     current.includes(column) ||

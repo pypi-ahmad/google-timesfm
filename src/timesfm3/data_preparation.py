@@ -1,7 +1,22 @@
 # Copyright 2026 Ahmad Mujtaba
 # Licensed under the Apache License, Version 2.0 (the "License");
 
-"""Session-only grouping, calendar features, and forecast data diagnostics."""
+"""Session-only grouping, calendar features, and forecast data diagnostics.
+
+Workbench-app data layer sitting on top of `explorer.py` (which owns
+`UploadedDataset`/`DatasetMapping`/`PreparedSeries` and the actual
+model-input preparation via `explorer.prepare_batch`). This module adds:
+splitting an uploaded source into per-group datasets (`group_sources`),
+generating known-future calendar/holiday/event columns and extending a
+series' timestamp axis into the forecast horizon (`_prepare_dataset`,
+`prepare_sources`), replaying that preparation onto a refreshed upload
+(`restore_preparation`), and read-only diagnostics (`quality_report`,
+`imputation_preview`) that must never mutate the uploaded data. All
+persisted preparation state lives in `frame.attrs["preparation"]`
+(a plain dict) rather than a separate structure -- see `restore_preparation`
+for the round-trip through that dict. Nothing here is persisted to disk;
+see `run_store.py` for on-disk/run storage.
+"""
 
 from __future__ import annotations
 
@@ -92,6 +107,10 @@ def _calendar_metadata(calendar: CalendarSettings) -> dict[str, Any]:
 
 
 def _group_value(value: Any) -> Any:
+  # Normalizes a pandas groupby key into a JSON-serializable value (this
+  # feeds `json.dumps` in group_sources' identifier and into persisted
+  # preparation metadata), rejecting types that can't round-trip cleanly
+  # (e.g. NaN/inf floats) rather than silently coercing them.
   if pd.isna(value):
     return None
   if isinstance(value, np.generic):
@@ -195,6 +214,9 @@ def _prepare_dataset(
       observed = np.flatnonzero(numeric.notna().any(axis=1).to_numpy())
       if not len(observed):
         raise ExplorerError(f"{dataset.dataset_id} has no observed target values.")
+      # Only extend the frame far enough for the horizon to fit past the
+      # *last observed* target row (trailing all-NaN rows already in the
+      # upload don't need new rows appended on top of them).
       appended = max(0, int(observed[-1]) + 1 + horizon - len(frame))
       if appended:
         if resolved_frequency is None:
@@ -211,6 +233,12 @@ def _prepare_dataset(
           raise ExplorerError(
             "The selected frequency cannot extend these timestamps."
           ) from exc
+        # Cheap pre-check before actually building the (potentially large)
+        # expanded frame: estimate the post-expansion size from the
+        # current average bytes/row plus 8 bytes/row per new calendar
+        # column, so a pathological horizon can't blow up memory before
+        # the real, exact check below (`memory_bytes > MAX_DECODED_BYTES`)
+        # even gets a chance to run.
         estimated = (len(frame) + appended) * (
           max(1, dataset.memory_bytes // max(1, len(frame))) + len(generated) * 8
         )
@@ -221,6 +249,9 @@ def _prepare_dataset(
         original_length = len(frame)
         frame = frame.reindex(range(original_length + appended))
         frame.loc[original_length:, mapping.timestamp] = future
+        # Group-key columns are constant per group (this frame is already
+        # one group's rows, from group_sources), so broadcast row 0's
+        # value into every newly appended row rather than leaving it NaN.
         for column in metadata.get("group_key", {}):
           frame.loc[original_length:, column] = dataset.frame[column].iloc[0]
         dates = pd.DatetimeIndex(frame[mapping.timestamp])
@@ -230,7 +261,14 @@ def _prepare_dataset(
     **metadata,
     "frequency": resolved_frequency,
     "calendar": _calendar_metadata(calendar),
+    # Pin the holidays package version at prep time: holiday tables can
+    # change between package releases, so this is recorded for
+    # provenance/reproducibility even though it isn't re-checked later.
     "holidays_version": version("holidays") if calendar.holiday_country else None,
+    # Documents an assumption load-bearing for forecasting: calendar/event
+    # covariates are treated as "known future" (safe to compute for the
+    # horizon, unlike real covariates which may not be known ahead), so
+    # this notice is persisted alongside the generated columns.
     "known_future_policy": "Calendar dates and custom event ranges are assumed known before every forecast origin.",
     "generated_columns": list(generated),
     "appended_rows": appended,
@@ -255,6 +293,11 @@ def group_sources(
   Source names and canonical group keys determine identity, independent of upload
   order and content hashes. Split groups account for their source's bytes once.
   Only in-memory copies and serializable preparation metadata are produced.
+
+  Deliberately does not call `explorer._validate_mapping` itself (that
+  happens per-group later, in `_prepare_dataset`), so one group with e.g.
+  unparseable timestamps can fail in isolation rather than the mapping
+  check rejecting the whole (still ungrouped) source up front.
   """
   explorer.validate_upload_total(datasets)
   if len(group_columns) != len(set(group_columns)):
@@ -296,6 +339,10 @@ def group_sources(
         if not columns and dataset.frame.attrs.get("preparation")
         else {"source_name": name, "group_key": group_key}
       )
+      # Only the first split group keeps the source's original upload
+      # byte_size, so summing byte_size across all groups from one source
+      # still equals that source's size once (rather than the source's
+      # bytes being double-counted per group).
       grouped = dataclasses.replace(
         dataset,
         dataset_id=identifier,
@@ -404,10 +451,22 @@ def restore_preparation(
 def _model_columns(
   prepared: PreparedSeries, mapping: DatasetMapping, mode: str
 ) -> list[tuple[str, np.ndarray, int]]:
-  """Mirror leading-NaN trimming before the forecaster interpolates valid inputs."""
+  """Mirror leading-NaN trimming before the forecaster interpolates valid inputs.
+
+  This re-implements (rather than calls into) the forecaster's own
+  leading-trim logic purely for reporting (quality_report,
+  imputation_preview) -- it must be kept in sync by hand with whatever
+  `timesfm3_forecaster.py` actually does; unclear from this file alone
+  whether that's still the case.
+  """
   if mode == "univariate":
+    # Each target is forecast independently, so each gets its own
+    # leading-NaN trim offset.
     offsets = [int(np.argmax(~np.isnan(values))) for values in prepared.context]
   else:
+    # Multivariate patches must align across variates, so every target
+    # (and, below, every covariate) shares one offset: the first row
+    # where at least one target has data.
     first_valid = int(np.argmax(~np.isnan(prepared.context).all(axis=0)))
     offsets = [first_valid] * len(mapping.targets)
   columns = [
@@ -505,6 +564,12 @@ def quality_report(
         warnings.append(
           f"Only {context_rows} context rows are available; {settings.context_length} were requested."
         )
+      # When multivariate inputs exceed MAX_VARIATES, the forecaster
+      # splits targets into separate chunks (see explorer.py /
+      # timesfm3_forecaster.py) and trimming can differ per chunk, so an
+      # exact single trimming/missing-value count can't be computed here
+      # -- report None (surfaced in the UI as "varies") instead of a
+      # number that would only reflect one arbitrary chunk.
       chunked = (
         settings.mode == "multivariate" and row["model_inputs"] > explorer.MAX_VARIATES
       )
@@ -559,6 +624,9 @@ def quality_report(
       if warnings:
         row["status"] = "warning"
     except (ExplorerError, ValueError, OverflowError) as exc:
+      # Per-dataset failure is contained here (not re-raised) so one bad
+      # group still gets a "blocked" row with the error message, and
+      # every other dataset's report is unaffected.
       row["status"] = "blocked"
       warnings.append(str(exc))
     row["details"] = " ".join(warnings)
@@ -584,7 +652,15 @@ def imputation_preview(
   rows = []
   for column, original, offset in _model_columns(prepared, mapping, settings.mode):
     filled = linear_interpolation(original)
+    # `original` is already trimmed by `offset` (see _model_columns), so
+    # slicing history_time by the same offset re-aligns timestamps to
+    # `original`'s (and `filled`'s) indices.
     history_time = prepared.history_time[offset:]
+    # `[: len(history_time)]` guards against `original` running past the
+    # available history timestamps (e.g. it may include horizon/holdout
+    # positions beyond history_time's length); only in-history cells are
+    # reported here, per this function's "excluding holdout targets"
+    # contract.
     for index in np.flatnonzero(np.isnan(original[: len(history_time)])):
       rows.append(
         {

@@ -1,3 +1,9 @@
+# Local OpenTelemetry Collector config for native dev tracing (see api.py and
+# worker.py's optional OTLP exporters, enabled via TIMESFM_OTLP_ENDPOINT).
+# receivers: accepts OTLP spans over HTTP from the API and worker processes.
+# processors: batches spans before export. exporters: writes them to a local
+# JSONL trace log instead of a hosted backend. service.pipelines: wires the
+# above into a traces-only pipeline (no metrics/logs collection here).
 receivers:
   otlp:
     protocols:

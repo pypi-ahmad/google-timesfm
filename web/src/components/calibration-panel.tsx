@@ -15,6 +15,10 @@ import {
 } from "./ui/controls";
 import { DataTable } from "./data-table";
 
+// Collapsible section (opened on demand from run-viewer.tsx) showing
+// nominal-vs-observed interval coverage for a saved run's calibration
+// table. The chart is loaded client-only (ssr:false) since echarts needs
+// a real DOM to render into.
 const CalibrationChart = dynamic(
   () => import("./calibration-chart").then((module) => module.CalibrationChart),
   { ssr: false, loading: () => <Loading label="Loading calibration chart…" /> },
@@ -28,6 +32,8 @@ function CalibrationContent({
   filters: Record<string, string>;
   horizon: number;
 }) {
+  // `step` is a 1-based horizon step index (which forecast step to inspect
+  // calibration for), clamped to [1, horizon] by the input's onChange.
   const [step, setStep] = useState(1);
   const result = useQuery({
     queryKey: ["calibration", runId, filters, step],

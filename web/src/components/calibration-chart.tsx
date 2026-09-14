@@ -20,6 +20,10 @@ echarts.use([
   CanvasRenderer,
 ]);
 
+// Scatter plot of observed vs. nominal interval coverage for saved
+// calibration rows, with a diagonal reference line (equal nominal and
+// observed coverage). Lazy-loaded via next/dynamic from
+// components/calibration-panel.tsx, which is its only caller.
 export function CalibrationChart({ rows }: { rows: Row[] }) {
   const host = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
@@ -27,7 +31,14 @@ export function CalibrationChart({ rows }: { rows: Row[] }) {
     if (!host.current) return;
     const dark = resolvedTheme === "dark";
     const muted = dark ? "#9aa3b4" : "#727b8b";
+    // echarts is imperative, not a declarative React tree: the chart
+    // instance is created/disposed manually in this effect, and
+    // resolvedTheme is a dependency so it fully re-initializes on theme
+    // change rather than trying to patch colors in place.
     const chart = echarts.init(host.current);
+    // Only rows with a finite observed_coverage_percent are plottable —
+    // coverage is only known once a run's forecast has been scored
+    // against actuals.
     const points = rows
       .filter(
         (row) =>

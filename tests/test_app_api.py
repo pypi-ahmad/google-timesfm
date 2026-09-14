@@ -216,6 +216,10 @@ def test_missing_artifact_is_recoverable_and_does_not_expose_path(client):
 
 
 def test_expired_worker_is_not_reported_as_available(client):
+  # Staleness is derived from heartbeat_at at read time, not persisted: the
+  # stored record still says "idle" (last assertion), but the API response
+  # reports "offline"/unavailable because the heartbeat is far too old to
+  # be trusted.
   store = client.app.state.store
   worker = store.create_record(
     "worker",

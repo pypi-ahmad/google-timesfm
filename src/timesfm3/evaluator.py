@@ -12,7 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Evaluator subclass extending TimesFM3Forecaster for benchmark evaluation."""
+"""Evaluator subclass extending TimesFM3Forecaster for benchmark evaluation.
+
+Overrides `predict_batch` to add two behaviors on top of
+`timesfm3_forecaster.py:TimesFM3Forecaster`: benchmark-standard defaults,
+and automatic chunking of high-dimensional multivariate inputs across
+multiple forward passes (since one forward pass is limited to
+`_MAX_VARIATES_PER_FORWARD` total variates -- targets plus covariates --
+by the model; see `model.py`). See `../timesfm3/uncertainty.py` for
+coverage/calibration helpers commonly used downstream of this evaluator's
+output.
+"""
 
 from __future__ import annotations
 
@@ -59,6 +69,9 @@ class TimesFM3Evaluator(TimesFM3Forecaster):
     univariate: bool = False,
   ) -> Iterator[ForecastOutput]:
     """Runs inference on a batch of time series with official benchmark defaults & chunking."""
+    # ts_ids is validated for length by the superclass; num_original_ts is
+    # derived here (before delegating) since the univariate/chunking paths
+    # below need it to reconstruct per-input-series outputs.
     num_original_ts = len(contexts)
     original_ts_ids = (
       list(ts_ids) if ts_ids is not None else [None] * num_original_ts
@@ -68,6 +81,12 @@ class TimesFM3Evaluator(TimesFM3Forecaster):
       return
 
     if univariate:
+      # Unroll each (possibly multivariate) input into independent
+      # single-variate series, forecast them all in one flat batch (with
+      # no cross-variate attention), then regroup by original series
+      # below. Covariates are intentionally dropped for this path (passed
+      # as None to super().predict_batch) since they're inherently
+      # cross-variate/multivariate constructs.
       flat_contexts = []
       variate_counts = []
       was_1d_list = []
@@ -139,8 +158,13 @@ class TimesFM3Evaluator(TimesFM3Forecaster):
     total_variates = num_targets_in + num_pf + num_po
 
     if total_variates > _MAX_VARIATES_PER_FORWARD:
+      # Fixed seed: subsampling choices are reproducible across repeated
+      # evaluation runs on the same inputs, at the cost of always
+      # dropping the "same" covariates when a given input recurs.
       rng = np.random.default_rng(42)
       # Step 1a: Subsample future covariates to at most 31 slots.
+      # Reserve at least 1 slot (_MAX_VARIATES_PER_FORWARD - 1) for
+      # targets even if covariates alone would otherwise fill the budget.
       max_pf = min(num_pf, _MAX_VARIATES_PER_FORWARD - 1)
       if num_pf > max_pf:
         pf_idx = np.sort(rng.choice(num_pf, max_pf, replace=False))
@@ -173,6 +197,12 @@ class TimesFM3Evaluator(TimesFM3Forecaster):
         actual_chunk_size = v_end - v_start
         chunk_inputs = [inp[v_start:v_end, :] for inp in contexts_2d]
         if actual_chunk_size < targets_per_chunk:
+          # Last chunk may have fewer than targets_per_chunk real target
+          # variates; pad the variate axis up to the fixed chunk size by
+          # tiling the chunk's own target variates (wrapping around as
+          # needed) rather than zeros, so the forward pass still sees
+          # "real" data on every variate slot. The padded outputs are
+          # trimmed back off below via `[:actual_chunk_size, ...]`.
           pad_needed = targets_per_chunk - actual_chunk_size
           padded_inputs = []
           for inp, c_inp in zip(contexts_2d, chunk_inputs):
@@ -218,6 +248,9 @@ class TimesFM3Evaluator(TimesFM3Forecaster):
 
       was_1d_input = len(contexts) > 0 and np.ndim(contexts[0]) == 1
 
+      # Concatenate each original series' per-chunk (already-trimmed)
+      # target-variate outputs back along the variate axis, in the same
+      # v_start:v_end order the chunks were split in above.
       for i in range(num_original_ts):
         combined_f = (
           np.concatenate(

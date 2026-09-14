@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark *));
 
+/* Design tokens (light values on :root, dark overrides under .dark) feed
+   the @theme inline block below so Tailwind utilities like bg-card or
+   text-muted-foreground resolve to these variables. Below the tokens,
+   several hand-written classes (.sidebar, .workspace-main, .topbar,
+   .context-bar, .forecast-grid, .configuration-panel, .table-*) are
+   layout-critical and referenced by exact name from components/shell.tsx
+   and features/forecasts-page.tsx — renaming them here requires updating
+   those files too. */
 :root {
   --background: #f7f8fa;
   --foreground: #20252e;
@@ -396,6 +404,10 @@ input[type="number"],
     font-size: 14px;
   }
 }
+/* Above this width there's room for a third column, so the run-details
+   aside (features/forecasts-page.tsx .forecast-metadata) is shown inline
+   and the drawer trigger button (.metadata-trigger) that replaces it on
+   narrower viewports is hidden. */
 @media (min-width: 1520px) {
   .forecast-grid {
     grid-template-columns: 320px minmax(0, 1fr) 280px;

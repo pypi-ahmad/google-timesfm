@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Dense layers for TimesFM."""
+"""Dense (non-attention) building blocks for the Torch TimesFM stack.
+
+Torch counterpart to `../flax/dense.py`, kept field-for-field identical so
+weights convert between backends without reshaping. See `transformer.py`
+for how these are wired into the full stack.
+"""
 
 import torch
 from torch import nn
@@ -63,6 +68,8 @@ class RandomFourierFeatures(nn.Module):
     super().__init__()
     self.config = config
 
+    # Output concatenates cos, sin, and two sign-square-wave features (see
+    # forward), so output_dims must split evenly into 4 equal chunks.
     if config.output_dims % 4 != 0:
       raise ValueError(
           f"Output dims must be a multiple of 4: {config.output_dims} % 4 != 0."

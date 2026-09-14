@@ -4,6 +4,9 @@ Generate animated GIF showing forecast evolution.
 
 Creates a GIF animation showing how the TimesFM forecast changes
 as more historical data points are added. Shows the full actual data as a background layer.
+
+Input: output/animation_data.json, produced by generate_animation_data.py --
+run that script first. Output: output/forecast_animation.gif.
 """
 from __future__ import annotations
 
@@ -88,7 +91,7 @@ def create_frame(
     )
 
     # ========== FOREGROUND LAYER: Current forecast (bright) ==========
-    # 90% CI (outer)
+    # q10-q90 band: 80% CI (outer)
     ax.fill_between(
         forecast_dates,
         step_data["q10"],
@@ -97,8 +100,8 @@ def create_frame(
         color="#ef4444",
         zorder=5,
     )
-    
-    # 80% CI (inner)
+
+    # q20-q80 band: 60% CI (inner)
     ax.fill_between(
         forecast_dates,
         step_data["q20"],

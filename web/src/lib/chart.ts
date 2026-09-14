@@ -1,9 +1,15 @@
 import type { Row } from "./types";
 
+// Confidence-interval math for forecast-chart.tsx: turns forecast rows into
+// contiguous [x, lower, upper] segments that echarts renders as shaded
+// bands, without bridging over gaps or invalid intervals.
 export type BandPoint = [index: number, lower: number, upper: number];
 export function finiteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
+// A row's quantiles (q0.1..q0.9) should be non-decreasing; "crossed"
+// quantiles indicate an invalid/degenerate interval for that row, which
+// bandSegments treats as a break rather than trying to repair it.
 export function crossedQuantiles(row: Row): boolean {
   const values = Array.from({ length: 9 }, (_, i) =>
     finiteNumber(row[`q0.${i + 1}`]),
@@ -16,6 +22,12 @@ export function bandSegments(
   upper: string,
   offset = 0,
 ): BandPoint[][] {
+  // `offset` shifts x-indices so a forecast-only band aligns with the
+  // combined history+forecast x-axis used by the chart. A new segment
+  // starts whenever bounds are missing/non-finite, quantiles are crossed,
+  // or `step` isn't contiguous with the previous row — each break is a
+  // real gap in the data, not a rendering choice, so segments are never
+  // interpolated across them.
   const segments: BandPoint[][] = [];
   let current: BandPoint[] = [];
   let previous: Row | undefined;

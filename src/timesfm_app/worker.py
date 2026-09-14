@@ -328,6 +328,10 @@ def run_job(job_id: str, *, cpu: bool = False) -> None:
         return
 
   def checkpoint() -> None:
+    # The authoritative ownership check: renews the lease (store.heartbeat)
+    # and fails closed if it can't, meaning a later attempt/claim may already
+    # own this job row. Every checkpoint() call is a point where execution
+    # must be safe to abandon without side effects on shared state.
     state = store.get_job(job_id)
     if state and state["attempt"] == attempt and state.get("cancel_requested"):
       raise CancellationRequested("Cancellation requested.")
@@ -366,6 +370,12 @@ def run_job(job_id: str, *, cpu: bool = False) -> None:
     )
     checkpoint()
     _synchronize()
+    # Artifacts for this attempt are already written by the time we get here
+    # (execute_spec staged them before returning); publish_job only records
+    # the result pointer. If ownership was lost in that gap, the written
+    # files are simply orphaned bytes at an attempt-scoped key that
+    # maintenance.py's orphan sweep can later reclaim - never partially
+    # visible application state.
     if store.publish_job(job_id, attempt, result) is None:
       checkpoint()
       raise OwnershipLost("Completed output lost publication ownership.")

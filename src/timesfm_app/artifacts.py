@@ -1,4 +1,13 @@
-"""Immutable artifact files and an optional S3 adapter."""
+"""Immutable artifact files and an optional S3 adapter.
+
+Keys are always relative POSIX paths built by application code (services.py,
+api.py, migration.py, maintenance.py), never raw user input, but ``_key``
+still re-validates every key on every call as the last line of defense
+against path traversal or Windows-reserved names. Once written, a key's
+bytes are treated as immutable: writing the same key twice must produce
+identical content or raise Conflict (see store.py's Conflict) rather than
+silently overwrite.
+"""
 
 from __future__ import annotations
 
@@ -19,6 +28,13 @@ import pyarrow.parquet as pq
 
 from .store import Conflict
 
+# On-disk format note: object-dtype columns holding a mix of timestamps,
+# dates, pd.NA/pd.NaT, and non-finite floats round-trip through pyarrow with
+# lossy/inconsistent typing. Those columns are instead cell-encoded as tagged
+# JSON strings (see _encode_cell/_decode_cell) and the list of affected
+# column names is recorded in this schema-metadata key so _read_frame knows
+# which columns to decode back. Versioned so a future format change can be
+# detected against files written by an older release.
 _OBJECT_COLUMNS = b"timesfm_app.temporal_object_columns.v1"
 _WINDOWS_RESERVED = {
   "CON",

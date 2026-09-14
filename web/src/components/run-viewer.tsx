@@ -21,6 +21,11 @@ import {
 import { RemoteTable } from "./data-table";
 import { CalibrationPanel } from "./calibration-panel";
 
+// Displays a saved run: chart + calibration panel + paginated result
+// tables (RunViewer), and a separate read-only details panel (RunMetadata)
+// used in the run-details drawer/sidebar on features/forecasts-page.tsx.
+// Both read from hooks/use-records.ts useRun; RunViewer is also embedded
+// directly by features/tracking-page.tsx to show the tracked run.
 const ForecastChart = dynamic(
   () => import("./forecast-chart").then((module) => module.ForecastChart),
   { ssr: false, loading: () => <Loading label="Loading chart…" /> },
@@ -35,6 +40,11 @@ export function RunMetadata({ run }: { run?: Run }) {
     );
   const manifest = run.payload.manifest ?? {};
   const spec = run.payload.spec ?? {};
+  // `spec`/`manifest` are server-saved JSON with no enforced schema on the
+  // client (run.payload is typed as loose Row fields in lib/types.ts);
+  // settings are grouped below by matching key names against regexes
+  // rather than a known settings schema, since a run's settings can come
+  // from either the spec or an older manifest shape.
   const settings = (spec.settings ?? manifest.settings ?? {}) as Row;
   const formatValue = (value: unknown) =>
     typeof value === "boolean" ? (value ? "Yes" : "No") : display(value);
@@ -122,6 +132,9 @@ export function RunMetadata({ run }: { run?: Run }) {
           {JSON.stringify({ manifest, spec }, null, 2)}
         </pre>
       </details>
+      {/* Native browser download, deliberately bypassing the api() fetch
+          wrapper in lib/api.ts — this needs the browser to handle the
+          response as a file save, not a parsed JSON body. */}
       <Button className="w-full" variant="outline" asChild>
         <a href={`/api/v1/runs/${run.id}/export`} download>
           <Download />
@@ -163,6 +176,11 @@ export function RunViewer() {
     : (tables.find((name) => name === "forecast") ?? tables[0]);
   const spec = run?.payload.spec as
     { mapping?: { targets?: string[] } } | undefined;
+  // The chart endpoint's targets/datasets/variants arrays are optional; if
+  // absent, they're derived by scanning the returned rows for distinct
+  // values (falling back further to the run's saved target mapping for
+  // targets specifically). Union with the spec's targets covers series
+  // that have no forecast rows yet.
   const targets = [
     ...new Set([
       ...(chart.data?.targets ?? []),
@@ -189,6 +207,10 @@ export function RunViewer() {
   const shownTarget = context.target || targets[0] || "";
   const shownDataset = context.dataset || datasets[0] || "";
   const shownVariant = context.variant || variants[0] || "";
+  // A row missing a target/dataset/variant field entirely is treated as
+  // "not applicable to this filter" and passes through regardless of the
+  // selected value — only rows that carry the field and disagree with the
+  // current selection are filtered out.
   const chartRows = (rows: Row[]) =>
     rows.filter(
       (row) =>
@@ -304,6 +326,9 @@ export function RunViewer() {
                 description="Inspect the result tables below, or choose another dataset and target."
               />
             )}
+            {/* history_sampled/origin_policy are server-set flags describing
+                how the chart endpoint reduced the data for display only —
+                they don't affect what's in the result tables below. */}
             {(chart.data?.history_sampled ||
               chart.data?.origin_policy === "latest") && (
               <p className="px-4 pb-3 text-[10px] text-muted-foreground">

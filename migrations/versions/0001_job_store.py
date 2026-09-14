@@ -1,4 +1,12 @@
-"""Persistent records, jobs, ordered events, and a transactional outbox."""
+"""Persistent records, jobs, ordered events, and a transactional outbox.
+
+Initial schema for store.py's ORM models (Record, Job, JobEvent, Outbox);
+every column/constraint here must match that module's mapped_column
+declarations exactly, since Store.initialize() (used only for
+dev/tests) creates the same tables directly from those models rather than
+through Alembic. A future schema change belongs in a new revision here, not
+just in store.py.
+"""
 
 import sqlalchemy as sa
 from alembic import op

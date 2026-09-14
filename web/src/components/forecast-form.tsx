@@ -8,6 +8,13 @@ import { dateLabel, shortId } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Badge, Check, ErrorNotice, Field, Input, Select } from "./ui/controls";
 
+// The main "Configure a forecast" field set, plus two pieces reused by
+// components/experiment-editors.tsx: ColumnPicker (role assignment
+// checklist) and SettingsFields (the inference-settings block, also used
+// per-configuration in ConfigurationEditor). Fields are bound to the
+// react-hook-form context from hooks/use-draft.ts via useFormContext.
+// See lib/spec.ts for the Spec shape and the role-exclusivity invariant
+// that roleAvailable()/ColumnPicker enforce here.
 type Role =
   | "mapping.targets"
   | "mapping.past_only"
@@ -26,6 +33,8 @@ export function ColumnPicker({
 }) {
   const { setValue, control } = useFormContext<Spec>();
   const spec = useWatch({ control }) as Spec;
+  // group_columns lives under `preparation`, not `mapping` like the other
+  // roles, so its lookup can't share the `spec.mapping[...]` path below.
   const chosen =
     path === "preparation.group_columns"
       ? spec.preparation.group_columns
@@ -196,6 +205,9 @@ export function ForecastFields({
       spec,
     ),
   );
+  // Selecting a version deselects any other version of the same
+  // dataset_id first — only one version per underlying dataset can be
+  // active in a spec at once.
   const changeVersion = (item: DatasetVersion, checked: boolean) => {
     const sameDataset = library.versions
       .filter(
@@ -376,6 +388,11 @@ export function ForecastFields({
                     <X />
                   </Button>
                 </div>
+                {/* Plain YYYY-MM-DD strings, no timezone attached (lib/
+                    spec.ts types these as z.string()). Whether the server
+                    treats calendar event dates as UTC or dataset-local
+                    isn't determined by this file; check the backend
+                    calendar-feature implementation before assuming. */}
                 <Field label="Start date">
                   <Input
                     type="date"

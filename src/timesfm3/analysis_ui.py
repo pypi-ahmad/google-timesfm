@@ -1,4 +1,13 @@
-"""Explicit-submit analysis workflows for the local Streamlit explorer."""
+"""Explicit-submit analysis workflows for the local Streamlit explorer.
+
+Streamlit page/section that builds an `AnalysisSettings`/`ExperimentConfiguration`/
+`Scenario` from form widgets, hands them to `analysis.py:prepare_analysis`
+and `run_analysis` (only on explicit form submission, never as a side
+effect of widget changes), and renders the resulting `AnalysisArtifact`
+(charts, tables, and a downloadable zip via `analysis_zip`). Persists
+completed analyses via `run_store.py`. See `analysis.py` for the actual
+experiment/comparison logic this UI is a thin front-end for.
+"""
 
 from __future__ import annotations
 
@@ -84,6 +93,10 @@ def _result(artifact: AnalysisArtifact) -> None:
     selected = selected.loc[selected.origin == origin]
   display = selected
   if len(display) > 5000:
+    # Evenly-spaced stride sampling (ceiling division so the result is
+    # never over budget) purely for chart rendering performance; the
+    # underlying tables/exports below use `selected`, not `display`, so
+    # they still carry every row.
     display = display.iloc[:: (len(display) + 4999) // 5000]
     st.caption(
       "Chart sampled to at most 5,000 rows. Tables and exports contain all rows."
@@ -243,6 +256,12 @@ def render_analysis(
     configurations: list[ExperimentConfiguration] = []
     template: pd.DataFrame | None = None
     fingerprint = analysis_fingerprint(datasets, mapping, settings)
+    # Streamlit widget state (data_editor contents) persists across
+    # reruns by key, so if the underlying datasets/mapping/horizon change
+    # (fingerprint mismatch), any previously-entered scenario/configuration
+    # edits must be dropped -- otherwise stale edits authored against old
+    # data would silently be reused (and could target rows that no longer
+    # correspond to the same timestamps).
     if st.session_state.get("analysis_editor_fingerprint") != fingerprint:
       for key in list(st.session_state):
         if isinstance(key, str) and key.startswith(
@@ -316,6 +335,12 @@ def render_analysis(
             else None
           )
           if frequency:
+            # Heuristic calendar-seasonality guess per inferred pandas
+            # frequency string (hourly -> daily cycle, daily -> weekly,
+            # weekly -> yearly, month/quarter start-or-end variants ->
+            # yearly); anything unrecognized falls back to 1 (no assumed
+            # seasonality). This is only a prefilled suggestion the user
+            # can override via the number input below.
             frequency = frequency.upper()
             suggested_period = (
               24
@@ -360,6 +385,11 @@ def render_analysis(
           )
           for index in range(configuration_count)
         ]
+        # Pre-fill the second configuration row with a halved context
+        # length purely so the default form isn't two identical rows
+        # (which would be a pointless comparison); index 1 assumes
+        # configuration_count >= 2, which the number_input above enforces
+        # (min_value=2).
         rows[1]["context_length"] = max(2, settings.context_length // 2)
         edited_configurations = st.data_editor(
           pd.DataFrame(rows),

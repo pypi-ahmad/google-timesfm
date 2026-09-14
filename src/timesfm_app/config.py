@@ -1,4 +1,10 @@
-"""Native application configuration; credentials never enter browser settings."""
+"""Native application configuration; credentials never enter browser settings.
+
+Settings are read once from ``TIMESFM_``-prefixed environment variables and
+cached by ``get_settings()``. See api.py, worker.py, and native.py for the
+processes that read this configuration; store.py and artifacts.py are
+constructed from the values here.
+"""
 
 from functools import lru_cache
 from pathlib import Path
@@ -30,4 +36,7 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+  # Memoized: once called, later environment-variable changes in this process
+  # have no effect. Tests must construct Settings()/Store() directly rather
+  # than mutating the environment and expecting get_settings() to pick it up.
   return Settings()

@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Normalization layers for TimesFM3 PyTorch."""
+"""Normalization layers for TimesFM3 PyTorch.
+
+Currently just `PerDimScale`, the learnable query-scaling used by
+`transformer.py`'s attention in place of a fixed 1/sqrt(d) constant.
+"""
 
 from __future__ import annotations
 

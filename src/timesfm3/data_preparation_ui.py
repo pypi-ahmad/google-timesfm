@@ -1,7 +1,19 @@
 # Copyright 2026 Ahmad Mujtaba
 # Licensed under the Apache License, Version 2.0 (the "License");
 
-"""Native Streamlit controls for session-only upload preparation."""
+"""Native Streamlit controls for session-only upload preparation.
+
+UI layer over `data_preparation.py`: renders grouping, frequency,
+calendar/holiday/event, and group-selection controls, then calls
+`group_sources`/`prepare_sources` and previews the result. All state is
+Streamlit `session_state` (per this app session) plus the returned
+`UploadedDataset`/`DatasetMapping` values; nothing here is written to
+disk. `render_preparation` is the entry point -- read it first, then
+`data_preparation.py` for what each call actually does. Errors raised by
+the data layer (`ExplorerError`) are caught here and shown inline via
+`st.error` rather than propagating, so one bad prepare step degrades to
+an empty result instead of crashing the page.
+"""
 
 from __future__ import annotations
 
@@ -110,6 +122,11 @@ def render_preparation(
       )
       for item in datasets:
         default = source_names.get(item.dataset_id, item.dataset_id)
+        # `default` is embedded in the widget key (not just dataset_id):
+        # if the caller's source_names default changes across reruns,
+        # Streamlit sees a new key and resets the input to that new
+        # default rather than preserving a stale edited value tied to an
+        # old default.
         names[item.dataset_id] = st.text_input(
           f"Name for {default}",
           value=default,
@@ -120,6 +137,11 @@ def render_preparation(
       common.intersection_update(item.frame.columns)
     assigned = set(mapping.targets + mapping.past_only + mapping.past_future)
     options = sorted(common - {mapping.timestamp} - assigned)
+    # Prune any previously-selected group columns that are no longer
+    # valid options (e.g. the user changed the target/mapping columns
+    # since the last run) before the multiselect widget below is created
+    # with this session_state value, so Streamlit doesn't raise on a
+    # stale selection outside its current option list.
     group_key = "preparation_group_columns"
     if group_key in st.session_state:
       st.session_state[group_key] = [
@@ -150,6 +172,10 @@ def render_preparation(
       source_names=names,
       group_columns=tuple(group_columns),
     )
+    # Preview only: uses default ForecastSettings (mode, etc.) since the
+    # real forecast settings aren't chosen yet at this point in the UI
+    # flow -- the caller re-runs quality_report with actual settings
+    # later (see this function's docstring).
     initial_quality = quality_report(
       grouped, mapping, ForecastSettings(horizon=horizon), frequency
     )
@@ -165,6 +191,8 @@ def render_preparation(
     if len(grouped) > 1 and not st.toggle(
       "Use all groups", value=True, key="preparation_all_groups"
     ):
+      # Same stale-selection pruning as group_key above, keyed to the
+      # current set of group identifiers.
       selection_key = "preparation_selected_groups"
       if selection_key in st.session_state:
         st.session_state[selection_key] = [

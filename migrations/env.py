@@ -15,6 +15,9 @@ def database_url():
     from timesfm_app.config import get_settings
 
     url = make_url(get_settings().database_url)
+  # Force the psycopg driver the same way store.py's Store does, so a plain
+  # "postgresql://" URL (from settings or an -x sqlalchemy.url override)
+  # resolves to the same driver Alembic and the application both use.
   return (
     url.set(drivername="postgresql+psycopg") if url.drivername == "postgresql" else url
   )

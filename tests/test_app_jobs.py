@@ -41,6 +41,10 @@ def test_idempotent_submission_has_one_job_and_one_outbox_entry(store):
 
 
 def test_idempotency_hash_is_independent_of_object_key_order(store):
+  # The idempotency hash must be computed on a canonicalized (e.g.
+  # key-sorted) encoding of the spec, otherwise two logically identical
+  # submissions that differ only in dict insertion order would be treated
+  # as different requests and double-queue the job.
   first = create(store, spec={"horizon": 8, "context": 16})
   second = create(store, spec={"context": 16, "horizon": 8})
   assert first["id"] == second["id"]
@@ -85,6 +89,11 @@ def test_queued_cancel_never_claims_and_success_cannot_be_cancelled(store):
 
 
 def test_expired_and_superseded_attempts_cannot_publish_or_heartbeat(store):
+  # The attempt number is a fence: once a lease expires and reconcile_expired
+  # requeues the job, any action tagged with the stale attempt (1) must be
+  # rejected, even the actions issued *before* reconciliation runs — a
+  # worker that missed its lease deadline must not be able to publish a
+  # result or keep its lease alive out from under the next claimant.
   job = create(store)
   store.claim_job(job["id"])
   expire(store, job["id"])
@@ -110,6 +119,12 @@ def test_retryable_failure_stops_after_two_automatic_retries(store):
 
 
 def test_resolved_model_is_pinned_once_and_reused_on_retry(store):
+  # freeze_job_model pins the resolved checkpoint on first use so a retry
+  # (e.g. after a transient failure) reruns against the exact same weights,
+  # not whatever the model resolver would pick "now" (which could have
+  # moved on to a newer revision). The first call wins and is idempotent;
+  # a later call with different model info is ignored, returning the
+  # original pin instead.
   job = create(store)
   store.claim_job(job["id"])
   original = {"path": "snapshot/first", "fingerprints": [["weights", "hash"]]}
@@ -118,6 +133,8 @@ def test_resolved_model_is_pinned_once_and_reused_on_retry(store):
   store.fail_job(job["id"], 1, {"code": "temporary"}, retryable=True)
   retried = store.claim_job(job["id"])
   assert retried["spec"]["_resolved_model"] == original
+  # Once the job is no longer the active attempt, freezing is rejected
+  # outright (None) rather than silently returning the stale pin.
   assert store.freeze_job_model(job["id"], 1, original) is None
   assert create(store)["id"] == job["id"]
 
@@ -307,6 +324,10 @@ def test_postgres_concurrent_idempotency_quota_and_claim(postgres_store):
 
 
 def test_postgres_artifact_operation_lock_serializes_connections(postgres_store):
+  # artifact_operation_lock must be a real database-level lock (e.g. a
+  # Postgres advisory lock), not an in-process mutex: the second locker
+  # runs on its own connection/thread and still has to block until the
+  # first connection's lock is released.
   instance, _ = postgres_store
   started, acquired = threading.Event(), threading.Event()
 

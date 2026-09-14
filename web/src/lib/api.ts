@@ -1,3 +1,7 @@
+// Fetch wrapper for the FastAPI backend (mounted at /api/v1) plus small
+// shared helpers for building query strings and normalizing error/unknown
+// values into displayable text. See lib/types.ts for the response shapes
+// this returns and lib/spec.ts for the request payload shape.
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -17,6 +21,10 @@ export async function api<T>(
     headers.set("Content-Type", "application/json");
   const response = await fetch(`/api/v1${path}`, { ...options, headers });
   if (!response.ok) {
+    // `detail` here is untrusted server JSON: either a plain string, or a
+    // list of FastAPI/pydantic validation errors (each with a field path in
+    // `loc`). `loc[0]` is the request-part marker (e.g. "body"), so it's
+    // dropped before joining the remaining path into a readable field name.
     const body = await response.json().catch(() => null);
     const detail = body?.detail ?? body?.message;
     const message =

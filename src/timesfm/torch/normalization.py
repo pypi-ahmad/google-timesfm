@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Normalization layers for TimesFM."""
+"""Normalization layers for TimesFM.
+
+Torch counterpart to `../flax/normalization.py`; kept field-for-field
+identical so weights convert between the two backends without reshaping.
+Used by `transformer.py`.
+"""
 
 import torch
 from torch import nn
@@ -28,6 +33,10 @@ class RMSNorm(nn.Module):
       epsilon: float = 1e-6,
   ):
     super().__init__()
+    # scale is zero-initialized (not one-initialized): see transformer.py,
+    # where this norm's output is added onto a residual stream, so a fresh
+    # module starts as identity on that path. Keep in sync with the flax
+    # version's init for checkpoint compatibility.
     self.scale = nn.Parameter(torch.zeros(num_features))
     self.num_features = num_features
     self.epsilon = epsilon

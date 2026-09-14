@@ -12,7 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utility functions and classes for TimesFM3 PyTorch implementation."""
+"""Utility functions and classes for TimesFM3 PyTorch implementation.
+
+Grab-bag of PyTorch helpers used by `model.py`/`transformer.py`: the
+autoregressive-decode `DecodeCache`, causal/segment-aware running-stat
+(RevIN) computation, patch<->timepoint reshaping (`get_output_patch_via_roll`,
+`stitch_patches`), activation lookup, and safetensors checkpoint loading.
+Multivariate-aware (shapes generally carry an explicit `v` / variates axis)
+compared to `../torch/util.py` in the v1/v2 package.
+"""
 
 from __future__ import annotations
 
@@ -29,6 +37,9 @@ _TOLERANCE = 1e-6
 
 def _make_safe_for_division(values: torch.Tensor) -> torch.Tensor:
   """Handles near zero values."""
+  # Guard against dividing by ~0 (e.g. a constant series) by substituting
+  # 1.0; note this only guards the low side (values < _TOLERANCE), not an
+  # equivalent negative-side guard, since sigma (a std) is never negative.
   return torch.where(values < _TOLERANCE, 1.0, values)
 
 
@@ -43,6 +54,12 @@ class DecodeCache:
       Shape: (batch_leading,).
     key: The key cache. Shape: (batch_leading, cache_len, num_heads, head_dim).
     value: The value cache. Same shape as key.
+
+  `key`/`value` are pre-allocated to the full cache length (`cache_len` /
+  `num_total_input_patches`, not the number of patches written so far);
+  `next_index` is the write cursor. `batch_leading` flattens batch and
+  variate together (see `init_decode_cache`), so each (batch, variate)
+  pair gets its own independent cache slot and position tracking.
   """
 
   next_index: torch.Tensor
@@ -75,6 +92,8 @@ class DecodeCache:
     Returns:
       A list of DecodeCache, one per layer.
     """
+    # Flatten (batch, variate) into one leading axis so every variate of
+    # every batch element gets an independent cache row.
     leading_size = batch_size * num_variates
     return [
       cls(
@@ -191,7 +210,10 @@ def get_running_stats(
   else:
     init_n, init_mu, init_sigma = initial_stats
 
-  # Determine segment reset points
+  # Determine segment reset points. Padding the shifted sequence's first
+  # slot with -1 (rather than e.g. segment_ids[:, 0]) guarantees patch 0
+  # always looks like the start of a new segment, since -1 is assumed to
+  # never be a real segment id.
   if segment_ids is None:
     is_new_segment = torch.zeros((b, n), dtype=torch.bool, device=device)
   else:
@@ -279,6 +301,10 @@ def get_output_patch_via_roll(
   rolling_mat = torch.zeros(b, v, n, rolls + 1, p, device=device, dtype=x.dtype)
   rolling_mat[:, :, :, 0, :] = x
 
+  # Each successive roll shifts patches one step earlier along the patch
+  # axis (dims=2) using torch.roll, which wraps the last patch's data
+  # around to the front rather than leaving it undefined -- that
+  # wrap-around is exactly what `wrap_mask` below flags as invalid.
   for i in range(rolls):
     rolling_mat[:, :, :, i + 1, :] = torch.roll(
       rolling_mat[:, :, :, i, :], shifts=-1, dims=2
@@ -287,7 +313,13 @@ def get_output_patch_via_roll(
   # Take [1:] along the roll axis and flatten
   result = rolling_mat[:, :, :, 1:, :].reshape(b, v, n, rolls * p)
 
-  # Build wrap-around mask
+  # Build wrap-around mask: for patch `patch_idx`, its label at position
+  # `point_idx` should come from source patch `patch_idx + 1 +
+  # point_idx // p`. Where that source index falls at or past the end of
+  # the sequence (>= n), torch.roll instead wrapped in data from patch 0
+  # (or later already-wrapped patches) -- `wrap_mask` marks those
+  # positions so callers can exclude them (e.g. from a training loss)
+  # rather than treat wrapped-around historical data as a real label.
   patch_idx = torch.arange(n, device=device)
   point_idx = torch.arange(rolls * p, device=device)
   source_patch = patch_idx[:, None] + 1 + point_idx[None, :] // p
@@ -300,6 +332,11 @@ _ACTIVATIONS: dict[str, Callable[[torch.Tensor], torch.Tensor]] = {
   "relu": F.relu,
   "swish": F.silu,
   "silu": F.silu,
+  # "swiglu" maps to plain silu here, not silu(x) * gate(x): unclear from
+  # this file whether the elementwise gating multiply that makes SwiGLU
+  # is applied separately by the feedforward layer in transformer.py (so
+  # this only supplies the nonlinearity), or whether this is a
+  # simplification.
   "swiglu": F.silu,
   "none": lambda x: x,
 }
@@ -360,6 +397,11 @@ def stitch_patches(
   if num_patches == 1:
     return patch_preds[:, :, 0, :, :]
 
+  # Linear cross-fade across the overlap region: weight 1.0 at the start
+  # of the overlap (fully the earlier/previous patch's prediction for
+  # that timepoint) ramping to 0.0 at the end (fully the later/next
+  # patch's prediction), so the two patches' predictions for the same
+  # timepoint blend smoothly instead of jumping at the seam.
   stitch_weights = torch.linspace(
     1.0, 0.0, overlap, device=patch_preds.device, dtype=patch_preds.dtype
   )

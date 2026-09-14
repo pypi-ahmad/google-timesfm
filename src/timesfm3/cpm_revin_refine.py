@@ -15,6 +15,16 @@
 """Standalone iterative RevIN refinement for CPM-masked patches in PyTorch.
 
 Extracted so it can be tested independently of the TimesFM3 model.
+
+CPM ("masked"/horizon patches -- see `model.py`'s "Build horizon CPM
+mask" comment for how the mask is constructed; the exact meaning of the
+acronym is unclear from this file) positions have no real target values,
+so the running RevIN stats passed in for them are frozen/stale (computed
+only up to the last real patch). This module re-derives per-position
+stats for those masked patches by feeding the model's own median-quantile
+predictions back into the running-stats accumulator as pseudo-observations,
+one patch at a time, so later computations see progressively-updated
+statistics instead of statistics frozen at the mask boundary.
 """
 
 from __future__ import annotations
@@ -68,6 +78,11 @@ def cpm_iterative_revin_refine(
   b, v, n_patches, _ = raw_logits.shape
   device = raw_logits.device
 
+  # Each input patch's output head predicts `rolls` future patches at
+  # once (rolls = output_patch_len // patch_len); `anchor_predicted_values`
+  # holds the most recent such rolls-patch prediction, and `block_offset`
+  # (mod rolls) tracks which of its `rolls` slices corresponds to the
+  # current input patch `i` as we advance one CPM-masked patch at a time.
   # Reshape and slice raw_logits to keep only the median quantile.
   # (b, v, n, oq) -> (b, v, n, rolls, patch_len, num_quantiles)
   # -> (b, v, n, rolls, patch_len)
@@ -96,7 +111,9 @@ def cpm_iterative_revin_refine(
     current_step_logits = median_logits[:, :, i]
     is_cpm = patch_cpm_mask[:, i : i + 1]  # (b, 1)
 
-    # Select the block_offset[b]-th patch for each batch element
+    # Select the block_offset[b]-th of the `rolls` slices in the current
+    # anchor prediction (via one-hot + einsum instead of per-batch-element
+    # indexing, since block_offset varies per batch element).
     offset_onehot = torch.eq(
       torch.arange(rolls, device=device).unsqueeze(0),
       block_offset.unsqueeze(1),
@@ -105,11 +122,16 @@ def cpm_iterative_revin_refine(
       "br,bvrp->bvp", offset_onehot, anchor_predicted_values
     )
 
-    # Update running stats with the estimated patch.
+    # Update running stats with the estimated patch. `step_masks` is all
+    # False (no masking) since predicted_values_step is treated as fully
+    # valid pseudo-data regardless of the real mask at this position.
     new_n, new_mu, new_sigma = util.update_running_stats(
       carry_n, carry_mu, carry_sigma, predicted_values_step, step_masks
     )
 
+    # Only CPM (masked) positions get the pseudo-observation update;
+    # non-CPM (real-data) positions keep their already-correct actual
+    # stats untouched.
     out_n = torch.where(is_cpm, new_n, actual_n)
     out_mu = torch.where(is_cpm, new_mu, actual_mu)
     out_sigma = torch.where(is_cpm, new_sigma, actual_sigma)
@@ -121,6 +143,10 @@ def cpm_iterative_revin_refine(
       torch.zeros_like(block_offset),
     )
 
+    # offset wrapping back to 0 means the current anchor's `rolls` slices
+    # are exhausted -- refresh the anchor from this position's own
+    # prediction (denormalized with this position's just-updated stats)
+    # so the next `rolls` CPM positions draw from it.
     should_update_anchor = torch.eq(new_block_offset, 0)
 
     # Pre-calculate predicted values for the new anchor.

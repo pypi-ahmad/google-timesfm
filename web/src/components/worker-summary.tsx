@@ -5,12 +5,17 @@ import { api } from "@/lib/api";
 import type { RecordItem, Row } from "@/lib/types";
 import { Badge, ErrorNotice, Loading, Section } from "./ui/controls";
 
+// Lists native worker devices registered with the API (used on the Models
+// and Overview pages). `worker.payload` is server-defined loose JSON, so
+// fields are read defensively rather than assumed present.
 export function WorkerSummary() {
   const workers = useQuery({
     queryKey: ["workers"],
     queryFn: ({ signal }) => api<RecordItem<Row>[]>("/workers", { signal }),
     refetchInterval: 15_000,
   });
+  // Treats missing `available`/`status` as available — a worker is only
+  // excluded when it explicitly reports unavailable or offline.
   const available = (workers.data ?? []).filter(
     (worker) =>
       worker.payload.available !== false && worker.payload.status !== "offline",

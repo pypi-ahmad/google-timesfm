@@ -1,3 +1,28 @@
+# Dev launcher for the native TimesFM-3 workbench (FastAPI backend +
+# Postgres/Memurai/Next.js frontend under .native\ and web\), driven through
+# src/timesfm_app/native.py for every command except 'launch' and 'setup',
+# which this script implements directly.
+#
+# Commands:
+#   setup   - install/build Python (incl. CUDA torch), native services, and
+#             the Next.js frontend (web\). Run once, or whenever dependencies
+#             change; 'launch' calls this automatically on first run.
+#   start   - start the native services (Postgres, Memurai, API) via
+#             timesfm_app.native, without waiting for readiness or opening a
+#             browser.
+#   stop    - stop the native services via timesfm_app.native.
+#   doctor  - health-check the native services via timesfm_app.native.
+#   dev     - start timesfm_app.native in dev mode (see --dev there for what
+#             that changes).
+#   launch  - the one-click path used by launch_workbench.cmd: ensures setup
+#             has run, starts services, polls doctor until ready (90s
+#             timeout), opens the browser to the frontend port, then tails
+#             .native\logs until Ctrl+C (services keep running after that).
+#
+# Prerequisites this script assumes but does not verify up front: `uv` on
+# PATH, and (for 'setup') `npm` on PATH for the web\ build. The frontend
+# port defaults to 3000 and is overridable via $env:TIMESFM_FRONTEND_PORT;
+# the API port is owned by timesfm_app.native/config.py, not this script.
 param(
   [ValidateSet('setup', 'start', 'stop', 'doctor', 'dev', 'launch')]
   [string]$Command = 'start'
@@ -5,6 +30,8 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 if ($Command -eq 'launch') {
+  # Presence check, not a version/integrity check: any one of these missing
+  # is treated as "never set up" and triggers a full 'setup' run below.
   $requiredPaths = @(
     '.venv\Scripts\python.exe',
     '.native\postgresql\pgsql\bin\pg_ctl.exe',
@@ -81,6 +108,9 @@ if ($Command -eq 'launch') {
   # Preserve a working CUDA build; uv's ordinary Windows index resolves CPU Torch.
   uv sync --extra server --extra app --group dev --inexact --no-install-package torch
   if ($LASTEXITCODE -ne 0) { throw 'Python dependency setup failed.' }
+  # If uv's --no-install-package left no CUDA-capable torch installed (or
+  # skipped it entirely), re-resolve torch with the backend auto-detected
+  # for this machine instead of leaving a CPU-only install in place.
   uv run --no-sync python -c 'import torch; assert torch.cuda.is_available()'
   if ($LASTEXITCODE -ne 0) {
     uv pip install torch --torch-backend=auto

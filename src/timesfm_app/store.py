@@ -114,6 +114,12 @@ class JobEvent(Base):
   created_at: Mapped[str] = mapped_column(String(40), default=_iso)
 
 
+# Transactional outbox: a row is written in the same transaction as the job
+# state change it announces, so a dispatcher (jobs.py) can never observe a
+# job without its corresponding delivery record. mark_dispatched is only set
+# after the broker send is acknowledged, so a crash between send and marking
+# causes a redundant delivery, never a lost one; see jobs.py for how it uses
+# outbox_pending/mark_dispatched and why duplicate delivery is safe.
 class Outbox(Base):
   __tablename__ = "outbox"
   id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
@@ -379,6 +385,11 @@ class Store:
   ) -> dict[str, Any]:
     payload = _json_copy(payload)
     with self.session() as session:
+      # First read (unlocked) only to learn the workspace_id needed for the
+      # advisory lock below; workspace lock must be taken before the row lock
+      # to match the lock order used elsewhere. Expire and re-fetch with
+      # with_for_update so we see any change committed between that first
+      # read and acquiring the lock, instead of a stale identity-mapped row.
       row = self._record(session, record_id)
       self._workspace_lock(session, row.workspace_id)
       session.expire(row)
@@ -535,6 +546,10 @@ class Store:
     with self.session() as session:
       self._workspace_lock(session, workspace_id)
       self._require_workspace(session, workspace_id)
+      # Idempotency contract: the same (workspace, idempotency_key) pair must
+      # always represent the same request. Replaying a submission returns the
+      # original job instead of creating another one; reusing the key for a
+      # different kind/spec is rejected rather than silently accepted.
       existing = session.scalar(
         select(Job).where(
           Job.workspace_id == workspace_id, Job.idempotency_key == idempotency_key
@@ -717,6 +732,7 @@ class Store:
 
   def retry_job(self, job_id: str) -> dict[str, Any]:
     with self.session() as session:
+      # Same unlocked-read-then-expire-and-relock pattern as update_record.
       job = self._job(session, job_id)
       self._workspace_lock(session, job.workspace_id)
       session.expire(job)
@@ -765,6 +781,9 @@ class Store:
 
   def reconcile_expired(self) -> int:
     with self.session() as session:
+      # skip_locked: safe to run this from multiple processes/polls at once;
+      # a row already locked by a concurrent reconciler (or by an in-flight
+      # heartbeat/claim) is left for that transaction rather than blocked on.
       jobs = session.scalars(
         select(Job)
         .where(
@@ -777,6 +796,12 @@ class Store:
       count = 0
       for job in jobs:
         if job.status == "cancelling":
+          # A lease expiring mid-cancellation does not prove the worker process
+          # actually stopped touching the device; forcing straight to
+          # "cancelled" here could let a second attempt start while native
+          # execution is still live. Mark it for a supervisor to confirm the
+          # process exit (see native.py/worker.py confirm_cancel_after_exit)
+          # instead of resolving automatically.
           job.stage = "recovery_required"
           self._event(session, job, "recovery_required")
         else:

@@ -3,6 +3,10 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
+// Shared button primitive (variant/size via class-variance-authority).
+// `asChild` renders the styling onto a single child element via Radix
+// Slot instead of a <button> (e.g. to make a Link look like a button);
+// `static` opts a given instance out of the default press-scale animation.
 export const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45 transition-[background-color,color,opacity,transform] duration-100 [&_svg]:size-4 [&_svg]:shrink-0",
   {

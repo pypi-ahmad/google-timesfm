@@ -40,6 +40,9 @@ from timesfm3.tracking import assess_run, assessment_zip, associated_datasets
 
 
 def artifact(index: int = 0, dataset: str = "shop:west") -> RunArtifact:
+  # "private_context"/"unused_private_column" (below, in upload()) are
+  # canary values: assertions elsewhere check they never leak into exported
+  # archives or persisted comparison tables.
   return RunArtifact(
     run_id=f"run-{index:02}",
     created_at=(
@@ -163,6 +166,9 @@ def test_mixed_timestamp_payloads_preserve_each_dataset(tmp_path: Path, zones) -
   with duckdb.connect(str(database)) as connection:
     flags = connection.execute("SELECT timestamp_is_temporal FROM forecasts").fetchall()
     assert all(flag[0] for flag in flags)
+    # Drop the cached table rows to force load_run onto its fallback path
+    # (rebuilding from the raw forecast payload) and confirm that path
+    # preserves per-dataset timestamps just as well as the cached read.
     connection.execute("DELETE FROM run_tables WHERE run_id = ?", [original.run_id])
   fallback = load_run(database, original.run_id)
   for dataset in associations:

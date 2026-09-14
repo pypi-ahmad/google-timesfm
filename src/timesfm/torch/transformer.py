@@ -12,7 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Transformer layers for TimesFM."""
+"""Transformer layers for TimesFM.
+
+Torch counterpart to `../flax/transformer.py`; the two are kept
+numerically equivalent so checkpoints and configs are interchangeable
+between backends. Uses `normalization.py` for norms and
+`util.py:DecodeCache` for incremental decoding.
+"""
 
 import math
 from typing import Callable
@@ -35,7 +41,14 @@ def make_attn_mask(
   query_index_offset: torch.Tensor | None = None,
   kv_length: int = 0,
 ) -> torch.Tensor:
-  """Makes attention mask."""
+  """Makes attention mask.
+
+  True means "this query position may attend to this key/value position":
+  causal (`q_index >= kv_index`, absolute positions, `query_index_offset`
+  shifting the query block for cached decoding) AND not-padding
+  (`kv_index >= num_all_masked_kv`, since masked/padded tokens are assumed
+  to occupy a contiguous prefix of the cache).
+  """
   if kv_length == 0:
     kv_length = query_length
 
@@ -117,9 +130,19 @@ def _dot_product_attention(
   value,
   mask=None,
 ):
-  """Computes dot-product attention given query, key, and value."""
+  """Computes dot-product attention given query, key, and value.
+
+  Reference/unscaled implementation kept for clarity and as a fallback;
+  `MultiHeadAttention` defaults to `_torch_dot_product_attention` (the
+  fused kernel) instead, and both must stay numerically equivalent since
+  either may be passed as `attention_fn`. Deliberately applies no 1/sqrt(d)
+  scaling -- query/key scaling is handled by `PerDimScale` upstream
+  instead of the usual fixed attention-scale constant.
+  """
   attn_weights = torch.einsum("...qhd,...khd->...hqk", query, key)
   if mask is not None:
+    # Use a large finite negative value (not -inf) so a fully-masked row
+    # softmaxes to a uniform (not NaN) distribution instead of overflowing.
     attn_weights = torch.where(
       mask, attn_weights, -torch.finfo(attn_weights.dtype).max / 2
     )
@@ -157,6 +180,8 @@ class PerDimScale(nn.Module):
   def __init__(self, num_dims: int):
     super().__init__()
     self.num_dims = num_dims
+    # Zero-initialized, but softplus(0) = ln(2) != 0, so the initial
+    # multiplier is 1.442695041 / sqrt(num_dims) * ln(2), not zero.
     self.per_dim_scale = nn.Parameter(torch.zeros(num_dims))
 
   def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -253,6 +278,9 @@ class MultiHeadAttention(nn.Module):
       next_index = decode_cache.next_index.clone()
 
     if self.use_rotary_position_embeddings:
+      # Position ids count only real (non-padding) tokens: offset by the
+      # cache write cursor and subtract padding seen so far, so rotary
+      # phase stays aligned with content across decode steps.
       position = (
         torch.arange(n_patches, device=inputs_q.device)[None, :]
         + next_index[:, None]
@@ -270,6 +298,8 @@ class MultiHeadAttention(nn.Module):
     if decode_cache is not None:
       _, decode_cache_size, _, _ = decode_cache.value.shape
 
+      # Uses next_index[0] for the whole batch -- assumes every sequence in
+      # the batch is at the same decode step (all rows advance in lockstep).
       start = decode_cache.next_index[0]
       end = start + n_patches
 
@@ -305,7 +335,12 @@ class MultiHeadAttention(nn.Module):
 
 
 class Transformer(nn.Module):
-  """Classic Transformer used in TimesFM."""
+  """Classic Transformer used in TimesFM.
+
+  Uses "sandwich" normalization per sub-layer (norm before AND after each
+  of attention/feedforward) rather than pre-norm-only; both norms are
+  applied before the result is added back onto the residual stream.
+  """
 
   def __init__(self, config: configs.TransformerConfig):
     super().__init__()

@@ -21,6 +21,10 @@ import {
 } from "@/lib/chart";
 import type { Row } from "@/lib/types";
 
+// Primary forecast visualization: history + forecast line, actuals
+// overlay, and shaded 20/40/60/80% confidence bands. Only caller is
+// run-viewer.tsx (loaded there via next/dynamic, ssr:false). Band geometry
+// comes from lib/chart.ts; this file is the echarts wiring around it.
 echarts.use([
   LineChart,
   CustomChart,
@@ -53,7 +57,17 @@ export function ForecastChart({
     const dark = resolvedTheme === "dark";
     const foreground = dark ? "#9aa3b4" : "#727b8b";
     const primary = dark ? "#91a4ff" : "#465fd5";
+    // x-axis index: `axisLabel` (lib/chart.ts) prefers each row's own
+    // timestamp/step, falling back to array position — history and
+    // forecast rows share one combined category axis.
     const axis = [...history, ...forecast].map(axisLabel);
+    // echarts has no built-in band series that can skip over gaps, so
+    // each interval width is drawn as a "custom" series of hand-built
+    // polygons — one polygon per contiguous segment from bandSegments,
+    // which already excludes crossed/missing-quantile rows (lib/chart.ts).
+    // `renderItem` is only invoked with the flattened `data` as a trigger;
+    // it draws every segment on its first call and no-ops afterward
+    // (`dataIndex !== 0`) since the segments are static per render.
     const bands: CustomSeriesOption[] = [
       ["80% interval", "q0.1", "q0.9", 0.08],
       ["60% interval", "q0.2", "q0.8", 0.13],
@@ -84,6 +98,9 @@ export function ForecastChart({
             children: segments.map((segment) => ({
               type: "polygon",
               shape: {
+                // A single-point segment has no area to trace as a
+                // low-edge/high-edge polygon, so it's drawn as a thin
+                // 8px-wide vertical sliver instead, to stay visible.
                 points:
                   segment.length === 1
                     ? (() => {
@@ -167,6 +184,9 @@ export function ForecastChart({
           color: foreground,
           fontSize: 12,
           hideOverlap: true,
+          // Ticks that look like an ISO date (YYYY-MM-DD...) are shortened
+          // to MM-DD to fit; anything else (e.g. a plain row/step number)
+          // is shown as-is.
           formatter: (value) =>
             value.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(value)
               ? value.slice(5, 10)
@@ -216,6 +236,8 @@ export function ForecastChart({
           connectNulls: false,
           lineStyle: { color: primary, width: 2 },
           itemStyle: { color: primary },
+          // Dashed vertical line at the history/forecast boundary; omitted
+          // entirely when there's no history to separate from.
           markLine: history.length
             ? {
                 silent: true,

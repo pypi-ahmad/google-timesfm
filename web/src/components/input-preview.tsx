@@ -7,8 +7,15 @@ import { Badge, Check, Field, Section, Select } from "./ui/controls";
 import { Button } from "./ui/button";
 import { DataTable } from "./data-table";
 
+// Read-only display of the last successful /preview response (quality
+// report, prepared/interpolated data samples, per-series exclusion
+// toggles). Owned by features/forecasts-page.tsx, which runs the preview
+// mutation and passes its result down; see lib/types.ts Preview.
 export function InputPreview({
   preview,
+  // Whether this preview still reflects the form's current values —
+  // false once the spec has changed since the preview was taken, which
+  // features/forecasts-page.tsx also uses to gate job submission.
   current,
 }: {
   preview: Preview;
@@ -24,6 +31,9 @@ export function InputPreview({
   const selected =
     preview.series[Math.min(seriesIndex, preview.series.length - 1)];
   const preparedRows = (selected?.preview ?? []) as Row[];
+  // A "blocked" row that's already excluded (via the group-exclusion
+  // toggle below) no longer counts against submission — only unresolved
+  // blocking issues are surfaced.
   const blocked = preview.quality.filter(
     (row) => row.status === "blocked" && !row.excluded,
   ).length;

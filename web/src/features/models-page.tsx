@@ -26,6 +26,11 @@ import {
   Select,
 } from "@/components/ui/controls";
 
+// Model registry page: register a checkpoint reference (hub repo or local
+// directory), then optionally trigger an availability check as a queued
+// job. Registration only saves metadata — it does not download or
+// validate the checkpoint. See components/worker-summary.tsx for the
+// worker devices that would actually load a checked model.
 const modelSchema = z.object({
   name: z.string().min(1, "Enter a model name."),
   kind: z.enum(["hub", "local"]),

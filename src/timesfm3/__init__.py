@@ -12,7 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""TimesFM3 PyTorch API."""
+"""TimesFM3 PyTorch API.
+
+Package entry point for the TimesFM v3 model line. Re-exports the
+framework-agnostic configs (`configs.py`), the raw model
+(`model.py:TimesFM3Torch`), the high-level forecaster API
+(`timesfm3_forecaster.py:TimesFM3Forecaster`), and the evaluation harness
+(`evaluator.py:TimesFM3Evaluator`). Start at `timesfm3_forecaster.py` to
+follow the forecast entry point through to `model.py` and
+`transformer.py`.
+"""
 
 from .configs import ResidualBlockConfig, StackedTransformersConfig, TransformerConfig
 from .evaluator import TimesFM3Evaluator

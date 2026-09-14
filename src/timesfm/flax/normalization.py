@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Normalization layers for TimesFM."""
+"""Normalization layers for TimesFM.
+
+`RMSNorm` and `LayerNorm` implementations used throughout `transformer.py`
+and `dense.py`. Mirrors `../torch/normalization.py` field-for-field so
+checkpoints trained/exported from one backend load cleanly into the other.
+"""
 
 from flax import nnx
 import jax
@@ -39,6 +44,11 @@ class RMSNorm(nnx.Module):
     rngs=nnx.Rngs(42),
   ):
     del rngs
+    # scale is zero-initialized (not one-initialized). Combined with how
+    # callers in transformer.py add this norm's output onto a residual
+    # stream, a freshly-initialized layer is the identity function on that
+    # residual path; the scale grows away from zero during training. Do not
+    # "fix" this to ones-init without checking checkpoint compatibility.
     self.scale = nnx.Param(jnp.zeros(shape=(num_features,)))
     self.num_features = num_features
     self.epsilon = epsilon

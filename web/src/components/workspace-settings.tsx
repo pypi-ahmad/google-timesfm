@@ -20,6 +20,9 @@ import {
 import { Drawer } from "./ui/dialog";
 import { DataTable } from "./data-table";
 
+// Workspace settings drawer (opened from components/shell.tsx): a run
+// retention policy editor (preview-then-apply, with an explicit confirm
+// step before any deletion) plus a read-only workspace activity log.
 type Policy = {
   enabled: boolean;
   max_age_days: number | null;
@@ -107,6 +110,9 @@ function SettingsContent() {
                   setConfirmed(false);
                 }}
               />
+              {/* Any edit here invalidates the current cleanup preview and
+                  its confirmation, since the previewed candidate list no
+                  longer reflects the (unsaved) policy being edited. */}
               <div className="grid grid-cols-2 gap-3">
                 <Field
                   label="Maximum age (days)"
@@ -194,6 +200,9 @@ function SettingsContent() {
                   )}
                   caption="Runs eligible for retention cleanup"
                 />
+                {/* Explicit confirmation is required before the destructive
+                    apply button enables; `edited` also blocks it so an
+                    unsaved policy change can't be applied by accident. */}
                 <Check
                   label="Apply this policy and remove eligible saved runs"
                   checked={confirmed}

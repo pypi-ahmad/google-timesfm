@@ -12,7 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Dense layers for TimesFM."""
+"""Dense (non-attention) building blocks for the Flax TimesFM stack.
+
+Provides `ResidualBlock` (MLP-with-skip used for input/output projections)
+and `RandomFourierFeatures` (fixed-form positional/periodic feature map).
+Both are framework-specific implementations of the configs defined in
+`../configs.py`; see `transformer.py` for how they're wired into the full
+stack alongside `normalization.py`.
+"""
 
 from flax import nnx
 import jax
@@ -35,6 +42,9 @@ class ResidualBlock(nnx.Module):
   """Residual block with two linear layers and a linear residual connection."""
 
   def __init__(self, config: ResidualBlockConfig, *, rngs=nnx.Rngs(42)):
+    # Default rngs uses a fixed seed (42) so init is deterministic unless the
+    # caller explicitly passes its own `nnx.Rngs`; real training/loading paths
+    # should pass rngs explicitly rather than relying on this default.
     self.config = config
     self.hidden_layer = nnx.Linear(
       in_features=config.input_dims,
@@ -77,6 +87,9 @@ class RandomFourierFeatures(nnx.Module):
   def __init__(self, config: RandomFourierFeaturesConfig, *, rngs=nnx.Rngs(42)):
     self.config = config
 
+    # Output is the concatenation of cos, sin, and two sign-square-wave
+    # features (see __call__), so output_dims must split evenly into 4 equal
+    # chunks of num_projected_features.
     if config.output_dims % 4 != 0:
       raise ValueError(
         f"Output dims must be a multiple of 4: {config.output_dims} % 4 != 0."

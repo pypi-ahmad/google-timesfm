@@ -1,7 +1,22 @@
 """Temporary Streamlit diagnostic client for the local workbench API.
 
+Thin HTTP client over the FastAPI job backend (``src/timesfm_app/api.py``);
+this module holds no business logic of its own — it only builds requests,
+renders responses, and manages a little UI-only session state (pending
+idempotency keys, selected job/run IDs). Dataset parsing, job execution, and
+run persistence all happen server-side.
+
 Run with ``uv run streamlit run diagnostic_app.py`` after starting the native
-workbench. All preparation, persistence, and inference are owned by the API/jobs.
+workbench (``.\\dev.ps1 start`` or ``launch_workbench.cmd``); the API must
+already be listening or every request in this app fails with a connection
+error. The API base URL is ``http://127.0.0.1:<TIMESFM_API_PORT>/api/v1``,
+where ``TIMESFM_API_PORT`` defaults to 8001 (see
+``src/timesfm_app/config.py``) if the env var is unset.
+
+This is a debugging aid alongside the native web workbench (``web/``), not
+the primary UI, and is unrelated to ``streamlit_app.py`` (the standalone
+in-process explorer) — the two should not run against the GPU at the same
+time; see the warning banner below.
 """
 
 from __future__ import annotations
@@ -21,14 +36,18 @@ API_ROOT = f"http://127.0.0.1:{int(os.environ.get('TIMESFM_API_PORT', '8001'))}/
 
 
 def request_api(method: str, path: str, **kwargs: Any) -> httpx.Response | None:
-  """Report recoverable API failures without losing editor or selection state."""
+  """Report recoverable API failures without losing editor or selection state.
+
+  Returns ``None`` on any request failure instead of raising, so callers can
+  render an error and keep going rather than crash the whole rerun.
+  """
   try:
     response = httpx.request(
       method,
       f"{API_ROOT}{path}",
       timeout=httpx.Timeout(30, connect=3),
-      follow_redirects=False,
-      trust_env=False,
+      follow_redirects=False,  # the API is same-origin/local; a redirect would indicate misconfiguration, not a normal response
+      trust_env=False,  # ignore HTTP(S)_PROXY etc. so localhost calls are never routed through a system proxy
       **kwargs,
     )
     response.raise_for_status()
@@ -128,6 +147,11 @@ with st.expander("Submit a job", expanded=True):
         "kind": specification["kind"],
         "spec": specification,
       }
+      # The Idempotency-Key is stable per distinct request body: resubmitting
+      # unchanged JSON (e.g. after a timeout, per the error message in
+      # request_api) reuses the same key so the API can dedupe the retry
+      # instead of creating a second job. A body edit changes the fingerprint
+      # and mints a fresh key.
       fingerprint = hashlib.sha256(
         json.dumps(body, sort_keys=True).encode()
       ).hexdigest()
@@ -204,6 +228,9 @@ else:
       st.caption(f"{len(page['rows'])} rows shown · {page['total']} total rows")
       st.dataframe(page["rows"], hide_index=True)
   if payload.get("export") and st.button("Load original ZIP", key="load_export"):
+    # Fetching the export is a separate, explicit step (rather than fetching
+    # it whenever a run is selected) because export bytes can be large and
+    # are only needed if the user actually wants to download them.
     response = request_api("GET", f"/runs/{selected_run['id']}/export")
     if response is not None:
       st.session_state.download = {
@@ -217,6 +244,6 @@ else:
       saved_download["bytes"],
       file_name=f"timesfm3-{selected_run['id']}.zip",
       mime="application/zip",
-      on_click="ignore",
+      on_click="ignore",  # skip the rerun a download click would otherwise trigger; bytes are already cached in session_state
       key="download_export",
     )

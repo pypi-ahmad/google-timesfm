@@ -1,4 +1,14 @@
-"""Explicit upload assessment and manual refresh of saved forecast vintages."""
+"""Explicit upload assessment and manual refresh of saved forecast vintages.
+
+Streamlit UI over `tracking.py` (assessment/scoring) and `run_store.py`
+(persisted runs/assessments, retention). `render_tracking` is the entry
+point: pick a saved run, associate its old dataset identities with newly
+uploaded datasets, then either score them against actuals (`assess_run`)
+or fully rerun the forecast via the caller-supplied `refresh_run`
+callback (kept injectable here so this module doesn't itself depend on
+loading/running a model). See `run_store.py` for what "tracked" and
+retention/eviction of untracked runs mean.
+"""
 
 from __future__ import annotations
 
@@ -35,6 +45,8 @@ def _assessment_result(database: Path, run: RunArtifact) -> None:
     ["Latest assessment", "First assessment", "Choose assessment"],
     key=f"tracking_version_{run.run_id}",
   )
+  # Assumes load_assessments returns them in chronological order (oldest
+  # first), per run_store.py, so [0]/[-1] are the first/latest.
   selected = assessments[-1] if choice == "Latest assessment" else assessments[0]
   if choice == "Choose assessment":
     by_id = {item.assessment_id: item for item in assessments}
@@ -78,6 +90,10 @@ def _assessment_result(database: Path, run: RunArtifact) -> None:
 
 @st.dialog("Stop tracking this forecast?")
 def _confirm_stop_tracking(database_path: Path, run_id: str) -> None:
+  # "25" mirrors run_store.py's retention policy for untracked runs;
+  # unclear from this file alone whether that count is a named constant
+  # there that this string could drift out of sync with -- see
+  # run_store.py.
   st.warning(
     "This removes retention protection. If the forecast is outside the newest "
     "25 untracked runs, it and its saved assessments may be removed immediately."
@@ -147,6 +163,12 @@ def render_tracking(
     if datasets:
       current_ids = [dataset.dataset_id for dataset in datasets]
       old_ids = sorted(run.forecast.dataset.unique())
+      # "dataset_<N>" identifies a run saved before dataset identity was
+      # based on (source name, group key) instead of upload position
+      # (see data_preparation.py); such positional labels can't be
+      # trusted to match the same series across uploads, so they're
+      # flagged for the user to associate manually rather than
+      # auto-matched by name below.
       legacy = any(re.fullmatch(r"dataset_\d+", str(key)) for key in old_ids)
       if legacy:
         st.info(
@@ -161,6 +183,10 @@ def render_tracking(
         }
         for key in old_ids
       ]
+      # Hash the current dataset identities + content into the form/widget
+      # keys below, so the association editor's state resets whenever the
+      # uploaded set changes (new/removed/re-uploaded datasets) instead of
+      # Streamlit reusing stale edited associations from a previous upload.
       upload_key = hashlib.sha256(
         "|".join(f"{item.dataset_id}:{item.sha256}" for item in datasets).encode()
       ).hexdigest()[:12]
@@ -208,8 +234,15 @@ def render_tracking(
       st.info("Upload updated data in Prepare to assess or rerun this forecast.")
     _assessment_result(database_path, run)
   except (ExplorerError, RunStoreError) as exc:
+    # These carry user-facing messages already (data/validation errors),
+    # so shown verbatim.
     st.error(str(exc))
   except RuntimeError:
+    # A bare RuntimeError here is assumed to come from refresh_run's
+    # model load/inference (e.g. OOM, missing weights) rather than from
+    # this module's own logic; its message is deliberately not shown
+    # (may be a raw framework error) in favor of a generic, actionable
+    # hint.
     st.error(
       "Could not refresh the forecast. Check model availability and memory, then try again."
     )

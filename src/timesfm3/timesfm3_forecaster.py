@@ -12,7 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Forecaster API wrapping a pretrained TimesFM3 PyTorch model."""
+"""Forecaster API wrapping a pretrained TimesFM3 PyTorch model.
+
+`TimesFM3Forecaster` is the main user-facing entry point: it loads a
+checkpoint (local file or Hugging Face repo, via `model.py:TimesFM3Torch`),
+formats/pads/batches raw numpy time series (optionally with past-only and
+past-future covariates) into fixed-shape tensors, calls
+`model.py:TimesFM3Torch.decode`, and post-processes the result (symmetric
+averaging for approximate scale invariance, quantile sorting, z-norm,
+non-negativity clamping). See `src/timesfm3/model.py` for what `decode`
+expects/returns, `src/timesfm3/evaluator.py:TimesFM3Evaluator` for a
+subclass that adds multi-variate chunking on top of `predict_batch`, and
+`src/timesfm/timesfm_2p5/timesfm_2p5_torch.py` for the analogous (but
+univariate) v1/v2 forecast-flag implementations this one parallels.
+"""
 
 from __future__ import annotations
 
@@ -130,11 +143,21 @@ def try_gc(
         gc.collect()
         torch.cuda.empty_cache()
         return
+  # Reached whenever the cuda-specific fast path above didn't already
+  # collect+return: no device given, a non-cuda device, or a cuda device
+  # under the memory threshold. `empty_cache()` is deliberately skipped
+  # here since it's only worth its sync cost when memory is actually tight.
   gc.collect()
 
 
 def linear_interpolation(arr: np.ndarray) -> np.ndarray:
-  """Performs linear interpolation to fill NaN values in a NumPy array."""
+  """Performs linear interpolation to fill NaN values in a NumPy array.
+
+  Operates row-wise on a 2D view (each row independently); a row with no
+  finite values at all can't be interpolated (np.interp raises since
+  there are no non-NaN samples), so that row falls back to its NaN-mean
+  (0.0 if even that is undefined) instead of propagating NaNs downstream.
+  """
   arr = np.where(np.isfinite(arr), arr, np.nan)
   was_1d = arr.ndim == 1
   arr2d = np.atleast_2d(arr)
@@ -167,6 +190,9 @@ def _znorm_stats(arr: np.ndarray) -> tuple[float, float]:
   """Returns (mean, std) for z-normalization, ignoring NaNs."""
   mu = float(np.nanmean(arr))
   sigma = float(np.nanstd(arr))
+  # All-NaN input (or otherwise non-finite stats) and near-zero variance
+  # both fall back to a no-op-ish normalization (mu=0, sigma=1) rather
+  # than dividing by ~0 or propagating NaN.
   if not np.isfinite(mu):
     mu = 0.0
   if not np.isfinite(sigma) or sigma < _SIGMA_THRESHOLD:
@@ -209,8 +235,17 @@ class _Query:
     np.ndarray | None,
     np.ndarray | None,
   ]:
-    """Formats and left-pads/truncates the query to context_len length."""
+    """Formats and left-pads/truncates the query to context_len length.
+
+    `past_future_covariates` carries context_len + horizon timesteps
+    (it spans both the observed context and the forecast horizon, since
+    those values are assumed known in advance), unlike `targets` and
+    `past_only_covariates` which only cover the context -- hence the
+    different truncation slice length below.
+    """
     targets = np.atleast_2d(self.targets)
+    # False = real data, True = padding; matches the mask convention
+    # consumed by the model's attention (see model.py / transformer.py).
     masks = np.zeros((self.context_length,), dtype=bool)
     past_only_covariates = (
       np.atleast_2d(self.past_only_covariates)
@@ -233,6 +268,8 @@ class _Query:
           :, -(context_len + self.horizon) :
         ]
     elif self.context_length < context_len:
+      # Left-pad (older/earlier in time) with zeros up to context_len;
+      # `masks` marks the padded prefix True so the model excludes it.
       pad_len = context_len - self.context_length
       targets = np.pad(
         targets,
@@ -322,6 +359,10 @@ def _make_torch_model(
     transformer_config=transformer_config,
   )
   t_model.eval()
+  # 2x(input_patch_len + output_patch_len): tokenizer input packs both an
+  # input-length and output-length chunk (paired-token format -- see
+  # configs.py's paired_token_skip_second and model.py for how the pair is
+  # built), each duplicated for its value channel plus its mask channel.
   input_dim = 2 * (t_model.input_patch_len + t_model.output_patch_len)
   t_model.pre_transformer_resblock.set_input_dims(input_dim)
   return t_model
@@ -375,6 +416,9 @@ class TimesFM3Forecaster:
     is_local_dir = os.path.isdir(checkpoint_path)
     is_local_file = os.path.isfile(checkpoint_path)
 
+    # Anything that isn't an existing single local file (a bare HF repo
+    # ID, or a local directory) is routed through from_pretrained, which
+    # itself handles both the local-directory and HF-download cases.
     if is_local_dir or not is_local_file:
       # Load via PyTorchModelHubMixin.from_pretrained (downloads config.json and weights)
       self.model = torch_model_lib.TimesFM3Torch.from_pretrained(
@@ -385,7 +429,11 @@ class TimesFM3Forecaster:
         revision=self.config.revision,
         local_files_only=self.config.local_files_only,
       )
-      # Synchronize forecaster config with the loaded model config
+      # Synchronize forecaster config with the loaded model config.
+      # median_quantile_index falls back to the middle of the *loaded*
+      # quantiles list if the configured index doesn't fit it (e.g. a
+      # config carried over from a different checkpoint with a different
+      # number of quantiles).
       median_q_idx = self.config.median_quantile_index
       if median_q_idx >= len(self.model.quantiles):
         median_q_idx = len(self.model.quantiles) // 2
@@ -473,7 +521,12 @@ class TimesFM3Forecaster:
     use_znorm: bool = False,
     padding_mode: str = "none",
   ) -> Iterator[ForecastOutput]:
-    """Runs inference on a batch of time series with optional covariates."""
+    """Runs inference on a batch of time series with optional covariates.
+
+    Untrusted/caller-provided inputs (contexts, covariates, ts_ids) are
+    validated for shape/length consistency below before being converted
+    to arrays and passed to the model.
+    """
     if horizon <= 0:
       raise ValueError(f"horizon must be positive, got {horizon}.")
     if not contexts:
@@ -564,6 +617,15 @@ class TimesFM3Forecaster:
             "All present past-future covariates must have the same variate count."
           )
 
+      # A timestep is "leading" only if every target variate is NaN there
+      # (multivariate: one variate having real data is enough to keep the
+      # timestep). Unlike np.argmax's usual "first True" semantics, when
+      # `isnan.all()` there are no unmasked timesteps at all, so
+      # first_valid_index is explicitly set to the full length rather
+      # than trusting argmax's tie-breaking (see the analogous, mismatched
+      # `strip_leading_nans` docstring caveat in
+      # ../timesfm/timesfm_2p5/timesfm_2p5_base.py for what argmax
+      # returns in that all-NaN case if not special-cased).
       isnan = np.isnan(target_clean).all(axis=0)
       if isnan.all():
         first_valid_index = target_clean.shape[-1]
@@ -577,6 +639,9 @@ class TimesFM3Forecaster:
         if pf_arr is not None:
           pf_arr = pf_arr[:, first_valid_index:]
       elif first_valid_index == target_clean.shape[-1]:
+        # Entirely NaN (and nonempty): rather than propagate NaN or raise,
+        # replace with an all-zero series -- downstream code still
+        # produces a (meaningless but non-crashing) forecast for it.
         if target_clean.shape[-1] == 0:
           pass
         else:
@@ -653,6 +718,13 @@ class TimesFM3Forecaster:
         znorm_per_example.append([(0.0, 1.0) for _ in range(ctx.shape[0])])
 
     if use_symmetric_averaging:
+      # Approximate flip invariance (TimesFM(-x) ~= -TimesFM(x)) by
+      # decoding both a series and its negation in the same batch,
+      # interleaved as (ctx, -ctx, ctx2, -ctx2, ...); recombined via
+      # strided [0::2]/[1::2] slicing after decode below. This doubles
+      # the effective batch size compared to the single-pass v1/v2
+      # equivalent in ../timesfm/timesfm_2p5/timesfm_2p5_torch.py, which
+      # instead runs two separate decode calls.
       sym_contexts: list[np.ndarray] = []
       sym_po: list[np.ndarray | None] = []
       sym_pf: list[np.ndarray | None] = []
@@ -670,6 +742,12 @@ class TimesFM3Forecaster:
       pf_2d = sym_pf
 
     if padding_mode == "edge":
+      # global_horizon is `horizon` rounded up to an output-patch-length
+      # boundary, so the model always decodes a full number of patches;
+      # only past_future_covariates need extending to match (targets and
+      # past_only_covariates don't extend into the horizon at all) --
+      # repeating the last known value for the extra (unreal) tail beyond
+      # the caller's real horizon.
       pad_len = global_horizon - horizon
       if pad_len > 0:
         for i, pf in enumerate(pf_2d):
@@ -706,7 +784,12 @@ class TimesFM3Forecaster:
       if not query_batch:
         continue
 
-      # Dynamic per-batch context length rounded up to patch length boundary
+      # Dynamic per-batch context length rounded up to patch length boundary.
+      # Different batches may end up using different context lengths
+      # (each sized to its own longest member, capped at global_context)
+      # rather than always padding every batch to the global maximum --
+      # this trades a bit of recompilation/shape variety for smaller
+      # tensors on batches that don't need the full context.
       max_ctx_in_batch = max(q.context_length for q in query_batch)
       batch_context = min(
         math.ceil(max_ctx_in_batch / self.config.input_patch_length)
@@ -734,6 +817,12 @@ class TimesFM3Forecaster:
 
       po_torch = None
       if any(po is not None for po in batched_po):
+        # To stack the whole batch into one tensor, examples with no
+        # past-only covariates get a zero-filled placeholder shaped like
+        # the first example that does have them -- relies on every
+        # present covariate array in the batch sharing the same
+        # (variates, time) shape, which predict_batch's earlier
+        # po_variates/pf_variates validation enforces globally.
         po_template = next(po for po in batched_po if po is not None)
         po_arrs = [
           po if po is not None else np.zeros_like(po_template) for po in batched_po
@@ -764,14 +853,26 @@ class TimesFM3Forecaster:
 
     try_gc(self.device)
     all_raw_outputs = np.concatenate(ys, axis=0)
+    # decode's variate axis holds targets followed by covariate variates
+    # (see model.py); only the leading num_targets_in slots are actual
+    # forecasts, so covariate variates' outputs are dropped here.
     all_raw_outputs = all_raw_outputs[:, :num_targets_in, :, :]
 
     if sort_quantiles:
+      # Post-hoc sort to fix any quantile crossing, rather than the
+      # clamp-from-the-median approach in
+      # ../timesfm/timesfm_2p5/timesfm_2p5_torch.py's fix_quantile_crossing.
       all_raw_outputs = np.sort(all_raw_outputs, axis=-1)
 
     if use_symmetric_averaging:
+      # Undo the (ctx, -ctx) interleaving from batch construction above.
       ys_pos = all_raw_outputs[0::2]
       ys_neg = all_raw_outputs[1::2]
+      # Negating a series reverses its quantile ordering (what was the
+      # low quantile of -x becomes, after negating back, the high
+      # quantile of x) -- reverse the quantile axis before averaging.
+      # Skipped when there's no real quantile axis to reorder (a single
+      # -- e.g. point-forecast-only -- output channel).
       if ys_pos.ndim >= 3 and ys_pos.shape[-1] > 1:
         all_raw_outputs = (ys_pos - ys_neg[..., ::-1]) / 2
       else:
@@ -785,6 +886,9 @@ class TimesFM3Forecaster:
           all_raw_outputs[i, r] = all_raw_outputs[i, r] * sigma + mu
 
     if make_positive:
+      # Only clamps a variate's forecast to >= 0 if that variate's own
+      # *original* (pre-processing) input was itself entirely
+      # nonnegative -- avoids forcing negative-valued series positive.
       for i in range(num_original_ts):
         if was_1d_input:
           if _is_nonnegative(contexts[i]):
@@ -799,6 +903,9 @@ class TimesFM3Forecaster:
     for i in range(num_original_ts):
       raw = all_raw_outputs[i]
       if was_1d_input:
+        # Caller passed a 1D (single-variate) series: drop the variate
+        # axis so forecast/quantiles come back 1D/2D instead of carrying
+        # a size-1 leading variate dimension.
         raw = raw[0]
         yield ForecastOutput(
           ts_id=original_ts_ids[i],

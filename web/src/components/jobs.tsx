@@ -15,6 +15,10 @@ import { useAnalyticalContext } from "@/hooks/use-context";
 import { Button } from "./ui/button";
 import { Badge, Empty, ErrorNotice } from "./ui/controls";
 
+// Shared job status/action/list UI (JobStatus badge, JobActions
+// cancel/retry/open, JobList) used across the Overview, Models, Tracking,
+// and Forecasts pages. Job data comes from hooks/use-records.ts useJobs
+// (polled) or a per-job query; activeStatuses is defined in lib/types.ts.
 export function JobStatus({ job }: { job: Job }) {
   const active = activeStatuses.has(job.status);
   return (
@@ -74,6 +78,9 @@ export function JobActions({ job }: { job: Job }) {
         )}
         {job.result_id && (
           <Button size="sm" variant="ghost" asChild>
+            {/* Any other job kind (backtest, covariates, etc.) opens the
+                shared /experiments route, which picks its specific editor
+                from the `experiment` context param. */}
             <Link
               href={context.href(
                 job.kind === "scenario"

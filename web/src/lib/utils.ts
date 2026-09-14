@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+// Small display/formatting helpers shared by tables, charts, and cards.
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -16,6 +17,9 @@ export function display(value: unknown): string {
   return typeof value === "object" ? JSON.stringify(value) : String(value);
 }
 export function dateLabel(value: string) {
+  // Renders in the viewer's local timezone via toLocaleString, not the
+  // timestamp's original offset. Falls back to the raw string for
+  // unparsable input rather than showing "Invalid Date".
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value

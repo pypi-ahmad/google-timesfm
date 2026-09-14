@@ -1,5 +1,9 @@
 "use client";
 import { Button } from "@/components/ui/button";
+// Next.js route-segment error boundary. `reset()` re-renders the segment
+// in place rather than a full reload; the error's own message/detail is
+// intentionally not shown here to avoid leaking backend error content to
+// the user — see lib/api.ts ApiError for what's normally surfaced instead.
 export default function ErrorPage({
   reset,
 }: {

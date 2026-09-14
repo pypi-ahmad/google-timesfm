@@ -34,6 +34,11 @@ import {
   Section,
 } from "@/components/ui/controls";
 
+// Workspace dashboard: summary tiles, latest scored evaluation, recent job
+// activity, recent runs, active tracking count, drafts to resume, and
+// worker availability. Aggregates several hooks/use-records.ts queries
+// rather than owning any state of its own; see features/forecasts-page.tsx
+// and features/tracking-page.tsx for the pages this links into.
 export function OverviewPage() {
   const context = useAnalyticalContext();
   const library = useDatasets();
@@ -41,6 +46,10 @@ export function OverviewPage() {
   const runs = useRecords<Run>("runs");
   const drafts = useRecords("drafts");
   const tracking = useRecords("tracking");
+  // No API field marks a run as "the latest scored evaluation" directly,
+  // so this heuristically picks the first run (most recent first, per the
+  // API's ordering) whose kind is evaluation-shaped or whose settings
+  // record a holdout task.
   const latestEvaluation = runs.data?.find((run) => {
     const settings = run.payload.spec.settings as Row | undefined;
     return (
@@ -82,6 +91,10 @@ export function OverviewPage() {
         worker.status ??
         "Registered",
     );
+  // No dedicated boolean field for worker staleness is exposed by the API
+  // (as far as this file can tell); staleness is inferred from the status
+  // text. Confirm against the worker-registration/heartbeat implementation
+  // if this needs to be exact.
   const isStaleWorker = (worker: Row) =>
     /stale|offline|expired/i.test(workerStatus(worker));
   const currentWorkers = (workers.data ?? []).filter(

@@ -17,6 +17,9 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Assumes this script stays two directories below the timesfm-forecasting
+# root (examples/global-temperature/run_example.sh) -- moving it breaks the
+# path to scripts/check_system.py below.
 SKILL_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 echo "============================================================"

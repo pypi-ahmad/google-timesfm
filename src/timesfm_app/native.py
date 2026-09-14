@@ -1,4 +1,14 @@
-"""Workspace-owned Windows services, with no containers or global PATH changes."""
+"""Workspace-owned Windows services, with no containers or global PATH changes.
+
+Entry point for ``python -m timesfm_app.native {setup|start|stop|doctor|
+supervise|infrastructure}``. ``supervise`` is the long-running process
+manager: it starts and restarts this package's own processes (api.py,
+jobs.py's dispatcher, worker.py's gpu/cpu actors, and the web frontend) plus
+local PostgreSQL/Memurai, and only ever terminates processes it can prove it
+(or a previous run in the same install) actually started — see
+identity()/existing() for the PID-reuse-safe process identity check that
+backs every stop/cleanup decision below.
+"""
 
 from __future__ import annotations
 

@@ -12,6 +12,12 @@ Phase 2 (forecast): TimesFM quantile prediction intervals on a 12-month
 Outputs:
   output/anomaly_detection.png  -- 2-panel visualization
   output/anomaly_detection.json -- structured detection records
+
+Input:
+  Reads temperature_anomaly.csv from the sibling global-temperature example
+  directory (not this directory) -- expects "date" (monthly, first-of-month)
+  and "anomaly_c" (deg C) columns. Standalone otherwise: does not read or
+  write any output produced by another script in this examples tree.
 """
 
 from __future__ import annotations

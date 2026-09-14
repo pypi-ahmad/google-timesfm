@@ -1,4 +1,12 @@
-"""Opt-in retention and conservative cleanup of abandoned artifact files."""
+"""Opt-in retention and conservative cleanup of abandoned artifact files.
+
+Two independent policies: age/count-based run retention (retention_preview/
+apply_retention, driven by a per-workspace policy record) and orphaned-file
+sweeping (cleanup_orphans), which deletes artifact keys no live record or
+job references. Both are safe to run repeatedly and concurrently with normal
+traffic; see store.py's delete_record/artifact_operation_lock for how races
+against in-flight writes are closed.
+"""
 
 from __future__ import annotations
 
@@ -136,6 +144,9 @@ def cleanup_orphans(
   now: datetime | None = None,
 ) -> dict[str, Any]:
   if apply:
+    # This lock is also taken by migration.py's legacy import, so an orphan
+    # sweep cannot run concurrently with an import writing new artifact keys
+    # under the same prefixes. Preview mode skips the lock since it only reads.
     with store.artifact_operation_lock():
       return _cleanup_orphans(store, artifacts, apply=True, now=now)
   return _cleanup_orphans(store, artifacts, apply=False, now=now)

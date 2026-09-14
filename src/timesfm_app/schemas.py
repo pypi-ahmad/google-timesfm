@@ -1,4 +1,11 @@
-"""HTTP contracts independent of Streamlit and heavyweight model construction."""
+"""HTTP contracts independent of Streamlit and heavyweight model construction.
+
+These pydantic models are the trust boundary for request bodies coming into
+api.py: every untrusted field from a client is parsed and range-checked here
+before api.py performs cross-record (referential) checks and store.py
+persists anything. JobResponse/RecordResponse mirror the ORM rows defined in
+store.py by hand, so a change to those tables must be mirrored here too.
+"""
 
 from typing import Any, Literal
 
@@ -6,6 +13,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class Contract(BaseModel):
+  # Reject unknown fields on every request body: a typo'd or stale client
+  # field must fail loudly rather than being silently dropped and persisted
+  # without effect.
   model_config = ConfigDict(extra="forbid")
 
 
@@ -17,6 +27,9 @@ class Mapping(Contract):
 
   @model_validator(mode="after")
   def disjoint_roles(self):
+    # Invariant relied on downstream (services.py/data_preparation): a column
+    # may not carry more than one role, and the timestamp column may not also
+    # be a data column.
     columns = self.targets + self.past_only + self.past_future
     if len(set(columns)) != len(columns) or self.timestamp in columns:
       raise ValueError("Each column must have one role.")
@@ -119,6 +132,9 @@ class RunSpec(Contract):
 
   @model_validator(mode="after")
   def validate_roles(self):
+    # Cross-field invariants that Mapping/Preparation cannot check on their
+    # own: a grouping column must not double as a target/covariate, and the
+    # same dataset version cannot be selected twice in one run.
     roles = self.mapping.targets + self.mapping.past_only + self.mapping.past_future
     if set(roles).intersection(self.preparation.group_columns):
       raise ValueError("Group identifiers cannot also be targets or covariates.")
@@ -170,6 +186,8 @@ class RecordResponse(Contract):
   created_at: str
 
 
+# Mirrors store.Job; the status Literal must stay in sync with every status
+# string store.py assigns (queued/running/cancelling/succeeded/failed/cancelled).
 class JobResponse(Contract):
   id: str
   workspace_id: str

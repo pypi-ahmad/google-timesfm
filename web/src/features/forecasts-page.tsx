@@ -37,6 +37,13 @@ import {
 } from "@/components/ui/controls";
 import { Drawer } from "@/components/ui/dialog";
 
+// The core forecast/experiment/scenario builder+viewer, rendered by
+// app/[page]/page.tsx for /forecasts, /experiments, and /scenarios (mode
+// prop distinguishes them; /experiments also picks a specific experiment
+// kind via the URL). Combines the autosaving draft form (hooks/use-
+// draft.ts), a data-quality preview mutation, idempotent job submission,
+// and components/run-viewer.tsx for the result. See components/
+// forecast-form.tsx and components/experiment-editors.tsx for the fields.
 const experiments: { kind: JobKind; label: string; description: string }[] = [
   {
     kind: "backtest",
@@ -74,6 +81,11 @@ const experiments: { kind: JobKind; label: string; description: string }[] = [
       "Inspect prediction errors and unusual historical observations.",
   },
 ];
+// Derives (or reuses) an Idempotency-Key for job submission: if the same
+// workspace+draft+kind+spec was already submitted with a stored key (e.g.
+// a retried click after a network hiccup), reuse that key so the server
+// treats it as the same request instead of creating a duplicate job. Any
+// change to the spec's content produces a new key.
 function submissionKey(
   workspace: string,
   draft: string | null,
@@ -120,6 +132,11 @@ export function ForecastsPage({
       ),
     onSuccess: (_, variables) => setPreviewSnapshot(json(variables)),
   });
+  // Gate for job submission: the preview must match the form's current
+  // values exactly (previewSnapshot === snapshot — any edit since previewing
+  // invalidates it) and must have no unresolved blocking quality issues.
+  // See components/input-preview.tsx for how the same "blocked" count is
+  // surfaced to the user.
   const previewCurrent =
     previewSnapshot === snapshot &&
     !!preview.data &&
@@ -132,6 +149,10 @@ export function ForecastsPage({
     enabled: !!context.jobId,
     refetchInterval: 2000,
   });
+  // job.data changes on every poll tick, so this ref (rather than a
+  // dependency check alone) prevents re-navigating/re-invalidating every
+  // 2s while a completed job's result stays open — it only fires once per
+  // job id when a result first becomes available.
   const openedResult = useRef("");
   useEffect(() => {
     if (job.data?.result_id && openedResult.current !== job.data.id) {
@@ -200,6 +221,11 @@ export function ForecastsPage({
     setValidation(null);
     submit.mutate(structuredClone(spec));
   };
+  // Changing dataset versions starts a fresh spec for those versions
+  // (column roles/mapping don't carry over, since a new dataset's columns
+  // may not match), while explicitly preserving settings and model choice
+  // — selected covariates are cleared since they reference column names
+  // that may no longer be valid.
   const versionsChange = (ids: string[]) => {
     const preserved = draft.form.getValues();
     const next = {

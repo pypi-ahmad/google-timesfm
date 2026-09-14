@@ -1,3 +1,7 @@
+## Template Alembic renders via `alembic revision` into each new file under
+## migrations/versions/ (see 0001_job_store.py for the result). Keep the
+## revision/down_revision/branch_labels/depends_on variable names intact;
+## Alembic reads them by name to build the migration chain.
 """${message}
 
 Revision ID: ${up_revision}

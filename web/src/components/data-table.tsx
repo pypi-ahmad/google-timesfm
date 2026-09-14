@@ -24,6 +24,10 @@ import type { Row, TableData } from "@/lib/types";
 import { Button } from "./ui/button";
 import { Empty, ErrorNotice, Loading } from "./ui/controls";
 
+// Two related exports: DataTable renders a sortable, row-virtualized table
+// over an in-memory Row[] (used for previews and small result sets), and
+// RemoteTable wraps it with server-side pagination/sorting for a saved
+// run's result tables (see lib/types.ts TableData, lib/api.ts).
 const features = tableFeatures({
   rowSortingFeature,
   sortedRowModel: createSortedRowModel(),
@@ -70,6 +74,10 @@ export function DataTable({
     manualSorting: !!onSortingChange,
   });
   const scroll = useRef<HTMLDivElement>(null);
+  // Tracks whether the table is wider than its scroll container and
+  // whether there's more content past the visible end, to show a fade +
+  // "scroll sideways" hint (app/globals.css .table-more-end/.table-scroll-
+  // hint) — purely a discoverability affordance for wide tables.
   const [horizontalOverflow, setHorizontalOverflow] = useState({
     overflowing: false,
     moreAtEnd: false,
@@ -103,6 +111,9 @@ export function DataTable({
     estimateSize: () => 44,
     overscan: 12,
   });
+  // Only the visible row window is rendered; `top`/`bottom` size spacer
+  // rows that stand in for the rest of the table's height so scrolling
+  // and native table semantics (sticky header, row count) stay correct.
   const items = virtual.getVirtualItems();
   const top = items[0]?.start ?? 0;
   const bottom = Math.max(0, virtual.getTotalSize() - (items.at(-1)?.end ?? 0));
@@ -224,6 +235,10 @@ export function RemoteTable({
   tableName: string;
   filters: Record<string, string>;
 }) {
+  // `sorting`/`offset` here are the current server-side request params
+  // (the server does the actual sort/paging); passed down as
+  // DataTable's externally-controlled sorting so DataTable never sorts
+  // its own already-server-sorted rows.
   const [offset, setOffset] = useState(0);
   const [sorting, setSorting] = useState<SortingState>([]);
   const limit = 100;

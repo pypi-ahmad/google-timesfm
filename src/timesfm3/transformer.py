@@ -19,6 +19,16 @@ Port of the Flax MixingTransformer architecture:
   - MultiHeadAttention (with KV-cache support)
   - MixingTransformer (sequential seq + variate attention + FFN)
   - StackedMixingTransformer (nn.ModuleList of MixingTransformer)
+
+Consumed by `model.py`'s `TimesFM3Torch.transformer_stack`; configured via
+`configs.py`'s `TransformerConfig`/`StackedTransformersConfig`. The
+multivariate-specific config flags `use_rope_seq`/`use_rope_var` are used
+here (sequence-axis vs. variate-axis rotary embeddings, see
+`MixingTransformer.__init__`); `causal_attention`/`use_sdpa`/`v_norm` are
+also read here. As of this reading, `debug_no_masking` and
+`paired_token_skip_second` (declared in configs.py) are NOT read anywhere
+in this file or in model.py -- unclear whether they're dead config, or
+consumed by a Flax-side or not-yet-ported code path.
 """
 
 from __future__ import annotations
@@ -54,6 +64,9 @@ def make_attn_mask(
   if kv_length == 0:
     kv_length = query_length
 
+  # num_all_masked_kv assumes masked KV positions form a contiguous
+  # *leading* prefix (left-padding) of the KV sequence -- `kv_index >=
+  # num_all_masked_kv` excludes exactly that prefix, not an arbitrary mask.
   device = num_all_masked_kv.device
   q_index = torch.arange(query_length, device=device).view(1, 1, -1, 1)
   if query_index_offset is not None:
@@ -262,6 +275,11 @@ class MultiHeadAttention(nn.Module):
     )
 
     if decode_cache is None:
+      # cumprod of the mask-as-0/1 sequence is 1 only while every position
+      # so far has been masked, and becomes (and stays) 0 from the first
+      # unmasked position onward -- summing it counts exactly the length
+      # of the *leading* masked run, ignoring any masked positions after
+      # the first real (unmasked) one.
       num_front_masked = torch.sum(torch.cumprod(patch_mask.int(), dim=-1), dim=-1)
       next_index = torch.zeros_like(num_front_masked, dtype=torch.int32)
     else:
@@ -296,6 +314,10 @@ class MultiHeadAttention(nn.Module):
     if decode_cache is not None:
       # Cached decoding: update cache with new K, V
       cache_size = decode_cache.key.shape[1]
+      # `.item()` on next_index[0] assumes every element of the batch is
+      # at the same decode step (writes the same slice for the whole
+      # batch); it also forces a device sync (GPU->CPU transfer),
+      # incompatible with e.g. CUDA graph capture.
       idx = next_index[0].item()  # assumes uniform batch
       decode_cache.key[:, idx : idx + n_patches, :, :] = key
       decode_cache.value[:, idx : idx + n_patches, :, :] = value
@@ -442,6 +464,9 @@ class MixingTransformer(nn.Module):
         use_rotary_position_embeddings=config.use_rope_var,
         qk_norm=config.qk_norm,
         v_norm=getattr(config, "v_norm", "none"),
+        # Variate order is arbitrary (unlike time), so attention across
+        # variates is never causal -- hardcoded regardless of
+        # config.causal_attention, which only governs seq_attn above.
         causal_attention=False,
         use_bias=config.use_bias,
         use_sdpa=config.use_sdpa,
@@ -514,6 +539,10 @@ class MixingTransformer(nn.Module):
       # Mask: (b, v, n) -> (b, n, v) -> (b*n, v)
       var_patch_mask = patch_mask.permute(0, 2, 1).reshape(b * n, v)
 
+      # decode_cache is intentionally always None here: only sequence
+      # attention (causal, over time) needs a KV cache for incremental
+      # decoding -- variate attention re-attends over all variates fresh
+      # every call, since there's no "past" along that axis.
       var_attn_out_flat, _, _ = self.var_attn(
         var_attn_in_flat,
         segment_pos=var_segment_pos,
