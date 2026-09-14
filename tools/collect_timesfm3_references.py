@@ -2,7 +2,27 @@
 # requires-python = ">=3.10"
 # dependencies = ["crawl4ai==0.9.3"]
 # ///
-"""Collect the dynamic, fixed-source portion of the TimesFM-3 OKF bundle."""
+"""Collect the dynamic, fixed-source portion of the TimesFM-3 OKF bundle.
+
+Crawls a hardcoded allowlist of public TimesFM-3 reference pages (Google
+Research blog, Hugging Face model card/leaderboards, BigQuery ML docs — see
+``SOURCES``) and writes one Markdown reference file per source into
+``knowledge/references/`` for the Open Knowledge Format bundle described in
+``knowledge/index.md``.
+
+Standalone script (PEP 723 inline metadata pins ``crawl4ai``); run via
+``uv run tools/collect_timesfm3_references.py`` from the repo root, or with
+``--dry-run`` to print the planned URL -> file mapping without crawling or
+writing anything. The `--output` flag exists for symmetry with argparse
+conventions but is effectively fixed: `main` rejects any resolved path other
+than `<cwd>/knowledge/references`, so it must be run from the repository
+root and cannot be redirected elsewhere.
+
+No other repo module imports this script; it only reads its own hardcoded
+`SOURCES` list and writes Markdown files, so there is nothing further to
+follow for context beyond ``knowledge/index.md`` (the OKF bundle these files
+feed into).
+"""
 
 from __future__ import annotations
 
@@ -52,6 +72,10 @@ SOURCES = (
 
 
 def validate_url(url: str) -> None:
+    # Every SOURCES URL is checked against the fixed allowlist before any
+    # network call, both as a safety net if SOURCES is ever edited and as a
+    # sanity check on this function's own logic (see the redirect check in
+    # collect(), which re-validates the *resolved* host after the request).
     parsed = urlparse(url)
     if parsed.scheme != "https" or parsed.hostname not in ALLOWED_HOSTS:
         raise ValueError(f"URL is outside the fixed public allowlist: {url}")
@@ -100,6 +124,11 @@ async def collect(output_dir: Path, dry_run: bool) -> int:
         excluded_tags=["nav", "footer", "aside", "script", "style"],
         word_count_threshold=3,
     )
+    # Per-source failures are collected rather than raised immediately, so
+    # one bad source (network error, redirect, oversized page) doesn't stop
+    # the rest of the batch from being written; the run still fails overall
+    # (see the failures check below) so a partial batch is never silently
+    # treated as success.
     failures: list[str] = []
     http_strategy = AsyncHTTPCrawlerStrategy(
         browser_config=HTTPCrawlerConfig(verify_ssl=True)
@@ -107,6 +136,9 @@ async def collect(output_dir: Path, dry_run: bool) -> int:
     async with AsyncWebCrawler(crawler_strategy=http_strategy) as crawler:
         for slug, title, url in SOURCES:
             result = await crawler.arun(url=url, config=config)
+            # Re-check the host actually reached, since crawling follows
+            # redirects and the pre-request validate_url() call above only
+            # checked the configured URL.
             final_host = urlparse(result.url).hostname if result.url else None
             if not result.success:
                 failures.append(f"{url}: {result.error_message}")
@@ -138,6 +170,10 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=Path("knowledge/references"))
     args = parser.parse_args()
     output_dir = args.output.resolve()
+    # --output exists for argparse discoverability, not real flexibility: the
+    # OKF bundle only recognizes references at this fixed path, so anything
+    # else is rejected outright. This also means the script must be run from
+    # the repository root (cwd), since expected_root is derived from it.
     expected_root = (Path.cwd() / "knowledge" / "references").resolve()
     if output_dir != expected_root:
         raise ValueError(f"Output must be the fixed bundle directory: {expected_root}")

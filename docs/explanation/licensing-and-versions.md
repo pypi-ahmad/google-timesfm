@@ -1,7 +1,7 @@
 # Licensing and Model Versions
 
-Code and model materials do not all share one license. Treat the boundary as a
-deployment constraint, not a documentation footnote.
+Code and model materials do not all share one license, and the boundary
+affects what you can deploy, not just what you can document.
 
 ## License boundary
 

@@ -1,7 +1,24 @@
 # Copyright 2026 Ahmad Mujtaba
 # Licensed under the Apache License, Version 2.0 (the "License");
 
-"""DuckDB persistence for derived explorer run artifacts."""
+"""DuckDB persistence for derived explorer run artifacts.
+
+Single-file DuckDB database (path chosen by the caller) storing forecast
+"runs" (see `explorer.py:RunArtifact`), their tracking links/assessments
+(see `tracking.py`), and derived "analyses" (see `analysis.py`). Forecast
+and metrics tables are dual-written on every save: once as flattened SQL
+columns (`forecasts`/`metrics`, queryable directly with SQL) and once as
+a full-fidelity Parquet BLOB (`run_tables`, used preferentially on load
+since it round-trips dtypes/timezones exactly -- see `_table_to_parquet`/
+`_table_from_parquet`). Every public function wraps its body in
+`except RunStoreError: raise` / `except Exception as exc: raise
+RunStoreError(...) from exc`, so callers only ever see `RunStoreError`;
+this isn't re-commented at each call site below. `run_id`s are immutable
+once saved (`save_run` errors if content differs on a re-save with the
+same id); `tracked_runs` membership is what exempts a run from the
+retention pruning in `_prune_runs`. See `explorer.py` for how
+`RunArtifact`/`ForecastSettings`/`DatasetMapping` are produced.
+"""
 
 from __future__ import annotations
 
@@ -39,7 +56,17 @@ def _is_timestamp(value: Any) -> bool:
 
 
 def _table_to_parquet(frame: pd.DataFrame) -> bytes:
-  """Preserve mixed timezone columns that Arrow otherwise coerces to one zone."""
+  """Preserve mixed timezone columns that Arrow otherwise coerces to one zone.
+
+  Object-dtype columns holding only timestamp-like values (mixed
+  tz-aware/naive, or mixed offsets) would otherwise be silently forced to
+  a single timezone by `pa.Table.from_pandas`. Instead, such columns are
+  serialized to ISO-8601 strings and the set of affected column names is
+  recorded in a versioned custom metadata key (`_OBJECT_TIMESTAMPS`, see
+  the ".v1" suffix) so `_table_from_parquet` knows which columns to
+  reconstruct as `pd.Timestamp` objects rather than leaving them as
+  strings.
+  """
   columns = [
     column
     for column in frame
@@ -78,6 +105,10 @@ def _table_from_parquet(payload: bytes) -> pd.DataFrame:
 
 
 def _create_schema(connection: duckdb.DuckDBPyConnection) -> None:
+  # No foreign keys are declared between these tables (DuckDB won't
+  # enforce cross-table deletes), so `_prune_runs` below deletes matching
+  # run_id rows from every dependent table manually, in the same
+  # transaction as the write that might trigger pruning.
   connection.execute(
     """
     CREATE TABLE IF NOT EXISTS runs (
@@ -212,6 +243,10 @@ def save_run(
         "SELECT * FROM runs WHERE run_id = ?", [run.run_id]
       ).fetchone()
       if existing is not None:
+        # Idempotent re-save of identical content succeeds silently
+        # (e.g. a retried caller); re-saving under the same run_id with
+        # different content is rejected outright, since run_id is meant
+        # to identify one immutable forecast vintage.
         if not _same_run(_run_from_row(connection, existing), run):
           raise RunStoreError("A saved forecast cannot be changed. Create a new run.")
         connection.execute("COMMIT")
@@ -228,6 +263,8 @@ def save_run(
           run.device,
         ],
       )
+      # Dual write: flattened SQL columns for ad-hoc querying, plus the
+      # exact Parquet blob (below) that `_run_from_row` prefers on read.
       connection.execute("INSERT INTO forecasts SELECT * FROM current_forecast")
       if not metrics.empty:
         connection.execute("INSERT INTO metrics SELECT * FROM current_metrics")
@@ -239,6 +276,10 @@ def save_run(
           _table_to_parquet(run.metrics),
         ],
       )
+      # Pruning runs inside the same transaction as the insert keeps the
+      # store from ever holding more than `limit` untracked runs
+      # mid-transaction, and rolls back together with the insert on
+      # failure.
       _prune_runs(connection, limit)
       connection.execute("COMMIT")
   except RunStoreError:
@@ -257,6 +298,11 @@ def _table_exists(connection: duckdb.DuckDBPyConnection, name: str) -> bool:
 
 
 def _prune_runs(connection: duckdb.DuckDBPyConnection, limit: int) -> None:
+  # Keep the `limit` most recent untracked runs (OFFSET skips them);
+  # everything older, among untracked runs only, is deleted. Tracked
+  # runs (see tracked_runs, e.g. via set_run_tracked/link_runs/
+  # save_assessment) are excluded from the candidate set entirely, so
+  # they're retained indefinitely regardless of `limit`.
   stale = connection.execute(
     "SELECT run_id FROM runs WHERE run_id NOT IN (SELECT run_id FROM tracked_runs) "
     "ORDER BY CAST(created_at AS TIMESTAMPTZ) DESC, run_id DESC OFFSET ?",
@@ -277,6 +323,11 @@ def _prune_runs(connection: duckdb.DuckDBPyConnection, limit: int) -> None:
 
 
 def _same_frame(left: pd.DataFrame, right: pd.DataFrame) -> bool:
+  # Normalize both frames before comparing: an all-NaN column, column
+  # order, and row order can all differ between the freshly-computed
+  # `right` frame and a `left` frame reloaded from storage (storage adds
+  # or fills optional columns and doesn't guarantee row/column order),
+  # without the underlying data actually differing.
   frames = []
   for frame in (left, right):
     frame = frame.dropna(axis="columns", how="all")
@@ -284,6 +335,8 @@ def _same_frame(left: pd.DataFrame, right: pd.DataFrame) -> bool:
     if order:
       frame = frame.sort_values(order)
     frames.append(frame.reindex(sorted(frame.columns), axis=1).reset_index(drop=True))
+  # assert_frame_equal is used here purely as an equality predicate (the
+  # AssertionError is caught, not propagated).
   try:
     pd.testing.assert_frame_equal(
       *frames,
@@ -350,6 +403,9 @@ def _run_from_row(
 ) -> RunArtifact:
   run_id, created_at, settings, mapping, manifest, runtime, device = row
   mapping_data = _load_json(mapping)
+  # JSON has no tuple type, so these round-trip as lists; convert back
+  # to tuples to match DatasetMapping's field types (and dataclass
+  # equality/hashing semantics, e.g. in _same_run).
   for field in ("targets", "past_only", "past_future"):
     mapping_data[field] = tuple(mapping_data.get(field, ()))
   payload = None
@@ -358,6 +414,10 @@ def _run_from_row(
       "SELECT forecast, metrics FROM run_tables WHERE run_id = ?", [run_id]
     ).fetchone()
   if payload is not None:
+    # Preferred path: the exact Parquet snapshot written alongside the
+    # flattened tables (see save_run). Falls back below only for rows
+    # saved before `run_tables` existed (schema evolved without a
+    # migration script) or if that table itself is somehow missing.
     forecast = _table_from_parquet(payload[0])
     metrics = _table_from_parquet(payload[1])
   else:
@@ -546,6 +606,11 @@ def save_assessment(database_path: Path, assessment: TrackingAssessment) -> None
       connection.execute("BEGIN TRANSACTION")
       _create_schema(connection)
       _require_run(connection, assessment.run_id)
+      # Unlike save_run's strict immutability check, a (run_id,
+      # fingerprint) conflict here is a silent no-op regardless of
+      # whether the conflicting row's content actually matches --
+      # `fingerprint` is trusted to already capture content identity, so
+      # this is a dedup-by-fingerprint, not a content comparison.
       connection.execute(
         "INSERT INTO run_assessments VALUES (?, ?, ?, ?, ?, ?, ?) "
         "ON CONFLICT (run_id, fingerprint) DO NOTHING",
@@ -559,6 +624,9 @@ def save_assessment(database_path: Path, assessment: TrackingAssessment) -> None
           _table_to_parquet(assessment.metrics),
         ],
       )
+      # Saving an assessment permanently protects its run from
+      # `_prune_runs` (matching link_runs's behavior), since a run with
+      # recorded actuals shouldn't silently disappear from history.
       connection.execute(
         "INSERT INTO tracked_runs VALUES (?, ?) ON CONFLICT DO NOTHING",
         [assessment.run_id, assessment.created_at],
@@ -572,6 +640,9 @@ def save_assessment(database_path: Path, assessment: TrackingAssessment) -> None
 
 def load_assessments(database_path: Path, run_id: str) -> list[TrackingAssessment]:
   """Load successive actuals versions, oldest first, without a model or uploads."""
+  # Deferred import (matching the TYPE_CHECKING-only import above): keeps
+  # this lightweight persistence module from paying tracking.py's import
+  # cost unless this function is actually called.
   from .tracking import TrackingAssessment
 
   if not database_path.exists():
@@ -682,6 +753,8 @@ def list_analyses(database_path: Path, limit: int = 25) -> list[dict[str, Any]]:
 
 def load_analysis(database_path: Path, analysis_id: str) -> AnalysisArtifact:
   """Load one saved analysis without changing the database or loading a model."""
+  # Deferred import: see load_assessments's comment on the equivalent
+  # tracking.py import above.
   from .analysis import AnalysisArtifact
 
   if not database_path.exists():

@@ -15,6 +15,14 @@ store has ~120 weekly data points.  The goal is to forecast the next 13 weeks
 Requirements:
     pip install transformers accelerate peft pandas pyarrow scikit-learn
 
+Data: downloaded at runtime over the network from the public autogluon S3
+bucket (train/test parquet); no local dataset file is needed or read.
+
+Output: a PEFT LoRA adapter directory (see --output_dir), reloadable with
+transformers' TimesFm2_5ModelForPrediction + peft.PeftModel.from_pretrained.
+This script is standalone -- it does not consume output from, or feed
+input to, any other script in this examples tree.
+
 Usage:
     python finetune_lora.py [OPTIONS]
 
@@ -201,6 +209,8 @@ def train(args: argparse.Namespace) -> None:
         device_map=device,
     )
     horizon_len = args.horizon_len
+    # Silently clamp to the checkpoint's max context rather than erroring,
+    # so a --context_len larger than the model supports still runs.
     context_len = min(args.context_len, model.config.context_length)
 
     # ------------------------------------------------------------------
@@ -329,6 +339,7 @@ def evaluate(args: argparse.Namespace) -> None:
     )
     base_model.eval()
     horizon_len = args.horizon_len
+    # Same clamp as train(); must match so base/fine-tuned inputs stay comparable.
     context_len = min(args.context_len, base_model.config.context_length)
 
     logger.info("Loading LoRA adapter from %s …", args.output_dir)
@@ -434,6 +445,8 @@ def main() -> None:
     if not args.eval_only:
         train(args)
 
+    # With --eval_only, evaluate() only runs if a prior training run already
+    # left an adapter at output_dir; there is no separate "load only" path.
     if os.path.isdir(args.output_dir):
         evaluate(args)
     else:

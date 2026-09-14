@@ -16,6 +16,11 @@
 
 Direct port of the Flax transformations.py: signed_log, signed_sqrt, identity.
 Each transformation is a callable with signature (x, reverse=False) -> x'.
+`max_output(name, value_clip)` gives the transform's max output magnitude
+for a given (symmetric) input clip, e.g. for setting matching output
+clipping bounds. As of this writing, `get_transform`/`max_output` are
+only exercised by `primitives_test.py` -- unclear from this file which
+production module (if any) is meant to look transforms up by name.
 """
 
 from __future__ import annotations

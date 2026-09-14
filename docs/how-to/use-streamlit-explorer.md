@@ -1,4 +1,9 @@
-# How to Use the Streamlit Explorer
+# Legacy: Use the Streamlit Explorer
+
+> [!NOTE]
+> The React + FastAPI workbench is the primary local interface. Use this guide
+> only for the retained Streamlit diagnostic client. Start with
+> [the native workbench guide](native-workbench.md) for new work.
 
 ## Launch the app
 

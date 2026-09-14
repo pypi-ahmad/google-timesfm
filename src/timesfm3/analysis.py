@@ -1,7 +1,27 @@
 # Copyright 2026 Ahmad Mujtaba
 # Licensed under the Apache License, Version 2.0 (the "License");
 
-"""Fixed-origin TimesFM-3 experiments and derived analysis results."""
+"""Fixed-origin TimesFM-3 experiments and derived analysis results.
+
+Experiment engine for the analysis workbench: given uploaded datasets and
+a column `DatasetMapping` (from `explorer.py`), builds a validated,
+leak-free schedule of historical forecast windows (`prepare_analysis`),
+runs it through a `BatchPredictor` (`run_analysis`), and derives
+comparison/diagnostic tables from the results (anomaly flags, scenario
+deltas, configuration rankings, calibration). Supports several
+`AnalysisKind`s (anomaly detection, scenario what-ifs, backtests,
+joint-vs-independent multivariate comparison, covariate usefulness,
+settings/baseline comparisons) that mostly differ in how
+`prepare_analysis` builds its `variants` list.
+
+`AnalysisArtifact` intentionally holds only derived results (predictions,
+metrics, a JSON-serializable manifest) and never the original uploaded
+data or full historical context arrays -- see `analysis_zip`, which is
+the only export path and is built from the artifact alone. This module
+depends on `explorer.py` for dataset/prediction primitives and
+`uncertainty.py` for calibration; see `analysis_ui.py` for how these are
+surfaced to a user.
+"""
 
 from __future__ import annotations
 
@@ -92,7 +112,13 @@ class Scenario:
 
 @dataclasses.dataclass(frozen=True)
 class AnalysisArtifact:
-  """Derived results; no original uploads or historical context arrays."""
+  """Derived results; no original uploads or historical context arrays.
+
+  This exclusion is deliberate data minimization: uploaded datasets may
+  contain sensitive business data, so anything exported from an analysis
+  (see `analysis_zip`) is built only from this artifact's already-derived
+  predictions/metrics/manifest, never from the raw uploads.
+  """
 
   analysis_id: str
   created_at: str
@@ -134,7 +160,13 @@ def analysis_fingerprint(
   mapping: DatasetMapping,
   settings: ForecastSettings,
 ) -> str:
-  """Bind editors to their upload identities, column roles, and horizon."""
+  """Bind editors to their upload identities, column roles, and horizon.
+
+  Used to detect when a scenario's edits were authored against data,
+  mapping, or horizon that has since changed (see `scenario_from_edits`'s
+  `fingerprint` and `prepare_analysis`'s check against stale scenarios),
+  so edits don't silently get replayed against different underlying data.
+  """
   payload = {
     "datasets": [(item.dataset_id, item.sha256) for item in datasets],
     "preparation": {
@@ -149,6 +181,12 @@ def analysis_fingerprint(
 def _snapshots(
   datasets: Sequence[UploadedDataset], mapping: DatasetMapping
 ) -> tuple[UploadedDataset, ...]:
+  """Freezes a validated, timestamp-normalized copy of each dataset.
+
+  The returned tuple is what the rest of an analysis run operates on, so
+  later mutation of the caller's original `datasets` (e.g. from a UI
+  session) cannot retroactively change an in-flight or completed analysis.
+  """
   validate_upload_total(datasets)
   if not datasets:
     raise ExplorerError("Upload at least one dataset.")
@@ -166,6 +204,13 @@ def _snapshots(
 
 
 def _observed_end(dataset: UploadedDataset, mapping: DatasetMapping) -> int:
+  """Row index one past the last row with any observed target value.
+
+  Exclusive bound (the "+1"): this is used directly as a forecast
+  `origin`/cutoff elsewhere, i.e. history strictly before this index is
+  observed and this index itself is the first unobserved (forecastable)
+  row.
+  """
   targets = _coerce_numeric(dataset.frame, mapping.targets)
   observed = np.flatnonzero(targets.notna().any(axis=1).to_numpy())
   if not len(observed):
@@ -236,6 +281,15 @@ def scenario_from_edits(
 
 
 def _task_batch(task: ForecastTask) -> PreparedBatch:
+  """Slices exactly the rows a task's context+horizon window needs.
+
+  `start`/`stop` bound a leak-free window: history ends at `task.origin`
+  (context is `context_length` rows before it, clamped to 0) and the
+  horizon extends `settings.horizon` rows past it -- rows outside this
+  slice are never loaded, so a task can never see data beyond its own
+  origin+horizon. `edit.row` is an absolute row index into the original
+  frame, so it's rebased by `- start` to index into this window's slice.
+  """
   start = max(0, task.origin - task.settings.context_length)
   stop = task.origin + task.settings.horizon
   frame = task.dataset.frame.iloc[start:stop].copy().reset_index(drop=True)
@@ -292,6 +346,10 @@ def prepare_analysis(
     or not 1 <= analysis_settings.windows <= maximum_windows
   ):
     raise ExplorerError(f"Window count must be between 1 and {maximum_windows}.")
+  # Anomaly detection is always one-step-ahead: horizon and stride are
+  # forced to 1 regardless of the requested forecast horizon/stride, so
+  # every historical row gets its own single-step forecast to compare
+  # against, rather than the requested (possibly longer) horizon.
   horizon = 1 if kind == "anomaly" else forecast_settings.horizon
   stride = analysis_settings.stride if analysis_settings.stride is not None else horizon
   if not isinstance(stride, int) or stride < 1:
@@ -312,6 +370,10 @@ def prepare_analysis(
   if kind == "joint_independent":
     if len(mapping.targets) < 2:
       raise ExplorerError("Joint versus independent comparison requires two targets.")
+    # Strip covariates for this comparison: the point is to isolate the
+    # effect of joint (multivariate) vs. independent (univariate)
+    # modeling of the targets themselves, so covariates are excluded to
+    # avoid conflating that with covariate usefulness.
     effective_mapping = dataclasses.replace(mapping, past_only=(), past_future=())
   if (
     len(
@@ -434,6 +496,10 @@ def prepare_analysis(
     period = analysis_settings.seasonal_period
     if isinstance(period, bool) or not isinstance(period, int) or period < 1:
       raise ExplorerError("Seasonal period must be a positive integer number of rows.")
+    # The naive baselines need at least `period` rows of history (to read
+    # back one full seasonal cycle) and at least as much as any model
+    # variant's own context_length, so every window's history is deep
+    # enough for every variant being compared, including the baselines.
     warmup = max(period, *(current.context_length for _, _, current in variants))
     if warmup > 15_360:
       raise ExplorerError("Seasonal period must not exceed 15,360 rows.")
@@ -447,6 +513,9 @@ def prepare_analysis(
     )
 
   window_count = 1 if kind == "scenario" else analysis_settings.windows
+  # Upper-bound total output size before running anything (predictor calls
+  # are the expensive part) so an oversized request fails fast instead of
+  # exhausting memory/time partway through `run_analysis`.
   prediction_rows = (
     len(snapshots) * window_count * len(variants) * len(mapping.targets) * horizon
   )
@@ -461,6 +530,12 @@ def prepare_analysis(
   for scenario in scenarios:
     seen_edits = set()
     for edit in scenario.overrides:
+      # An edit must: target a dataset in this analysis, land within the
+      # forecast horizon starting at that dataset's observed-end origin
+      # (edits to history or beyond the horizon aren't meaningful here),
+      # target a known-future ("past_future") covariate specifically
+      # (not a target or past-only covariate), carry a finite in-range
+      # value, and be unique per (dataset, row, covariate).
       key = (edit.dataset, edit.row, edit.covariate)
       if (
         edit.dataset not in origins
@@ -479,6 +554,10 @@ def prepare_analysis(
   tasks = []
   for dataset in snapshots:
     end = origins[dataset.dataset_id]
+    # Rolling windows walk backward from the most recent fully-observed
+    # origin (`end - horizon`) in steps of `stride`, then are listed in
+    # forward (oldest-to-newest) order via `reversed(range(window_count))`
+    # so window index 0 is the oldest, not the most recent.
     cutoffs = (
       [end]
       if kind == "scenario"
@@ -560,12 +639,20 @@ def analysis_metrics(predictions: pd.DataFrame) -> pd.DataFrame:
       record.update(scope=scope, origin=record.get("origin"), step=record.get("step"))
       scored = group
       if "scored" in group:
+        # `scored` (set by matched_predictions) marks rows eligible for a
+        # fair cross-variant comparison; rows with an actual but not
+        # `scored` are deliberately excluded from metrics here (blanked
+        # to NaN) rather than counted as an error, and tracked separately
+        # as `excluded` so they're visible without skewing MAE/RMSE.
         scored = group.copy()
         scored.loc[~scored["scored"], "actual"] = np.nan
         record.update(
           excluded=int((group["actual"].notna() & ~group["scored"]).sum()),
           missing_actuals=int(group["actual"].isna().sum()),
         )
+      # Drop quantile columns entirely rather than pass all-NaN columns
+      # into evaluation_metrics, e.g. for baseline methods that never
+      # produce quantiles.
       quantile_columns = [column for column in scored if column.startswith("q0.")]
       if quantile_columns and scored[quantile_columns].isna().all().all():
         scored = scored.drop(columns=quantile_columns)
@@ -620,6 +707,13 @@ def matched_predictions(predictions: pd.DataFrame) -> pd.DataFrame:
     raise ExplorerError("Comparison predictions contain duplicate forecast keys.")
   result = predictions.copy()
   result["scored"] = np.isfinite(result["actual"]) & np.isfinite(result["point"])
+  # A (dataset, target, origin, step, timestamp) key is only "scored" if
+  # EVERY variant produced a finite forecast for it (`transform("all")`)
+  # AND every variant is actually present for that key
+  # (`transform("size").eq(nunique variants)`, guarding against a key
+  # that's simply missing from some variant's output rather than merely
+  # non-finite) -- otherwise a comparison across variants would be
+  # unfair, scoring some variants on an easier/different subset of rows.
   grouped = result.groupby(keys, sort=False, dropna=False)["scored"]
   result["scored"] = grouped.transform("all") & grouped.transform("size").eq(
     result.variant.nunique()
@@ -664,6 +758,11 @@ def run_analysis(
   started = time.perf_counter()
   frames = []
   for index, task in enumerate(prepared.tasks, start=1):
+    # Sequential (not batched/parallel) execution is what makes the
+    # completed/total progress callback meaningful, and means a task
+    # raising immediately aborts the whole run before any partial
+    # `AnalysisArtifact` is constructed -- no result is ever published
+    # for a schedule that didn't fully complete.
     batch = _task_batch(task)
     if task.method == "model":
       outputs, _ = run_forecast(predictor, batch)
@@ -693,6 +792,9 @@ def run_analysis(
       // predictions.variant.nunique(),
       "ranking": "Per-target MAE rank; equal-weight mean rank across scored targets.",
     }
+  # `model_provenance` is an optional attribute some BatchPredictor
+  # implementations carry (duck-typed via getattr rather than an
+  # interface method), so predictors without it are still supported.
   model_provenance = getattr(predictor, "model_provenance", None)
   if model_provenance is not None:
     manifest["model_provenance"] = dict(model_provenance)
@@ -728,11 +830,18 @@ def anomaly_table(predictions: pd.DataFrame) -> pd.DataFrame:
   if (lower > upper).any():
     raise ExplorerError("Anomaly interval bounds must be sorted.")
   below, above = actual < lower, actual > upper
+  # "unscored" (missing actual) is kept distinct from "inside": a missing
+  # observation must never be silently treated as a non-anomaly.
   result["direction"] = np.select(
     [~valid, below, above], ["unscored", "below", "above"], default="inside"
   )
   result["residual"] = actual - result["point"]
+  # distance is the (nonnegative) amount the actual falls beyond whichever
+  # bound it's outside of; 0 when inside the interval.
   result["distance"] = np.maximum(np.maximum(lower - actual, actual - upper), 0)
+  # `flagged` uses the nullable "boolean" dtype so unscored rows are
+  # pandas NA (missing), not False -- "not flagged" and "cannot be scored"
+  # stay distinguishable to consumers.
   result["flagged"] = (below | above).astype("boolean").where(valid, pd.NA)
   return result
 
@@ -741,12 +850,17 @@ def scenario_deltas(predictions: pd.DataFrame) -> pd.DataFrame:
   """Pair each scenario with its immutable baseline prediction."""
   keys = ["dataset", "target", "origin", "step", "timestamp"]
   baseline = predictions.loc[predictions["variant"] == "baseline", keys + ["point"]]
+  # validate="many_to_one" fails loudly if the baseline has duplicate
+  # keys, catching a data-integrity bug here rather than silently
+  # fanning out rows.
   result = predictions.loc[predictions["variant"] != "baseline"].merge(
     baseline.rename(columns={"point": "baseline_point"}),
     on=keys,
     validate="many_to_one",
   )
   result["delta"] = result["point"] - result["baseline_point"]
+  # Avoid a divide-by-zero -> inf percent delta when the baseline point is
+  # exactly 0; such rows get NaN instead.
   denominator = result["baseline_point"].replace(0, np.nan).abs()
   result["percent_delta"] = 100 * result["delta"] / denominator
   return result
@@ -768,6 +882,9 @@ def comparison_table(metrics: pd.DataFrame, kind: str) -> pd.DataFrame:
     on=keys,
     validate="many_to_one",
   )
+  # Guard against comparing MAE computed over different numbers of
+  # observations per side (e.g. one variant had fewer finite forecasts),
+  # which would make the mae_difference not apples-to-apples.
   if not result["observations"].eq(result["baseline_observations"]).all():
     raise ExplorerError("Comparisons require identical scored observations.")
   result["mae_difference"] = result["mae"] - result["baseline_mae"]
@@ -775,7 +892,12 @@ def comparison_table(metrics: pd.DataFrame, kind: str) -> pd.DataFrame:
 
 
 def analysis_zip(artifact: AnalysisArtifact) -> bytes:
-  """Export analysis results and provenance without original upload data."""
+  """Export analysis results and provenance without original upload data.
+
+  Builds the zip entirely from `artifact` (predictions/metrics/manifest),
+  which by construction never carries raw uploaded rows -- see
+  `AnalysisArtifact`.
+  """
   tables = {"predictions.csv": artifact.predictions, "metrics.csv": artifact.metrics}
   if artifact.kind == "anomaly":
     tables["anomalies.csv"] = anomaly_table(artifact.predictions)

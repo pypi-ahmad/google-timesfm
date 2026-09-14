@@ -12,7 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""TimesFM models in Flax."""
+"""TimesFM 2.5 (200M) model: Flax/JAX module, decode loop, and forecast API.
+
+JAX/pmap counterpart to `timesfm_2p5_torch.py`; kept numerically aligned
+with it (same patch/quantile/flip-invariance semantics, see comments
+there for the underlying math). The main structural differences here are
+JAX-specific: multi-device batching via `pmap` (axis `t` = device count,
+merged with the per-core batch axis `b` as `(tb)` before/after each device
+call), `donate_argnums` to let XLA reuse input buffers as output buffers,
+and `nnx.scan`/`nnx.vmap` to apply/construct the `x` stacked transformer
+layers without a Python loop. `TimesFM_2p5_200M_flax_module` is the raw
+model; `TimesFM_2p5_200M_flax` wraps it with checkpoint loading (Orbax /
+HF Hub) and the forecast-config flags from `../configs.py`.
+"""
 
 import dataclasses
 import functools
@@ -46,6 +58,12 @@ Array = jaxtyping.Array
 
 
 def try_gc():
+  """Best-effort GC when device memory usage crosses 75%.
+
+  `memory_stats()` returns None on backends that don't report it (e.g.
+  some CPU/TPU configurations), in which case this silently no-ops rather
+  than raising -- device memory pressure just goes unmonitored there.
+  """
   for d in jax.local_devices():
     stats = d.memory_stats()
     if stats is None:
@@ -59,6 +77,14 @@ def try_gc():
 def _create_stacked_transformers(
   config: configs.StackedTransformersConfig, key: jax.Array
 ):
+  """Builds all `num_layers` Transformer layers at once via vmap.
+
+  `key` is a batch of per-layer PRNG keys (see the caller's
+  `jax.random.split`); vmapping the constructor gives each layer an
+  independent init key while producing one stacked pytree of parameters
+  (consumed by `_apply_stacked_transformers`'s `nnx.scan`) instead of a
+  Python list of `num_layers` separate modules.
+  """
   return transformer.Transformer(config.transformer, rngs=nnx.Rngs(key))
 
 
@@ -79,6 +105,14 @@ def _apply_stacked_transformers(
   m: Float[Array, "b n"],
   decode_cache: util.DecodeCache | None = None,
 ) -> Float[Array, "b n d"]:
+  """Applies the stacked layers sequentially via `nnx.scan`.
+
+  `model` carries a leading layer axis (0) that's scanned over; `x` (the
+  embeddings) is the carry threaded through every layer in order, `m`
+  (the patch mask) is broadcast unchanged to every layer (`in_axes=None`),
+  and `decode_cache`'s leading axis is per-layer, so each layer reads/
+  writes its own cache slot.
+  """
   return model(x, m, decode_cache=decode_cache)
 
 
@@ -129,10 +163,17 @@ class TimesFM_2p5_200M_flax_module(nnx.Module):  # pylint: disable=invalid-name
     masks: Bool[Array, "b n p"],
     decode_cache: util.DecodeCache | None = None,
   ):
+    # Concatenate values with the (float-cast) mask as extra channels, so
+    # the tokenizer's input_dims (64 = 2 * input_patch_len) sees both the
+    # patch values and which of them are padding.
     tokenizer_inputs = jnp.concatenate([inputs, masks.astype(inputs.dtype)], axis=-1)
     input_embeddings = self.tokenizer(tokenizer_inputs)
     if decode_cache is None:
       decode_cache = [None] * self.x
+    # Reduce the per-timestep mask to one bit per patch using only the
+    # last (most recent) position: padding is a contiguous left prefix,
+    # so a patch is only fully-padding if even its last position is
+    # masked; a part-real, part-padding patch is treated as attendable.
     output_embeddings, decode_cache = _apply_stacked_transformers(
       self.stacked_xf, input_embeddings, masks[..., -1], decode_cache
     )
@@ -150,11 +191,19 @@ class TimesFM_2p5_200M_flax_module(nnx.Module):  # pylint: disable=invalid-name
     batch_size, context = inputs.shape[0], inputs.shape[1]
     num_decode_steps = (horizon - 1) // self.o
     num_input_patches = context // self.p
+    # Preallocate the KV cache for every patch that will ever be written:
+    # the prefill (context) patches plus every patch generated during
+    # autoregressive decoding (each of num_decode_steps steps advances the
+    # cache by self.m patches).
     decode_cache_size = num_input_patches + num_decode_steps * self.m
 
     # Prefill
     patched_inputs = jax_einshape("b(np)->bnp", inputs, b=batch_size, p=self.p)
     patched_masks = jax_einshape("b(np)->bnp", masks, b=batch_size, p=self.p)
+    # Compute mean/std causally, patch by patch (via `scan` over axis=1):
+    # each patch is normalized using stats accumulated from itself and
+    # every earlier patch only, never from later (future) patches, so no
+    # future information leaks into a patch's own normalization.
     (last_n, last_mu, last_sigma), (_, context_mu, context_sigma) = scan(
       lambda carry, xs: util.update_running_stats(*carry, *xs),
       init=(zero := jnp.zeros(shape=(batch_size)), zero, zero),
@@ -188,6 +237,11 @@ class TimesFM_2p5_200M_flax_module(nnx.Module):  # pylint: disable=invalid-name
     # Autogressive decode
     @nnx.scan(in_axes=(None, nnx.Carry, 0), out_axes=(nnx.Carry, 1))
     def _ar_decode(module, carry, unused_iter):
+      """One autoregressive decode step, looped `num_decode_steps` times via `nnx.scan`.
+
+      `unused_iter` only exists to give `nnx.scan` a length to iterate
+      over (its value is never read); all step state lives in `carry`.
+      """
       last_renormed_output, (last_n, last_mu, last_sigma), decode_cache = carry
       new_patched_input = jax_einshape(
         "b(mp)->bmp", last_renormed_output, m=module.m, p=module.p
@@ -203,6 +257,10 @@ class TimesFM_2p5_200M_flax_module(nnx.Module):  # pylint: disable=invalid-name
       (_, _, new_normed_output, _), decode_cache = module(
         new_normed_input, new_mask, decode_cache
       )
+      # new_renormed_output holds self.m per-patch forecasts (one per
+      # newly fed-in patch); keep only the last one -- the forecast that
+      # follows the most recently generated patch -- as this step's
+      # output. The einshape slice `[..., -1, :, :]` does that selection.
       new_renormed_output = jax_einshape(
         "bm(oq)->bmoq",
         revin(new_normed_output, new_mu, new_sigma, reverse=True),
@@ -212,6 +270,9 @@ class TimesFM_2p5_200M_flax_module(nnx.Module):  # pylint: disable=invalid-name
 
       return (
         (
+          # module.decode_index (5) selects which of the q=10 output
+          # channels (1 point channel + 9 quantiles [0.1..0.9]) is fed
+          # back in as the next input patch -- index 5 is the median.
           new_renormed_output[..., module.decode_index],
           carry_stats,
           decode_cache,
@@ -260,6 +321,10 @@ class TimesFM_2p5_200M_flax_module(nnx.Module):  # pylint: disable=invalid-name
     self.per_core_batch_size = per_core_batch_size
 
     @nnx.pmap(
+      # `model` and `horizon` are broadcast to every device (in_axes=None,
+      # and horizon is additionally static since it controls Python-level
+      # control flow / trace shape in `decode`); `inputs`/`masks` are
+      # sharded across the leading (device) axis.
       in_axes=(None, None, 0, 0),
       out_axes=(0, 0, 0),
       devices=jax.devices(self.backend),
@@ -274,6 +339,10 @@ class TimesFM_2p5_200M_flax_module(nnx.Module):  # pylint: disable=invalid-name
 
 
 def _flip_quantile_fn(x):
+  # Leave channel 0 alone; reverse the ordering of the remaining 9
+  # quantile channels, because negating a value that was the q-th
+  # quantile of the flipped series makes it the (1-q)-th quantile of the
+  # original series, so channel order must flip to stay sorted low-to-high.
   return jnp.concatenate([x[..., :1], jnp.flip(x[..., 1:], axis=-1)], axis=-1)
 
 
@@ -286,8 +355,18 @@ def _force_flip_invariance_fn(
   flipped_quantile_spreads,
   flipped_ar_outputs,
 ):
-  """Forces flip invariance."""
+  """Forces flip invariance.
+
+  Reshapes and quantile-flips the results of decoding on -inputs so they
+  can be averaged with the non-flipped results in `_after_model_decode`
+  to extend TimesFM's a>=0 flip-invariance guarantee to a<0 (see
+  `ForecastConfig.force_flip_invariance` in ../configs.py). `donate_argnums`
+  tells XLA these input buffers may be reused/overwritten for the outputs
+  since callers don't need the pre-flip values afterward.
+  """
   flipped_pf_outputs = _flip_quantile_fn(flipped_pf_outputs)
+  # "tb...->(tb)..." folds the pmap device axis (t) back into the batch
+  # axis (b), undoing the per-device split applied before model.decode.
   flipped_pf_outputs = jax_einshape("tb...->(tb)...", flipped_pf_outputs)
   flipped_quantile_spreads = _flip_quantile_fn(flipped_quantile_spreads)
   flipped_quantile_spreads = jax_einshape("tb...->(tb)...", flipped_quantile_spreads)
@@ -307,7 +386,15 @@ def _force_flip_invariance_fn(
   donate_argnums=(0,),
 )
 def _use_continuous_quantile_head_fn(full_forecast, quantile_spreads, max_horizon):
-  """Uses continuous quantile head."""
+  """Uses continuous quantile head.
+
+  Replaces the (coarser, per-patch) quantile channels with the
+  continuous-quantile-head's spread re-centered onto this run's own
+  median (channel 5): quantile_spreads' own median is subtracted off and
+  full_forecast's median added back, so only the *shape* of the
+  continuous head's quantile spread is used, not its absolute level.
+  Channels 0 and 5 pass through unchanged.
+  """
   to_stack = [full_forecast[..., :max_horizon, 0]]
   for quantile_index in [1, 2, 3, 4]:
     to_stack.append(
@@ -327,7 +414,14 @@ def _use_continuous_quantile_head_fn(full_forecast, quantile_spreads, max_horizo
 
 @functools.partial(jax.jit, donate_argnums=(0,))
 def _fix_quantile_crossing_fn(full_forecast):
-  """Fixes quantile crossing."""
+  """Fixes quantile crossing.
+
+  Enforces monotonically non-decreasing quantiles (channel 1 = 0.1 ...
+  channel 9 = 0.9) by clamping outward from the median (channel 5) via
+  a `reverse` scan for the lower half and a forward scan for the upper
+  half, so each channel's clamp only depends on its already-fixed
+  neighbor closer to the median.
+  """
   lower_quantiles = _scan_along_axis(
     lambda carry, x: (w := jnp.minimum(carry, x), w),
     init=full_forecast[..., 5],
@@ -355,7 +449,12 @@ def _fix_quantile_crossing_fn(full_forecast):
 
 @functools.partial(jax.jit, static_argnames=("fc",), donate_argnums=(1, 2))
 def _before_model_decode(fc, inputs, masks):
-  """All Jax steps before model decode call."""
+  """All Jax steps before model decode call.
+
+  `donate_argnums=(1, 2)` (inputs, masks) lets XLA reuse those buffers,
+  since callers pass freshly-converted arrays that aren't needed
+  afterward in their pre-split shape.
+  """
   if fc.infer_is_positive:
     is_positive = jnp.all(inputs >= 0, axis=-1, keepdims=True)
   else:
@@ -368,6 +467,8 @@ def _before_model_decode(fc, inputs, masks):
   else:
     mu, sigma = None, None
 
+  # "(tb)...->tb..." splits the flat batch axis into (device, per-core
+  # batch) axes ahead of the pmap'd `model.compiled_decode` call.
   inputs = jax_einshape("(tb)...->tb...", inputs, b=fc.per_core_batch_size)
   masks = jax_einshape("(tb)...->tb...", masks, b=fc.per_core_batch_size)
 
@@ -395,7 +496,12 @@ def _after_model_decode(
   sigma,
   p,
 ):
-  """All Jax steps after model decode call."""
+  """All Jax steps after model decode call.
+
+  `donate_argnums=(1..9)` lets XLA reuse the pmap outputs' buffers for
+  this function's outputs, since the caller only needs `full_forecast`
+  afterward, not any of these intermediates in their original layout.
+  """
   # t: num_devices, b: per_core_batch_size
   pf_outputs = jax_einshape("tb...->(tb)...", pf_outputs)
   quantile_spreads = jax_einshape("tb...->(tb)...", quantile_spreads)
@@ -423,6 +529,11 @@ def _after_model_decode(
     )
 
   if fc.return_backcast:
+    # In-sample "backcast": for every context patch except the last, take
+    # only its first `p` (input_patch_len) predicted points -- the part
+    # of that patch's prediction window overlapping the next patch's
+    # actual start -- and prepend to the real forecast. Consumed by
+    # forecast_with_covariates in timesfm_2p5_base.py.
     full_backcast = jax_einshape("...npq->...(np)q", pf_outputs[:, :-1, :p, :])
     full_forecast = jnp.concatenate([full_backcast, full_forecast], axis=1)
 
@@ -445,6 +556,10 @@ def _after_model_decode(
 class TimesFM_2p5_200M_flax(timesfm_2p5_base.TimesFM_2p5):
   """Flax implementation of TimesFM 2.5 with 200M parameters."""
 
+  # Class-level default is only a type/documentation placeholder -- every
+  # instance immediately overwrites `self.model` with its own module in
+  # __init__ below (each with freshly-initialized/untrained parameters
+  # until load_checkpoint or from_pretrained is called).
   model: nnx.Module = TimesFM_2p5_200M_flax_module()
 
   def __init__(self, **kwargs):
@@ -567,6 +682,11 @@ class TimesFM_2p5_200M_flax(timesfm_2p5_base.TimesFM_2p5):
         fc.max_horizon, inputs, masks
       )
       if fc.force_flip_invariance:
+        # Second full decode pass on the negated input; combined with
+        # `flipped_*` reversal/averaging in `_after_model_decode` this
+        # extends the a>=0-only flip invariance to a<0 (see
+        # ForecastConfig.force_flip_invariance in ../configs.py). This is
+        # ~2x the decode cost when enabled.
         flipped_pf_outputs, flipped_quantile_spreads, flipped_ar_outputs = (
           self.model.compiled_decode(fc.max_horizon, -inputs, masks)
         )
@@ -590,6 +710,9 @@ class TimesFM_2p5_200M_flax(timesfm_2p5_base.TimesFM_2p5):
         sigma,
         self.model.p,
       )
+      # Copy off-device to a plain numpy array, then explicitly drop the
+      # JAX array reference and opportunistically GC before returning, so
+      # device memory used by this call doesn't linger for the caller.
       full_forecast_np = np.array(full_forecast)
       del full_forecast
       try_gc()
@@ -602,6 +725,9 @@ class TimesFM_2p5_200M_flax(timesfm_2p5_base.TimesFM_2p5):
     )
 
     if dryrun:
+      # Run once on dummy all-zero data to force JAX/pmap tracing and
+      # compilation to happen now (eagerly, during compile()) rather than
+      # lazily on the first real forecast call.
       _ = self.compiled_decode(
         self.forecast_config.max_horizon,
         jnp.zeros(

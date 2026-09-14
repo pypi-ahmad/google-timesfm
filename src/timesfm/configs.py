@@ -12,7 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Abstract configs for TimesFM layers."""
+"""Abstract configs for TimesFM layers.
+
+These dataclasses are framework-agnostic (no torch/flax imports) and are
+shared by both the `torch/` and `flax/` layer implementations, which read
+the fields to build matching modules. See `timesfm_2p5/timesfm_2p5_base.py`
+for how `ForecastConfig` drives context/horizon padding and batching at
+inference time, and `torch/transformer.py` / `flax/transformer.py` for how
+`TransformerConfig` and `StackedTransformersConfig` are consumed.
+"""
 
 import dataclasses
 from typing import Literal

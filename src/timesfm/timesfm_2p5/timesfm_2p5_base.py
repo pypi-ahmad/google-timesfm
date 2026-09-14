@@ -12,7 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""TimesFM 2p5 base implementation."""
+"""TimesFM 2p5 base implementation.
+
+Framework-agnostic `TimesFM_2p5` base class: model definition (patch
+lengths, quantiles, layer configs), the batched `forecast` entry point
+(context truncation/padding/masking), and covariate-adjusted forecasting
+via `forecast_with_covariates` (delegates the linear-model fit to
+`../utils/xreg_lib.py`). See `timesfm_2p5_torch.py` / `timesfm_2p5_flax.py`
+for the concrete subclasses that implement `load_checkpoint`/`compile` and
+provide `self.model` / `compiled_decode`.
+"""
 
 import dataclasses
 from typing import Any, Callable, Sequence
@@ -38,7 +47,10 @@ def strip_leading_nans(arr):
 
   Returns:
     A new NumPy array with leading NaN values removed.
-    If the array is all NaNs or empty, returns an empty array.
+    If the array is empty, returns an empty array. Note: if the array is
+    entirely NaN, `np.argmax` on the all-False `~isnan` mask returns index
+    0 (its first, tied maximum), so the full (all-NaN) array is returned
+    unchanged rather than an empty array.
   """
 
   isnan = np.isnan(arr)
@@ -55,8 +67,12 @@ def linear_interpolation(arr):
   Returns:
       A new numpy array with NaN values filled using linear interpolation,
       or the original array if no NaNs are present.
-      Returns None if the input is not a 1D array.
       Returns the original array if there are no NaN values.
+
+  Note: despite the description above, this function does not check
+  `arr.ndim` and never returns None -- there is no code path for a
+  non-1D input; passing one falls through to np.isnan/interp and its
+  behavior is whatever numpy does elementwise (untested here).
   """
 
   nans = np.isnan(arr)
@@ -73,6 +89,13 @@ def linear_interpolation(arr):
   try:
     arr[nans] = np.interp(nans_indices, non_nans_indices, non_nans_values)
   except ValueError:
+    # `np.interp` raises ValueError when there are no non-NaN samples to
+    # interpolate from (non_nans_values is empty). `if non_nans_values:`
+    # below is truthiness-testing a numpy array, which itself raises
+    # ValueError ("ambiguous truth value") for an empty array or one with
+    # more than one element -- so this fallback branch appears to only
+    # avoid raising when non_nans_values has exactly one element; unclear
+    # from this file whether that's intentional.
     if non_nans_values:
       mu = np.nanmean(arr)
     else:
@@ -85,6 +108,9 @@ def linear_interpolation(arr):
 class TimesFM_2p5_200M_Definition:
   """Framework-agnostic config of TimesFM 2.5."""
 
+  # Note: unlike the fields below, this has no type annotation, so
+  # `dataclasses` does NOT treat it as a dataclass field -- it's a plain
+  # class attribute shared across instances, not part of `__init__`/repr/eq.
   context_limit = 16384
   input_patch_len: int = 32
   output_patch_len: int = 128
@@ -165,6 +191,11 @@ class TimesFM_2p5:
     context = self.forecast_config.max_context
     num_inputs = len(inputs)
     padded_inputs = list(inputs)
+    # Pad the input list up to a multiple of global_batch_size with dummy
+    # series (compiled_decode requires fixed-size batches); the dummy
+    # series' content is irrelevant since these rows are sliced off the
+    # output below via `[:num_inputs]`. Length 3 is an arbitrary
+    # placeholder, not a real minimum context length.
     if (w := num_inputs % self.global_batch_size) != 0:
       padded_inputs += [np.array([0.0] * 3)] * (self.global_batch_size - w)
 
@@ -176,9 +207,16 @@ class TimesFM_2p5:
     for each_input in padded_inputs:
       value = linear_interpolation(strip_leading_nans(np.array(each_input)))
       if (w := len(value)) >= context:
+        # Longer than max_context: keep only the most recent `context`
+        # points (older history is dropped, not summarized).
         value = value[-context:]
         mask = np.zeros_like(value, dtype=bool)
       else:
+        # Shorter than max_context: left-pad with zeros so all series in
+        # the batch share one fixed length. `mask` is True where a
+        # position is padding (not real data) -- see attention mask
+        # construction in transformer.py, which treats True as
+        # "exclude this key/value position".
         mask = np.array([True] * (context - w) + [False] * w)
         value = np.pad(value, (context - w, 0), "constant", constant_values=0.0)
       values.append(value)
@@ -268,6 +306,10 @@ class TimesFM_2p5:
 
       if xreg_mode == "timesfm + xreg":
         # For fitting residuals, no TimesFM forecast on the first patch.
+        # `self.model.p` is the input patch length (see
+        # timesfm_2p5_torch.py / timesfm_2p5_flax.py: `self.p =
+        # config.input_patch_len`); the model can't backcast the first
+        # patch of context, so those points are excluded from the xreg fit.
         train_lens.append(max(0, input_len - self.model.p))
       elif xreg_mode == "xreg + timesfm":
         train_lens.append(input_len)

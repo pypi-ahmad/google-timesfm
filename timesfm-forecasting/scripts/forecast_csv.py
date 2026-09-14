@@ -80,7 +80,13 @@ def load_model(batch_size: int = 32):
       max_horizon=256,
       normalize_inputs=True,
       use_continuous_quantile_head=True,
+      # force_flip_invariance: TimesFM(aX+b) = a*TimesFM(x)+b holds for a>=0
+      # by default; this extends it to a<0 too (arbitrary CSV columns may be
+      # trending in either direction).
       force_flip_invariance=True,
+      # infer_is_positive: clip forecasts to stay nonnegative when every
+      # input value is nonnegative -- assumes CSV series like counts/sales
+      # never go negative.
       infer_is_positive=True,
       fix_quantile_crossing=True,
       per_core_batch_size=batch_size,
@@ -189,6 +195,9 @@ def write_csv_output(
     future_dates = list(range(1, horizon + 1))
     if date_col and date_col in df.columns:
       dates = df[date_col].dropna()
+      # infer_freq needs >= 3 points and a regular spacing; irregular or
+      # short date columns fall back to plain step numbers below (no "date"
+      # column is written for this series -- see the isinstance check below).
       freq = pd.infer_freq(dates) if len(dates) >= 3 else None
       if freq:
         future_dates = pd.date_range(dates.iloc[-1], periods=horizon + 1, freq=freq)[

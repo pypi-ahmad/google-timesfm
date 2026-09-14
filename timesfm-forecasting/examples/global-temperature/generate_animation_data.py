@@ -5,7 +5,11 @@ Generate animation data for interactive forecast visualization.
 This script runs TimesFM forecasts incrementally, starting with minimal data
 and adding one point at a time. Each forecast extends to the final date (2025-12).
 
-Output: animation_data.json with all forecast steps
+Input: temperature_anomaly.csv in this same directory -- expects "date"
+(monthly, first-of-month) and "anomaly_c" (deg C) columns.
+
+Output: output/animation_data.json with all forecast steps. Run this before
+generate_gif.py and generate_html.py, both of which read that JSON file.
 """
 
 from __future__ import annotations
@@ -81,6 +85,12 @@ def main() -> None:
         # Truncate to actual horizon
         point = point[0][:horizon]
         quantiles = quantiles[0, :horizon, :]
+        # NOTE: columns below are read as [q10, q20, ..., q80, q90] (index 0 =
+        # q10). detect_anomalies.py documents this same TimesFM 1.0 quantile
+        # tensor as [mean, q10, q20, ..., q90] (index 0 = mean). If that
+        # convention applies here too, every column read below is off by one
+        # (e.g. "q90" would actually be q80). Verify against the installed
+        # timesfm package's forecast() docstring before trusting either file.
 
         # Determine forecast dates
         last_date = historical_dates[-1]

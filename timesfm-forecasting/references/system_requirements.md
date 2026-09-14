@@ -1,11 +1,15 @@
-# System Requirements for TimesFM
+# Archived TimesFM 2.5 system requirements
 
-## Hardware Tiers
+> [!NOTE]
+> These historical sizing notes do not describe the TimesFM-3 workbench. Use
+> [the native workbench guide](../../docs/how-to/native-workbench.md) instead.
+
+## Hardware tiers
 
 TimesFM can run on a variety of hardware configurations. This guide helps you
 choose the right setup and tune performance for your machine.
 
-### How Context Limits Are Determined
+### How context limits are determined
 
 The `max_context` values in each tier are **conservative recommendations** based on memory-performance tradeoffs, not hard limits. TimesFM 2.5 supports up to 16,384 context points, but smaller values are recommended for most use cases.
 
@@ -25,14 +29,14 @@ Where:
 - `context_length` = your `max_context` value
 - `num_series` = number of time series in your batch
 
-**You can use larger contexts** if your hardware supports it:
+You can use larger contexts if your hardware supports it:
 - **Up to 2048**: Requires ~16 GB RAM for moderate batch sizes
 - **Up to 4096**: Requires GPU or 32+ GB RAM
 - **Up to 16384**: Maximum supported, requires significant memory
 
 See [Data Preparation Guide](data_preparation.md) for context length recommendations by data frequency.
 
-### Tier 1: Minimal (CPU-Only, 4–8 GB RAM)
+### Tier 1: minimal (CPU-only, 4-8 GB RAM)
 
 - **Use case**: Light exploration, single-series forecasting, prototyping
 - **Model**: TimesFM 2.5 (200M) only
@@ -51,7 +55,7 @@ model.compile(timesfm.ForecastConfig(
 ))
 ```
 
-### Tier 2: Standard (CPU 16 GB or GPU 4–8 GB VRAM)
+### Tier 2: standard (CPU 16 GB or GPU 4-8 GB VRAM)
 
 - **Use case**: Batch forecasting (dozens of series), evaluation, production prototypes
 - **Model**: TimesFM 2.5 (200M)
@@ -70,7 +74,7 @@ model.compile(timesfm.ForecastConfig(
 ))
 ```
 
-### Tier 3: Production (GPU 16+ GB VRAM or Apple Silicon 32+ GB)
+### Tier 3: production (GPU 16+ GB VRAM or Apple Silicon 32+ GB)
 
 - **Use case**: Large-scale batch forecasting (thousands of series), long context
 - **Model**: TimesFM 2.5 (200M)
@@ -89,15 +93,15 @@ model.compile(timesfm.ForecastConfig(
 ))
 ```
 
-### Tier 4: Legacy Models (v1.0/v2.0 — 500M parameters)
+### Tier 4: legacy models (v1.0/v2.0, 500M parameters)
 
 - **⚠️ WARNING**: TimesFM v2.0 (500M) requires **≥ 16 GB RAM** (CPU) or **≥ 8 GB VRAM** (GPU)
 - **⚠️ WARNING**: TimesFM v1.0 legacy JAX version may require **≥ 32 GB RAM**
 - **Recommendation**: Unless you specifically need a legacy checkpoint, use TimesFM 2.5
 
-## Memory Estimation
+## Memory estimation
 
-### CPU Memory (RAM)
+### CPU memory (RAM)
 
 Approximate RAM usage during inference:
 
@@ -111,7 +115,7 @@ Approximate RAM usage during inference:
 
 **Formula**: `RAM ≈ model_weights + 0.5 GB + (0.2 MB × num_series × context_length / 1000)`
 
-### GPU Memory (VRAM)
+### GPU memory (VRAM)
 
 | Component | TimesFM 2.5 (200M) |
 | --------- | ------------------- |
@@ -122,7 +126,7 @@ Approximate RAM usage during inference:
 | **Total (batch=128)** | **~1.8 GB** |
 | **Total (batch=256)** | **~2.5 GB** |
 
-### Disk Space
+### Disk space
 
 | Item | Size |
 | ---- | ---- |
@@ -133,7 +137,7 @@ Approximate RAM usage during inference:
 Model weights are downloaded once from Hugging Face Hub and cached in
 `~/.cache/huggingface/` (or `$HF_HOME`).
 
-## GPU Selection Guide
+## GPU selection guide
 
 ### NVIDIA GPUs (CUDA)
 
@@ -154,11 +158,11 @@ Model weights are downloaded once from Hugging Face Hub and cached in
 | M1 Pro/Max | 16–64 GB | 32–128 | Good performance |
 | M2/M3/M4 Pro/Max | 18–128 GB | 64–256 | Excellent |
 
-### CPU Only
+### CPU only
 
 Works on any CPU with sufficient RAM. Expect 5–20× slower than GPU.
 
-## Python and Package Requirements
+## Python and package requirements
 
 | Requirement | Minimum | Recommended |
 | ----------- | ------- | ----------- |
@@ -168,7 +172,7 @@ Works on any CPU with sufficient RAM. Expect 5–20× slower than GPU.
 | huggingface_hub | 0.23.0 | latest |
 | safetensors | 0.5.3 | latest |
 
-### Optional Dependencies
+### Optional dependencies
 
 | Package | Purpose | Install |
 | ------- | ------- | ------- |
@@ -176,7 +180,7 @@ Works on any CPU with sufficient RAM. Expect 5–20× slower than GPU.
 | flax | Flax backend | `pip install flax` |
 | scikit-learn | XReg covariates | `pip install scikit-learn` |
 
-## Operating System Compatibility
+## Operating system compatibility
 
 | OS | Status | Notes |
 | -- | ------ | ----- |
@@ -187,7 +191,7 @@ Works on any CPU with sufficient RAM. Expect 5–20× slower than GPU.
 
 ## Troubleshooting
 
-### Out of Memory (OOM)
+### Out of memory (OOM)
 
 ```python
 # Reduce batch size
@@ -203,7 +207,7 @@ for i in range(0, len(inputs), 50):
     p, q = model.forecast(horizon=H, inputs=chunk)
 ```
 
-### Slow Inference on CPU
+### Slow inference on CPU
 
 ```python
 # Ensure matmul precision is set
@@ -217,7 +221,7 @@ model.compile(timesfm.ForecastConfig(
 ))
 ```
 
-### Model Download Fails
+### Model download fails
 
 ```bash
 # Set a different cache directory

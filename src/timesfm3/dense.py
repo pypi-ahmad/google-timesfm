@@ -12,7 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Dense layers for TimesFM3 PyTorch (inference only)."""
+"""Dense layers for TimesFM3 PyTorch (inference only).
+
+`ResidualBlock` lazily infers its input dimension from the first forward
+call (see `set_input_dims`) instead of taking it in `configs.py`. This
+mutates/replaces submodules (and any optimizer state referencing the old
+parameter objects would go stale), which is why this is inference-only --
+not safe to use mid-training.
+"""
 
 from __future__ import annotations
 
@@ -53,6 +60,9 @@ class ResidualBlock(nn.Module):
       bias=config.use_bias,
     )
 
+    # identity_skip assumes input_dim == output_dims (the raw input `x` is
+    # added directly in forward with no projection); passing
+    # identity_skip=True with mismatched dims will fail at forward time.
     if config.identity_skip:
       self.residual_layer = None
     else:

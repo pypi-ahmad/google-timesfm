@@ -1,4 +1,9 @@
-# TimesFM-3 Explorer Handbook
+# Legacy: TimesFM-3 Explorer Handbook
+
+> [!NOTE]
+> This handbook documents the retained Streamlit Explorer. New local workflows
+> use the [React workbench](native-workbench.md), which persists jobs, drafts,
+> results, and tracking outside the browser session.
 
 Use this handbook when you want one practical path from raw time series to a
 repeatable forecasting decision. It links to the detailed guides and reference

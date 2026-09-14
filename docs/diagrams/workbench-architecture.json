@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "TimesFM-3 Local Workbench",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "viewBox": [1380, 760]
+  },
+  "components": [
+    {"id": "browser", "type": "frontend", "label": "React workbench", "sublabel": "Next.js · :3000", "pos": [60, 300], "size": [170, 72]},
+    {"id": "api", "type": "backend", "label": "FastAPI", "sublabel": "validation · SSE · :8001", "pos": [330, 300], "size": [185, 72]},
+    {"id": "database", "type": "database", "label": "PostgreSQL", "sublabel": "records · outbox · events", "pos": [615, 190], "size": [190, 72]},
+    {"id": "artifacts", "type": "cloud", "label": "Artifact store", "sublabel": "local files or S3", "pos": [615, 470], "size": [190, 72]},
+    {"id": "dispatcher", "type": "backend", "label": "Outbox dispatcher", "sublabel": "durable delivery", "pos": [900, 190], "size": [185, 72]},
+    {"id": "broker", "type": "messagebus", "label": "Memurai / Dramatiq", "sublabel": "job queues", "pos": [900, 330], "size": [185, 72]},
+    {"id": "worker", "type": "backend", "label": "Inference worker", "sublabel": "GPU forecasts · CPU checks", "pos": [1175, 330], "size": [195, 72]},
+    {"id": "timesfm", "type": "external", "label": "TimesFM-3 services", "sublabel": "forecast · analysis · tracking", "pos": [1175, 520], "size": [195, 72]}
+  ],
+  "connections": [
+    {"id": "browser-api", "from": "browser", "to": "api", "label": "HTTP and SSE", "variant": "emphasis"},
+    {"id": "api-database", "from": "api", "to": "database", "label": "jobs and records", "fromSide": "right", "toSide": "left"},
+    {"id": "api-artifacts", "from": "api", "to": "artifacts", "label": "uploads and bundles", "fromSide": "right", "toSide": "left"},
+    {"id": "database-dispatcher", "from": "database", "to": "dispatcher", "label": "outbox", "variant": "emphasis", "labelDy": -40},
+    {"id": "dispatcher-broker", "from": "dispatcher", "to": "broker", "label": "enqueue", "fromSide": "bottom", "toSide": "top", "labelDy": 24},
+    {"id": "broker-worker", "from": "broker", "to": "worker", "label": "claim job", "variant": "emphasis"},
+    {"id": "worker-timesfm", "from": "worker", "to": "timesfm", "label": "execute", "fromSide": "bottom", "toSide": "top", "labelDy": 24},
+    {"id": "worker-database", "from": "worker", "to": "database", "label": "events and result", "fromSide": "top", "toSide": "right", "via": [[1272.5, 110], [890, 110], [890, 226]], "labelAt": [1040, 100]},
+    {"id": "timesfm-artifacts", "from": "timesfm", "to": "artifacts", "label": "write artifacts", "fromSide": "left", "toSide": "right"}
+  ],
+  "cards": [
+    {"dot": "cyan", "title": "Durability", "items": ["Submission writes a job and outbox entry atomically", "Events and immutable run manifests persist in PostgreSQL"]},
+    {"dot": "emerald", "title": "Execution", "items": ["Dramatiq separates API requests from model execution", "Worker leases and heartbeats protect a running attempt"]},
+    {"dot": "violet", "title": "Product", "items": ["React owns presentation and server-state caching", "The browser never owns inference or saved results"]}
+  ]
+}

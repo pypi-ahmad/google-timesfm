@@ -1,4 +1,9 @@
-# Explorer Reference
+# Legacy: Explorer Reference
+
+> [!NOTE]
+> This reference covers the retained Streamlit Explorer and its DuckDB-backed
+> history. For the primary local interface, see the
+> [workbench API reference](workbench-api.md).
 
 ## Runtime
 

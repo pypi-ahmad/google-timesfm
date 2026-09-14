@@ -5,7 +5,13 @@ Visualize TimesFM forecast results for global temperature anomaly.
 Generates a publication-quality figure showing:
 - Historical data (2022-2024)
 - Point forecast (2025)
-- 80% and 90% confidence intervals (fan chart)
+- 80% and 60% confidence intervals (fan chart; q10-q90 and q20-q80 bands,
+  matching the labels the code below actually plots)
+
+Input: requires run_forecast.py to have already run -- reads its
+output/forecast_output.json (forecast dates/point/quantiles) plus the
+raw temperature_anomaly.csv for the historical line. Output:
+output/forecast_visualization.png.
 
 Usage:
     python visualize_forecast.py

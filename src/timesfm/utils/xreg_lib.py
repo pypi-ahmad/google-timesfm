@@ -11,7 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Helper functions for in-context covariates and regression."""
+"""Helper functions for in-context covariates and regression.
+
+Implements the linear "xreg" (exogenous regression) model used by
+`../timesfm_2p5/timesfm_2p5_base.py:forecast_with_covariates` to combine
+TimesFM's forecast with dynamic/static covariates. `BatchedInContextXRegBase`
+flattens a batch of ragged (per-series, per-covariate) sequences into one
+dense design matrix (`create_covariate_matrix`); `BatchedInContextXRegLinear`
+solves the corresponding (ridge) least-squares problem in JAX and
+reconstructs the per-series ragged outputs. This module is an optional
+dependency (`timesfm[xreg]`, requiring jax + scikit-learn); see the
+top-level `try`/`except ImportError` below.
+"""
 
 import itertools
 import math
@@ -23,6 +34,8 @@ try:
   import numpy as np
   from sklearn import preprocessing
 except ImportError:
+  # Remap the (less actionable) ImportError from the missing dependency
+  # into one that tells the caller which extra to install.
   raise ImportError(
     "Failed to load the XReg module. Did you forget to install `timesfm[xreg]`?"
   )
@@ -44,6 +57,17 @@ def _repeat(elements: Iterable[Any], counts: Iterable[int]) -> np.ndarray:
 
 
 def _to_padded_jax_array(x: np.ndarray) -> jax.Array:
+  """Pads each axis up to the next power of 2 with zeros.
+
+  Rounding shapes to powers of 2 bounds the number of distinct input
+  shapes `fit()`'s jitted linear algebra ops get traced/compiled for
+  across calls with varying batch/covariate sizes -- avoiding a fresh
+  (slow) JIT compilation for every exact shape encountered. Zero-padded
+  rows/columns don't bias the least-squares fit below: a zero row
+  contributes nothing to `x.T @ x` or `x.T @ y`, and `fit()` uses a
+  pseudo-inverse (rather than a direct solve) so the resulting
+  rank-deficient system from all-zero padding columns is handled cleanly.
+  """
   if x.ndim == 1:
     (i,) = x.shape
     di = 2 ** math.ceil(math.log2(i)) - i
@@ -353,6 +377,12 @@ class BatchedInContextXRegBase:
 
     x_train, x_test = [], []
 
+    # Every batch element's dynamic covariates/targets are concatenated
+    # end-to-end (ragged per-series lengths flattened into one axis, via
+    # `_unnest`/`_repeat`) rather than kept as a padded (batch, time)
+    # array; row boundaries between series are implicit and only tracked
+    # via `self.train_lens`/`self.test_lens`, which `fit()` uses to slice
+    # per-series outputs back out afterward.
     # Numerical features.
     for name in sorted(self.train_dynamic_numerical_covariates):
       x_train.append(
@@ -376,7 +406,13 @@ class BatchedInContextXRegBase:
       x_train = [(x_train - x_mean) / x_std]
       x_test = [(x_test - x_mean) / x_std]
 
-    # Categorical features. Encode one by one.
+    # Categorical features. Encode one by one, re-fitting (fit_transform)
+    # the same encoder instance per covariate rather than creating a new
+    # one: each covariate's categories are learned from its own train
+    # values and applied (transform, not re-fit) to its own test values,
+    # so categories from different covariates never mix. `sorted(...)`
+    # (here and above) fixes a deterministic column order so repeated
+    # calls / train vs. test matrices line up.
     one_hot_encoder = preprocessing.OneHotEncoder(
       drop=one_hot_encoder_drop,
       sparse_output=False,
@@ -463,6 +499,9 @@ class BatchedInContextXRegLinear(BatchedInContextXRegBase):
       assert_covariate_shapes=assert_covariate_shapes,
     )
 
+    # x_train_raw (unsampled) is kept around separately so debug_info's
+    # in-context ("train") fits below can still be evaluated on every row,
+    # even though the fit itself may use a subsample.
     x_train = x_train_raw.copy()
     if max_rows_per_col:
       nrows, ncols = x_train.shape
@@ -489,6 +528,12 @@ class BatchedInContextXRegLinear(BatchedInContextXRegBase):
       x_train = _to_padded_jax_array(x_train)
       flat_targets = _to_padded_jax_array(flat_targets)
       x_test = _to_padded_jax_array(x_test)
+      # Ridge-regularized normal equations, solved via pseudo-inverse
+      # (not a direct solve) so a singular/rank-deficient x_train.T @
+      # x_train -- e.g. from the power-of-2 zero-padding in
+      # _to_padded_jax_array, or from collinear one-hot columns -- doesn't
+      # raise; `hermitian=True` tells the solver the matrix is symmetric
+      # (it always is, being of the form A.T @ A + ridge * I).
       beta_hat = (
         jnp.linalg.pinv(
           x_train.T @ x_train + ridge * jnp.eye(x_train.shape[1]),
@@ -504,6 +549,9 @@ class BatchedInContextXRegLinear(BatchedInContextXRegBase):
     outputs_context = []
 
     # Reconstruct the ragged 2-dim batched forecasts from flattened linear fits.
+    # Undoes create_covariate_matrix's flattening: walk train_lens/test_lens
+    # in the same order used to build the flat matrices, slicing each
+    # series' contiguous block back out.
     train_index, test_index = 0, 0
     for train_index_delta, test_index_delta in zip(self.train_lens, self.test_lens):
       outputs.append(np.array(y_hat[test_index : (test_index + test_index_delta)]))

@@ -12,7 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Transformer layers for TimesFM."""
+"""Transformer layers for TimesFM.
+
+Attention, rotary embeddings, and the pre-norm transformer block used by
+the Flax model. Configured via `../configs.py:TransformerConfig`, uses
+`normalization.py` for the RMS/Layer norms, and `util.py:DecodeCache` to
+support incremental (cached) decoding. Mirrors `../torch/transformer.py`
+so the two backends stay numerically equivalent.
+"""
 
 import functools
 from typing import Callable
@@ -49,7 +56,15 @@ def make_attn_mask(
   query_index_offset: Integer[Array, "b"] | None = None,
   kv_length: int = 0,
 ) -> Bool[Array, "b 1 q n"]:
-  """Makes attention mask."""
+  """Makes attention mask.
+
+  True means "this query position may attend to this key/value position".
+  Combines a causal constraint (`q_index >= kv_index`, positions are
+  absolute/global, offset by `query_index_offset` for cached decoding
+  where the query block starts partway through the sequence) with a
+  left-padding exclusion (`kv_index >= num_all_masked_kv`, since masked/
+  padded tokens are assumed to occupy a contiguous prefix of the cache).
+  """
 
   if kv_length == 0:
     kv_length = query_length
@@ -110,6 +125,11 @@ class RotaryPositionalEmbedding(nnx.Module):
     first_half, second_half = jnp.split(inputs, 2, axis=-1)
     first_part = first_half * cos - second_half * sin
     second_part = second_half * cos + first_half * sin
+    # `.astype(None)` is a no-op dtype cast (keeps whatever dtype the
+    # rotation already produced); unclear from this file why it's here
+    # explicitly rather than omitted -- possibly a leftover from a dtype
+    # cast that used to be conditional. See timesfm_2p5_flax.py / model
+    # loading for any dtype-handling context.
     first_part = first_part.astype(None)
     second_part = second_part.astype(None)
     return jnp.concatenate([first_part, second_part], axis=-1)
@@ -123,6 +143,10 @@ class PerDimScale(nnx.Module):
   def __init__(self, num_dims: int, *, rngs=nnx.Rngs(42)):
     del rngs
     self.num_dims = num_dims
+    # Zero-initialized, but unlike RMSNorm's zero-init scale this does NOT
+    # start at zero output: softplus(0) = ln(2), so the initial multiplier
+    # is 1.442695041 / sqrt(num_dims) * ln(2) (a per-head query rescaling
+    # applied instead of the usual 1/sqrt(head_dim) attention scaling).
     self.per_dim_scale = nnx.Param(jnp.zeros(shape=(num_dims,)))
 
   def __call__(self, x: Float[Array, "b ... d"]) -> Float[Array, "b ... d"]:
@@ -239,6 +263,10 @@ class MultiHeadAttention(nnx.Module):
       next_index = decode_cache.next_index
 
     if self.use_rotary_position_embeddings:
+      # Position ids are relative to the first *unmasked* (non-padding)
+      # token: shift by how many cache slots are already written
+      # (next_index) and subtract the count of masked/padding tokens seen
+      # so far, so padding never consumes a rotary position.
       position = (
         jnp.arange(n_patches, dtype=jnp.int32)[None, :]
         + next_index[:, None]
@@ -254,7 +282,9 @@ class MultiHeadAttention(nnx.Module):
       query = self.per_dim_scale(query)
 
     if decode_cache is not None:
-      # Cached decoding.
+      # Cached decoding. Assumes all elements of the batch write to the
+      # same offset (next_index[0] is used for every batch row) -- callers
+      # must keep every sequence in a batch advancing in lockstep.
       _, decode_cache_size, _, _ = decode_cache.value.shape
       zero = jnp.array(0, dtype=lax.dtype(next_index.dtype))
       start_indices = (zero, next_index[0], zero, zero)
@@ -275,6 +305,10 @@ class MultiHeadAttention(nnx.Module):
       attn_mask = make_attn_mask(query_length=n_patches, num_all_masked_kv=num_masked)
 
     # apply attention
+    # `attention_fn` (nnx.dot_product_attention) applies its own 1/sqrt(d)
+    # scaling internally; pre-multiplying query by sqrt(head_dim) cancels
+    # that out, since scaling is instead handled explicitly by
+    # `per_dim_scale` above (when enabled).
     x = self.attention_fn(
       query * jnp.sqrt(self.head_dim),
       key,
@@ -289,7 +323,13 @@ class MultiHeadAttention(nnx.Module):
 
 
 class Transformer(nnx.Module):
-  """Classic Transformer used in TimesFM."""
+  """Classic Transformer used in TimesFM.
+
+  Uses "sandwich" normalization per sub-layer (norm before AND after each
+  of attention/feedforward, e.g. pre_attn_ln then post_attn_ln) rather
+  than the more common pre-norm-only pattern -- both norms are applied
+  before the result is added back onto the residual stream.
+  """
 
   def __init__(self, config: TransformerConfig, *, rngs=nnx.Rngs(42)):
     self.config = config

@@ -1,4 +1,15 @@
-"""Resolve reproducible TimesFM-3 checkpoints without implicit fallbacks."""
+"""Resolve reproducible TimesFM-3 checkpoints without implicit fallbacks.
+
+Turns a user-supplied `ModelSelection` (a Hub repo id or local path) into
+a `ResolvedModel` with content fingerprints (sha256 per file) suitable as
+a cache key -- so two selections that resolve to the same files hash
+identically even if the local path or Hub revision string differs -- and
+then loads it via `evaluator.py:TimesFM3Evaluator`. All resolution/load
+failures are deliberately remapped to `ExplorerError` (see `explorer.py`)
+with a generic, user-facing message; the original exception is chained
+via `from exc` rather than swallowed. See `model.py` for the model these
+checkpoints populate.
+"""
 
 from __future__ import annotations
 
@@ -25,7 +36,13 @@ class ModelSelection:
 
 @dataclasses.dataclass(frozen=True)
 class ResolvedModel:
-  """Content identity suitable for a heavyweight resource cache key."""
+  """Content identity suitable for a heavyweight resource cache key.
+
+  `fingerprints` (sha256 per resolved file) is what actually identifies
+  the checkpoint's content for caching/provenance purposes -- `path` and
+  `revision` alone aren't sufficient, since a local path's contents can
+  change on disk or a Hub "revision" resolution can vary by cache state.
+  """
 
   selection: ModelSelection
   path: str
@@ -42,6 +59,7 @@ class ResolvedModel:
 
 
 def _digest(path: Path) -> str:
+  """Streams the file in 1 MiB chunks so hashing doesn't load whole checkpoints into memory."""
   digest = hashlib.sha256()
   with path.open("rb") as handle:
     for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -89,8 +107,14 @@ def resolve_model(selection: ModelSelection) -> ResolvedModel:
       files = [path]
     fingerprints = tuple((file.name, _digest(file)) for file in files)
   except ExplorerError:
+    # Already a deliberate, user-facing error from this function -- don't
+    # re-wrap it in the generic message below.
     raise
   except Exception as exc:
+    # Remap any other failure (network, HF Hub, filesystem) to a single
+    # generic, user-facing ExplorerError; `from exc` preserves the
+    # original traceback for debugging without exposing internals to the
+    # caller-facing message.
     message = (
       "Checkpoint is unavailable in local files/cache."
       if selection.offline
@@ -137,9 +161,16 @@ def _validate_folder_weights(predictor: Any, path: Path) -> None:
   }
   from safetensors import safe_open
 
+  # Read shapes directly from the safetensors file header (via
+  # get_slice/get_shape) rather than loading the full tensors, so this
+  # check is cheap even for large checkpoints.
   with safe_open(path / "model.safetensors", framework="pt", device="cpu") as weights:
     names = weights.keys()
     actual = {name: tuple(weights.get_slice(name).get_shape()) for name in names}
+  # Exact dict equality: catches missing keys, extra keys, AND shape
+  # mismatches in one comparison -- any of which the (non-strict) Hub
+  # mixin load above would otherwise silently ignore, leaving some
+  # parameters at their random init.
   if actual != expected:
     raise ExplorerError("Checkpoint parameter names or shapes do not match TimesFM-3.")
 

@@ -11,6 +11,9 @@ Usage:
     python check_system.py --model v2.0   # archived 500M model
     python check_system.py --model v1.0   # archived 200M model
     python check_system.py --json         # machine-readable output
+
+Exit code is 0 if all checks pass, 1 if any check failed (run_example.sh
+and forecast_csv.py's preflight step both rely on this to halt early).
 """
 
 from __future__ import annotations
@@ -167,7 +170,11 @@ def _get_total_ram_gb() -> float:
     except Exception:
         pass
 
-    # Fallback: use struct to estimate (unreliable)
+    # Fallback for platforms other than linux/darwin/win32, or if the
+    # platform-specific lookup above raised: struct.calcsize("P") is the
+    # pointer size in bytes (8 on 64-bit), so this always evaluates to 8.0
+    # regardless of actual RAM -- not a real estimate, just a value that
+    # lets check_ram() keep running instead of raising or returning 0.
     return struct.calcsize("P") * 8 / 8  # placeholder
 
 
@@ -216,6 +223,9 @@ def _get_available_ram_gb() -> float:
             kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
             return stat.ullAvailPhys / (1024**3)
     except Exception:
+        # Any platform-lookup failure (unsupported platform, missing tool,
+        # parse error) is swallowed here; callers see 0.0 available RAM
+        # rather than an exception.
         pass
     return 0.0
 
@@ -306,6 +316,9 @@ def check_disk(profile: dict[str, Any]) -> CheckResult:
     # Check HuggingFace cache dir or home dir
     hf_cache = os.environ.get("HF_HOME", os.path.expanduser("~/.cache/huggingface"))
     cache_dir = Path(hf_cache)
+    # Checkpoint download hasn't happened yet on a first run, so the HF cache
+    # dir may not exist -- fall back to checking the home volume instead,
+    # since that's normally the same filesystem/disk.
     check_dir = cache_dir if cache_dir.exists() else Path.home()
 
     usage = shutil.disk_usage(str(check_dir))

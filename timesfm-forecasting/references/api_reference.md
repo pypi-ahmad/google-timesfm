@@ -1,6 +1,11 @@
-# TimesFM API Reference
+# Archived TimesFM 2.5 API reference
 
-## Model Classes
+> [!NOTE]
+> This historical reference does not describe TimesFM-3. Use the repository's
+> [TimesFM-3 Python API reference](../../docs/reference/python-api.md) for new
+> work.
+
+## Model classes
 
 ### `timesfm.TimesFM_2p5_200M_torch`
 
@@ -64,8 +69,8 @@ point_forecast, quantile_forecast = model.forecast(
 
 **Returns**: `tuple[np.ndarray, np.ndarray]`
 
-- `point_forecast`: shape `(batch_size, horizon)` — median (0.5 quantile)
-- `quantile_forecast`: shape `(batch_size, horizon, 10)` — [mean, q10, q20, ..., q90]
+- `point_forecast`: shape `(batch_size, horizon)`, the median (0.5 quantile)
+- `quantile_forecast`: shape `(batch_size, horizon, 10)`: [mean, q10, q20, ..., q90]
 
 **Raises**: `RuntimeError` if model is not compiled.
 
@@ -100,8 +105,6 @@ point, quantiles = model.forecast_with_covariates(
 
 **Note**: Dynamic covariates must have length `context + horizon` for each series.
 
----
-
 ## `timesfm.ForecastConfig`
 
 Immutable dataclass controlling all forecast behavior.
@@ -122,7 +125,7 @@ class ForecastConfig:
     decode_index: int = 5
 ```
 
-### Parameter Details
+### Parameter details
 
 #### `max_context` (int, default=0)
 
@@ -166,7 +169,7 @@ Use the 30M-parameter continuous quantile head for better interval calibration.
 
 Ensures the model satisfies `f(-x) = -f(x)`.
 
-- **True** (RECOMMENDED): Mathematical consistency — forecasts are invariant to sign flip
+- **True** (RECOMMENDED): Mathematical consistency, forecasts are invariant to sign flip
 - **False**: Slightly faster but may produce asymmetric forecasts
 
 #### `infer_is_positive` (bool, default=True)
@@ -190,9 +193,7 @@ Return the model's reconstruction of the input (backcast) in addition to forecas
 - **True**: Used for covariate workflows and diagnostics
 - **False**: Only return forecast
 
----
-
-## Available Model Checkpoints
+## Available model checkpoints
 
 | Model ID | Version | Params | Backend | Context |
 | -------- | ------- | ------ | ------- | ------- |
@@ -204,9 +205,7 @@ Return the model's reconstruction of the input (backcast) in addition to forecas
 | `google/timesfm-1.0-200m-pytorch` | 1.0 | 200M | PyTorch | 2,048 |
 | `google/timesfm-1.0-200m` | 1.0 | 200M | JAX | 2,048 |
 
----
-
-## Output Shape Reference
+## Output shape reference
 
 | Output | Shape | Description |
 | ------ | ----- | ----------- |
@@ -219,11 +218,7 @@ Return the model's reconstruction of the input (backcast) in addition to forecas
 
 Where `B` = batch size (number of input series), `H` = forecast horizon.
 
----
-
----
-
-## Memory Estimation
+## Memory estimation
 
 Before running forecasts on large datasets, estimate memory requirements:
 
@@ -255,7 +250,7 @@ block-beta
 | 1,000 series | ~1.9 GB | ~2.3 GB | ~3.1 GB |
 | 10,000 series| ~9.0 GB | ~17.0 GB | ~33.0 GB |
 
-### Using the Preflight Checker
+### Using the preflight checker
 
 ```bash
 python scripts/check_system.py \
@@ -266,7 +261,7 @@ python scripts/check_system.py \
 
 This validates both system requirements AND dataset fit before loading the model.
 
-### Reducing Memory Usage
+### Reducing memory usage
 
 If your dataset is too large:
 
@@ -285,7 +280,7 @@ for i in range(0, len(inputs), CHUNK_SIZE):
 4. **Use CPU**: If GPU OOM, the model will automatically fall back to CPU
 
 
-## Error Handling
+## Error handling
 
 | Error | Cause | Fix |
 | ----- | ----- | --- |

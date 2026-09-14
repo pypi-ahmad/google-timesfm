@@ -11,7 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""TimesFM models."""
+"""TimesFM 2.5 (200M) model: PyTorch module, decode loop, and forecast API.
+
+`TimesFM_2p5_200M_torch_module` is the raw nn.Module (tokenizer -> stacked
+transformer -> point/quantile output heads) plus the causal, patch-wise
+RevIN decode loop (`decode`). `TimesFM_2p5_200M_torch` wraps it with
+checkpoint loading (HF Hub / safetensors), `compile()` (which builds the
+`compiled_decode` closure consumed by `timesfm_2p5_base.py:forecast`), and
+implements the forecast-config flags documented in `../configs.py`
+(flip invariance, quantile-crossing fix, continuous quantile head,
+backcast). See `../flax/../timesfm_2p5_flax.py` for the JAX equivalent,
+which this file is kept numerically aligned with.
+"""
 
 import dataclasses
 import logging
@@ -89,6 +100,9 @@ class TimesFM_2p5_200M_torch_module(nn.Module):
     masks: torch.Tensor,
     decode_caches: list[util.DecodeCache] | None = None,
   ):
+    # Concatenate values with the (float-cast) mask as extra channels, so
+    # the tokenizer's input_dims (64 = 2 * input_patch_len) sees both the
+    # patch values and which of them are padding.
     tokenizer_inputs = torch.cat([inputs, masks.to(inputs.dtype)], dim=-1)
     input_embeddings = self.tokenizer(tokenizer_inputs)
 
@@ -98,6 +112,11 @@ class TimesFM_2p5_200M_torch_module(nn.Module):
     output_embeddings = input_embeddings
     new_decode_caches = []
     for i, layer in enumerate(self.stacked_xf):
+      # Reduce the per-timestep mask to one bit per patch using only the
+      # last (most recent) position in the patch: padding is always a
+      # contiguous prefix (left-padding), so a patch is only fully-padding
+      # if even its last position is masked -- a patch that is part-real,
+      # part-padding is treated as attendable.
       output_embeddings, new_cache = layer(
         output_embeddings, masks[..., -1], decode_caches[i]
       )
@@ -119,6 +138,10 @@ class TimesFM_2p5_200M_torch_module(nn.Module):
       batch_size, context = inputs.shape[0], inputs.shape[1]
       num_decode_steps = (horizon - 1) // self.o
       num_input_patches = context // self.p
+      # Preallocate the KV cache for every patch that will ever be
+      # written: the prefill (context) patches plus every patch generated
+      # during autoregressive decoding (each of the num_decode_steps steps
+      # advances the cache by self.m patches).
       decode_cache_size = num_input_patches + num_decode_steps * self.m
 
       # Prefill
@@ -131,6 +154,12 @@ class TimesFM_2p5_200M_torch_module(nn.Module):
       sigma = torch.zeros(batch_size, device=inputs.device)
       patch_mu = []
       patch_sigma = []
+      # Compute mean/std causally, patch by patch: each patch is
+      # normalized using stats accumulated from itself and every earlier
+      # patch only, never from later (future) patches. This avoids leaking
+      # future information into a patch's own normalization at train/eval
+      # time and lets the same stats be extended incrementally during
+      # autoregressive decoding below.
       for i in range(num_input_patches):
         (n, mu, sigma), _ = util.update_running_stats(
           n, mu, sigma, patched_inputs[:, i], patched_masks[:, i]
@@ -179,6 +208,10 @@ class TimesFM_2p5_200M_torch_module(nn.Module):
 
       # Autogressive decode
       ar_outputs = []
+      # self.aridx (decode_index=5) selects which of the self.q=10 output
+      # channels (1 point-forecast-ish channel + 9 quantiles for
+      # [0.1..0.9]) is fed back in as the next input patch -- index 5 is
+      # the median (0.5) quantile.
       last_renormed_output = renormed_outputs[:, -1, :, self.aridx]
 
       for _ in range(num_decode_steps):
@@ -208,6 +241,12 @@ class TimesFM_2p5_200M_torch_module(nn.Module):
           revin(new_normed_output, new_mu, new_sigma, reverse=True),
           (batch_size, self.m, self.o, self.q),
         )
+        # new_renormed_output has self.m per-patch forecasts (one per newly
+        # fed-in patch); only the last one -- the forecast that follows
+        # the most recently generated patch -- is the new forward horizon
+        # chunk. The earlier self.m - 1 forecasts exist only as a
+        # byproduct of feeding self.m patches through the model at once
+        # and are discarded here.
         ar_outputs.append(new_renormed_output[:, -1, ...])
         last_renormed_output = new_renormed_output[:, -1, :, self.aridx]
 
@@ -320,6 +359,11 @@ class TimesFM_2p5_200M_torch(
     method provided by `PyTorchModelHubMixin`.
     """
     # Determine the path to the model weights.
+    # Best-effort: this download is only to warm the local cache with the
+    # repo's config.json (e.g. for `from_pretrained` cache introspection);
+    # any failure (missing file, network error, auth) is intentionally
+    # swallowed since the actual weights config is passed in separately
+    # via the `config` parameter and downloaded again below if needed.
     try:
       hf_hub_download(
           repo_id=model_id,
@@ -332,7 +376,7 @@ class TimesFM_2p5_200M_torch(
       )
     except Exception:
       pass
-    
+
     model_file_path = ""
     if os.path.isdir(model_id):
       logging.info("Loading checkpoint from local directory: %s", model_id)
@@ -451,9 +495,21 @@ class TimesFM_2p5_200M_torch(
       full_forecast = torch.cat(to_cat, dim=1)
 
       def flip_quantile_fn(x):
+        # Leave channel 0 (point/median-ish) alone; reverse the ordering
+        # of the remaining 9 quantile channels, because negating a value
+        # that was the q-th quantile of the flipped series makes it the
+        # (1-q)-th quantile of the original series -- e.g. what was the
+        # 0.1 quantile of -x becomes (after negation) the 0.9 quantile of
+        # x, so channel order must flip to stay sorted low-to-high.
         return torch.cat([x[..., :1], torch.flip(x[..., 1:], dims=(-1,))], dim=-1)
 
       if fc.force_flip_invariance:
+        # TimesFM(a*x + b) = a*TimesFM(x) + b is only guaranteed for a>=0
+        # by default (see ForecastConfig.force_flip_invariance in
+        # ../configs.py). Extend it to a<0 by also running decode on the
+        # negated input, re-negating and quantile-flipping that result,
+        # and averaging: this cancels out the model's asymmetric error
+        # under negation without changing the underlying model weights.
         flipped_pf_outputs, flipped_quantile_spreads, flipped_ar_outputs = (
           self.model.decode(forecast_config.max_horizon, -inputs, masks)
         )
@@ -466,11 +522,21 @@ class TimesFM_2p5_200M_torch(
           )
           to_cat.append(flipped_ar_outputs)
         flipped_full_forecast = torch.cat(to_cat, dim=1)
+        # Subtracting (not adding) the negated-and-reflipped run implements
+        # the averaging: flipped_* already carries an extra sign flip
+        # relative to the original scale, so `(x - flipped_x) / 2` is the
+        # symmetric average, not a difference.
         quantile_spreads = (quantile_spreads - flipped_quantile_spreads) / 2
         pf_outputs = (pf_outputs - flipped_pf_outputs) / 2
         full_forecast = (full_forecast - flipped_full_forecast) / 2
 
       if fc.use_continuous_quantile_head:
+        # Replace the (coarser, per-patch) quantile channels with the
+        # continuous-quantile-head's spread re-centered onto this run's
+        # own median (channel 5): quantile_spreads' own median is
+        # subtracted off and full_forecast's median added back, so only
+        # the *shape* of the continuous head's quantile spread is used,
+        # not its absolute level. Channel 5 (median) and 0 are left as-is.
         for quantile_index in [1, 2, 3, 4, 6, 7, 8, 9]:
           full_forecast[:, :, quantile_index] = (
             quantile_spreads[:, : fc.max_horizon, quantile_index]
@@ -480,12 +546,25 @@ class TimesFM_2p5_200M_torch(
       full_forecast = full_forecast[:, :horizon, :]
 
       if fc.return_backcast:
+        # In-sample "backcast": for every context patch except the last
+        # (which has no prior patch to backcast against), take only its
+        # first input_patch_len (self.model.p) predicted points -- the
+        # part of that patch's prediction window that overlaps the next
+        # patch's actual start -- and prepend it to the real forecast.
+        # Consumed by forecast_with_covariates in timesfm_2p5_base.py to
+        # fit an xreg model on backcast residuals.
         full_backcast = pf_outputs[:, :-1, : self.model.p, :].reshape(
           batch_size, -1, self.model.q
         )
         full_forecast = torch.cat([full_backcast, full_forecast], dim=1)
 
       if fc.fix_quantile_crossing:
+        # Enforce monotonically non-decreasing quantiles (index 1 = 0.1
+        # ... index 9 = 0.9) by clamping outward from the median (index
+        # 5): each lower quantile is capped to not exceed its higher
+        # neighbor, and each upper quantile is floored to not fall below
+        # its lower neighbor, resolved in order away from the median so
+        # each clamp only depends on an already-fixed neighbor.
         for i in [4, 3, 2, 1]:
           full_forecast[:, :, i] = torch.where(
             full_forecast[:, :, i] < full_forecast[:, :, i + 1],

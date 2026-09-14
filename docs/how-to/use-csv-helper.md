@@ -1,8 +1,9 @@
-# How to Use the TimesFM 2.5 CSV Helper
+# Archived: How to Use the TimesFM 2.5 CSV Helper
 
 > [!NOTE]
 > This compatibility helper uses TimesFM 2.5. It is separate from the
-> TimesFM-3 Streamlit explorer and `timesfm3` API.
+> TimesFM-3 workbench and Python API. For current forecasting workflows, use
+> [the native workbench](native-workbench.md).
 
 ## Check the environment
 

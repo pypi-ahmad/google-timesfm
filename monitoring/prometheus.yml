@@ -1,0 +1,19 @@
+# Local Prometheus config for native dev metrics.
+# global: default scrape cadence for every job below.
+# scrape_configs: one job per process exposing a /metrics endpoint -
+# timesfm-api scrapes api.py's FastAPI app (config.api_port), and the
+# gpu/cpu worker jobs scrape worker.py's per-queue Prometheus servers
+# started by _WorkerLifecycle (see worker.py's metrics_port: 9201 for the
+# gpu queue, 9202 for cpu).
+global:
+  scrape_interval: 10s
+scrape_configs:
+  - job_name: timesfm-api
+    static_configs:
+      - targets: ["127.0.0.1:8001"]
+  - job_name: timesfm-gpu-worker
+    static_configs:
+      - targets: ["127.0.0.1:9201"]
+  - job_name: timesfm-cpu-worker
+    static_configs:
+      - targets: ["127.0.0.1:9202"]

@@ -1,4 +1,11 @@
-"""Nominal forecast bands and descriptive, unfitted coverage summaries."""
+"""Nominal forecast bands and descriptive, unfitted coverage summaries.
+
+Purely descriptive/diagnostic: neither function fits or adjusts anything,
+they only reshape existing quantile columns (q0.1..q0.9, produced
+elsewhere by the model/evaluator) into per-band rows and then summarize
+empirical coverage against `actual`. See `evaluator.py` for where
+forecast frames with these quantile columns are produced.
+"""
 
 from __future__ import annotations
 
@@ -37,6 +44,11 @@ def interval_bands(frame: pd.DataFrame) -> pd.DataFrame:
     if column in current
   ]
   values = current[present].to_numpy(dtype=float)
+  # `crossed` is computed once from every *available* quantile column
+  # (not just the pair used for a given band below) and reused for all
+  # bands of that row: a row is flagged wherever any adjacent pair among
+  # its present quantiles is non-monotonic, even if the specific
+  # lower/upper pair for this band happens to be ordered correctly.
   crossed = (np.diff(values, axis=1) < 0).any(axis=1)
   bands = []
   for nominal, lower, upper in (
@@ -98,6 +110,11 @@ def calibration_table(frame: pd.DataFrame) -> pd.DataFrame:
     )
     .reset_index()
   )
+  # Coverage is a fraction of `observations` (rows with both a finite
+  # actual and valid, non-crossed bounds), not of the group's total row
+  # count -- rows with missing actuals or invalid bounds are excluded
+  # from the denominator rather than counted as "not covered". Groups
+  # with zero observations get NaN (not division-by-zero/inf).
   result["observed_coverage_percent"] = (
     100 * result.pop("covered") / result["observations"].replace(0, np.nan)
   )

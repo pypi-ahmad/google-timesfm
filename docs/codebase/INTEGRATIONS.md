@@ -1,6 +1,6 @@
-# External Integrations
+# External integrations
 
-## Integration Inventory
+## Integration inventory
 
 | System | Type | Purpose | Auth | Criticality | Evidence |
 |---|---|---|---|---|---|
@@ -8,18 +8,24 @@
 | Local filesystem | files | Uploaded data, checkpoints, ZIP downloads | OS permissions | High | `src/timesfm3/explorer.py` |
 | Git | subprocess | Record source revision in manifests | Local checkout | Low | `repository_revision` in `explorer.py` |
 | PyPI | package registry | Manual upstream package publication | GitHub secret | Medium | `.github/workflows/manual_publish.yml` |
+| PostgreSQL | local database | Durable records, job leases, outbox | Windows SSPI | High | `timesfm_app.store` |
+| Memurai | local Redis-compatible broker | Dramatiq delivery | Local process | High | `timesfm_app.jobs` |
+| S3-compatible storage | optional artifact store | Result and source artifacts | Standard boto3 chain | Optional | `timesfm_app.artifacts` |
 
-## Data Stores
+## Data stores
 
 | Store | Role | Access layer | Key risk | Evidence |
 |---|---|---|---|---|
 | Streamlit session memory | Current uploads and fallback run history | `streamlit_app.py` | Lost at process/session end | `streamlit_app.py` |
 | DuckDB | Newest 25 derived runs | `run_store.py` | Local file corruption or lock failure | `run_store.py` |
 | Hugging Face cache | Checkpoint reuse | `huggingface_hub` mixin | Disk use/stale revision | `timesfm3_forecaster.py` |
+| PostgreSQL | Workspaces, versions, drafts, jobs, events, runs | `timesfm_app.store` | Local service availability | `store.py` |
+| Artifact store | Original uploads, Parquet, ZIP bundles | `timesfm_app.artifacts` | Missing files/backups | `artifacts.py` |
 
-No queue or remote application datastore is configured.
+The primary workbench uses a transactional outbox and Memurai broker. The legacy
+Explorer retains its separate local DuckDB history.
 
-## Secrets and Credentials Handling
+## Secrets and credentials handling
 
 - Hugging Face uses its standard environment configuration; the capability
   report exposes presence only, never the token value.
@@ -28,7 +34,7 @@ No queue or remote application datastore is configured.
 - `.streamlit/secrets.toml` is ignored by Git.
 - Rotation policy: `[TODO]` external platform policy is not stored in this repo.
 
-## Reliability and Failure Behavior
+## Reliability and failure behavior
 
 - Hugging Face loading delegates retry/cache behavior to the library; this repo
   does not add retry or circuit-breaker logic.
@@ -36,10 +42,11 @@ No queue or remote application datastore is configured.
   revision subprocess.
 - Failed checkpoint access is converted into a generic Streamlit error.
 
-## Observability for Integrations
+## Observability for integrations
 
 - The UI reports checkpoint cache/auth availability and model-load progress.
-- No metrics, tracing, or centralized logs are configured.
+- FastAPI and workers expose Prometheus metrics; structured logs are written
+  under `.native/logs/`. OpenTelemetry export is optional.
 
 ## Evidence
 

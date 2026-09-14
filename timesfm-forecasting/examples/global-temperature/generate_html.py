@@ -4,6 +4,9 @@ Generate a self-contained HTML file with embedded animation data.
 
 This creates a single HTML file that can be opened directly in any browser
 without needing a server or external JSON file (CORS-safe).
+
+Input: output/animation_data.json, produced by generate_animation_data.py --
+run that script first. Output: output/interactive_forecast.html.
 """
 
 from __future__ import annotations
@@ -16,6 +19,16 @@ DATA_FILE = EXAMPLE_DIR / "output" / "animation_data.json"
 OUTPUT_FILE = EXAMPLE_DIR / "output" / "interactive_forecast.html"
 
 
+# Doubled {{ / }} throughout are literal braces in the emitted HTML/CSS/JS --
+# this template is filled with str.format(data_json=...) below, so every
+# real brace in the CSS/JS has to be escaped to survive that substitution.
+#
+# NOTE: the "90% CI" / "80% CI" dataset labels in the embedded chart below
+# are named after the q10/q90 and q20/q80 keys, but those bands actually
+# span 80% and 60% of the distribution respectively (see the equivalent fix
+# in generate_gif.py's code comments). Left as-is here since it's rendered
+# tooltip/legend text, not a comment -- fixing the label would change the
+# generated page's visible output.
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>

@@ -1,4 +1,17 @@
-"""Match updated observations to immutable issued forecast vintages."""
+"""Match updated observations to immutable issued forecast vintages.
+
+Given a previously-saved `RunArtifact` (an issued forecast; see
+`explorer.py`/`run_store.py` for how runs are persisted) and a fresh
+upload containing the actual values that have since materialized, this
+computes forecast errors and calibration without ever mutating the
+saved forecast. `assess_run` is the entry point: it validates identity
+associations via `associated_datasets`, joins issued predictions to
+actuals by exact timestamp, and returns a `TrackingAssessment` whose
+`manifest`/`fingerprint` make the match reproducible/auditable.
+`assessment_zip` is the on-disk/on-wire export format (a zip of
+assessment.json + 3 CSVs); see `tracking_ui.py` for the Streamlit layer
+that calls into this module.
+"""
 
 from __future__ import annotations
 
@@ -38,6 +51,10 @@ class TrackingAssessment:
 
 
 def _timestamps(values: pd.Series) -> tuple[pd.DatetimeIndex, bool]:
+  # Reject numeric-looking columns outright: tracking must match rows by
+  # timestamp identity, not row position, so a plain integer/row-index
+  # column (which could coincidentally "match") is treated as untrusted
+  # input rather than silently accepted.
   if pd.api.types.is_numeric_dtype(values) or any(
     isinstance(value, numbers.Number) for value in values
   ):
@@ -48,6 +65,10 @@ def _timestamps(values: pd.Series) -> tuple[pd.DatetimeIndex, bool]:
     parsed = [pd.Timestamp(value) for value in values]
     if any(pd.isna(value) for value in parsed):
       raise ValueError("Missing timestamp")
+    # All values in this column must share one timezone convention
+    # (either all naive or all aware); mixing them would make later
+    # exact-timestamp joins silently wrong rather than erroring, so this
+    # rejects the input up front instead.
     awareness = {value.tzinfo is not None for value in parsed}
     if len(awareness) > 1:
       raise ValueError("Mixed timezone conventions")
@@ -122,6 +143,11 @@ def assess_run(
       raise ExplorerError(f"Updated dataset '{new_id}' has duplicate timestamps.")
     issued = run.forecast.loc[run.forecast.dataset == old_id].copy()
     issued_times, issued_aware = _timestamps(issued["timestamp"])
+    # Even though both sides are individually normalized (naive, or UTC
+    # if aware), a naive-vs-aware mismatch between the two sides is still
+    # rejected rather than coerced, since which convention is "correct"
+    # can't be inferred and coercing silently risks misaligning the join
+    # below by whatever the local UTC offset happens to be.
     if actual_aware != issued_aware:
       raise ExplorerError(
         "Saved and updated timestamps must use the same timezone convention."
@@ -139,6 +165,11 @@ def assess_run(
       if invalid.any() or not np.isfinite(values.dropna().to_numpy(dtype=float)).all():
         raise ExplorerError(f"Updated target '{target}' contains invalid observations.")
       actuals = pd.DataFrame({"timestamp": actual_times, "actual": values.to_numpy()})
+      # `validate="one_to_one"` enforces the invariant that each
+      # (issued-forecast-timestamp, uploaded-actual-timestamp) pairing is
+      # unique on both sides -- duplicate timestamps were already
+      # rejected above, so this should never actually trip, but guards
+      # against a future change to either side silently breaking that.
       matched = issued.loc[issued.target == target].merge(
         actuals.dropna(subset=["actual"]),
         on="timestamp",
@@ -166,6 +197,10 @@ def assess_run(
     "issued_observations": len(run.forecast),
     "timestamp_matching": "exact; timezone-aware values normalized to UTC",
   }
+  # `sort_keys=True` makes this hash deterministic regardless of dict
+  # insertion order, so the same associations/hashes always produce the
+  # same fingerprint/assessment_id (used as a stable identity for the
+  # exported zip, not for security).
   fingerprint = hashlib.sha256(
     json.dumps(manifest, sort_keys=True).encode()
   ).hexdigest()
@@ -181,7 +216,12 @@ def assess_run(
 
 
 def assessment_zip(assessment: TrackingAssessment) -> bytes:
-  """Export one matched-actuals version, metrics, coverage, and provenance."""
+  """Export one matched-actuals version, metrics, coverage, and provenance.
+
+  Zip layout (fixed filenames, consumed as a contract by anything reading
+  these exports back): assessment.json (manifest + identity), comparisons.csv,
+  metrics.csv, calibration.csv (via `uncertainty.calibration_table`).
+  """
   buffer = io.BytesIO()
   with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
     archive.writestr(

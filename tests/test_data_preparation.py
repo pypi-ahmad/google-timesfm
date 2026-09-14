@@ -142,6 +142,10 @@ def test_calendar_extends_numeric_covariates_without_filling_targets() -> None:
 
 
 def test_holidays_use_country_subdivision_and_displayed_local_dates() -> None:
+  # Built directly as an UploadedDataset rather than via upload()/parse_upload
+  # so the Asia/Kolkata tz-aware "date" column survives untouched: a CSV
+  # round trip changes how the timezone offset is (re)represented, which
+  # made this test's holiday-day assertions flaky/timezone-dependent before.
   frame = pd.DataFrame(
     {
       "date": pd.date_range("2026-01-01", periods=3, tz="Asia/Kolkata"),

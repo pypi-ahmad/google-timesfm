@@ -2,6 +2,14 @@
 """
 Run TimesFM forecast on global temperature anomaly data.
 Generates forecast output CSV and JSON for the example.
+
+Runs top-level on import (no main() / __main__ guard). Input:
+temperature_anomaly.csv in this directory, with "date" (monthly,
+first-of-month) and "anomaly_c" (deg C) columns. Loads TimesFM 2.5 from
+Hugging Face (network access required on first run to download the
+checkpoint). Output: output/forecast_output.csv and
+output/forecast_output.json, both consumed by visualize_forecast.py --
+run this script first (also run_example.sh's Step 2, before Step 3).
 """
 
 from __future__ import annotations

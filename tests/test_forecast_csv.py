@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Tests for the standalone forecast_csv.py example script.
+
+Covers series trimming/NaN handling, quantile column naming (explicit and
+legacy aliases), and CSV output shape. The script is loaded directly from
+its file path (not imported as a package) since it lives under the
+examples tree rather than the installed package.
+"""
+
 from __future__ import annotations
 
 import importlib.util

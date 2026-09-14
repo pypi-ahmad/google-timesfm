@@ -1,6 +1,30 @@
 # Troubleshooting
 
+## The native workbench does not start
+
+Run the native health check from the repository root:
+
+```powershell
+.\dev.ps1 doctor
+```
+
+If a service is unavailable, inspect `.native/logs/` and restart the workbench:
+
+```powershell
+.\dev.ps1 stop
+.\dev.ps1 start
+```
+
+`launch_workbench.cmd` is the normal Windows entry point. It keeps the terminal
+open with service-labelled logs. Closing that log view does not stop the
+background services. See [Run the native workbench](how-to/native-workbench.md)
+for ports, recovery, storage, and worker details.
+
 ## The launcher says port 9587 belongs to another process
+
+> [!NOTE]
+> This section applies to the retained Streamlit Explorer. The primary
+> workbench uses port 3000.
 
 The Windows launcher only stops a listener whose command line contains both the
 absolute path to this app and `--server.port=9587`. It refuses to kill an
@@ -117,7 +141,13 @@ interactions in the full suite: the force-flip invariance test and the
 model-loading forward check. Focused TimesFM-3 and explorer tests were not
 implicated in that run. See [REVIEW.md](../REVIEW.md) for its validation counts.
 
-## The app lost previous runs
+## Legacy Explorer: previous runs are missing
+
+> [!NOTE]
+> This section applies only to the legacy Streamlit Explorer and its DuckDB
+> history. Workbench datasets, jobs, drafts, and runs are retained in
+> PostgreSQL; see the [native workbench guide](how-to/native-workbench.md) for
+> workbench recovery.
 
 The app stores the newest 25 untracked derived runs in `data/timesfm.duckdb`. Check that
 the file is readable and the project directory is writable. If DuckDB cannot
@@ -127,6 +157,10 @@ uploads and input history are not stored, so restored runs show only forecast
 outputs and metrics. Download ZIP bundles for portable archives.
 
 ## The CSV helper and explorer behave differently
+
+> [!NOTE]
+> This section covers archived TimesFM 2.5 compatibility material and the
+> legacy Streamlit Explorer. It does not apply to the TimesFM-3 workbench.
 
 They target different model generations. The explorer uses TimesFM 3; the CSV
 helper uses TimesFM 2.5. Use the matching
