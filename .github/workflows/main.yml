@@ -20,7 +20,7 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Install project dependencies
-        run: uv sync --extra torch --extra app --group dev
+        run: uv sync --extra torch --extra app --extra server --group dev
       - name: Build package
         run: uv run --with build python -m build
       - name: Lint current application code
