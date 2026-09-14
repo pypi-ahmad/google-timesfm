@@ -1,10 +1,10 @@
-# Archived TimesFM 2.5 Data Preparation
+# Archived TimesFM 2.5 data preparation
 
 > [!NOTE]
 > This historical reference does not describe TimesFM-3. Use
 > [Prepare data](../../docs/how-to/prepare-data.md) for the current workbench.
 
-## Input Format
+## Input format
 
 TimesFM accepts a **list of 1-D numpy arrays**. Each array represents one
 univariate time series.
@@ -17,16 +17,16 @@ inputs = [
 ]
 ```
 
-### Key Properties
+### Key properties
 
 - **Variable lengths**: Series in the same batch can have different lengths
 - **Float values**: Use `np.float32` or `np.float64`
 - **1-D only**: Each array must be 1-dimensional (not 2-D matrix rows)
 - **NaN handling**: Leading NaNs are stripped; internal NaNs are linearly interpolated
 
-## Loading from Common Formats
+## Loading from common formats
 
-### CSV — Single Series (Long Format)
+### CSV: single series (long format)
 
 ```python
 import pandas as pd
@@ -37,14 +37,14 @@ values = df["value"].values.astype(np.float32)
 inputs = [values]
 ```
 
-### CSV — Multiple Series (Wide Format)
+### CSV: multiple series (wide format)
 
 ```python
 df = pd.read_csv("data.csv", parse_dates=["date"], index_col="date")
 inputs = [df[col].dropna().values.astype(np.float32) for col in df.columns]
 ```
 
-### CSV — Long Format with ID Column
+### CSV: long format with ID column
 
 ```python
 df = pd.read_csv("data.csv", parse_dates=["date"])
@@ -64,7 +64,7 @@ inputs = [df["temperature"].values.astype(np.float32)]
 inputs = [df[col].dropna().values.astype(np.float32) for col in numeric_cols]
 ```
 
-### Numpy Arrays
+### Numpy arrays
 
 ```python
 # 2-D array (rows = series, cols = time steps)
@@ -101,7 +101,7 @@ with open("data.json") as f:
 inputs = [np.array(values, dtype=np.float32) for values in data.values()]
 ```
 
-## NaN Handling
+## NaN handling
 
 TimesFM handles NaN values automatically:
 
@@ -125,7 +125,7 @@ Linearly interpolated:
 
 ### Trailing NaNs
 
-**Not handled** — drop them before passing to the model:
+**Not handled**: drop them before passing to the model:
 
 ```python
 values = df["value"].values.astype(np.float32)
@@ -135,7 +135,7 @@ while len(values) > 0 and np.isnan(values[-1]):
 inputs = [values]
 ```
 
-### Best Practice
+### Best practice
 
 ```python
 def clean_series(arr: np.ndarray) -> np.ndarray:
@@ -151,7 +151,7 @@ def clean_series(arr: np.ndarray) -> np.ndarray:
 inputs = [clean_series(df[col].values) for col in cols]
 ```
 
-## Context Length Considerations
+## Context length considerations
 
 | Context Length | Use Case | Notes |
 | -------------- | -------- | ----- |
@@ -168,7 +168,7 @@ inputs = [clean_series(df[col].values) for col in cols]
 
 TimesFM 2.5 supports exogenous variables through the `forecast_with_covariates()` API.
 
-### Types of Covariates
+### Types of covariates
 
 | Type | Description | Example |
 | ---- | ----------- | ------- |
@@ -176,7 +176,7 @@ TimesFM 2.5 supports exogenous variables through the `forecast_with_covariates()
 | **Dynamic categorical** | Time-varying categorical features | Day of week, holiday flag |
 | **Static categorical** | Fixed per-series features | Store ID, region, product category |
 
-### Preparing Covariates
+### Preparing covariates
 
 Each covariate must have length `context + horizon` for each series:
 
@@ -212,14 +212,14 @@ point, quantiles = model.forecast_with_covariates(
 )
 ```
 
-### XReg Modes
+### XReg modes
 
 | Mode | Description |
 | ---- | ----------- |
 | `"xreg + timesfm"` | Covariates processed first, then combined with TimesFM forecast |
 | `"timesfm + xreg"` | TimesFM forecast first, then adjusted by covariates |
 
-## Common Data Issues
+## Common data issues
 
 ### Issue: Series too short
 

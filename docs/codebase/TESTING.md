@@ -1,6 +1,6 @@
-# Testing Patterns
+# Testing patterns
 
-## Test Stack and Commands
+## Test stack and commands
 
 - Framework: pytest `>=9.1.1`.
 - Assertions/mocking: Python assertions, pytest parametrization/fixtures, and
@@ -20,7 +20,7 @@ npm --prefix web run test:e2e
 The coverage command is available through `pytest-cov`, but no threshold is
 configured and Windows NumPy/Pandas coverage behavior requires verification.
 
-## Test Layout
+## Test layout
 
 - Package/application tests are under `tests/test_*.py`.
 - TimesFM 3 model tests are co-located as `src/timesfm3/*_test.py`.
@@ -28,7 +28,7 @@ configured and Windows NumPy/Pandas coverage behavior requires verification.
   their own dependency environment.
 - No global pytest setup file is present.
 
-## Test Scope Matrix
+## Test scope matrix
 
 | Scope | Covered? | Target | Notes |
 |---|---|---|---|
@@ -38,7 +38,7 @@ configured and Windows NumPy/Pandas coverage behavior requires verification.
 | Browser E2E | Yes | navigation, drafts, jobs, charts, tracking, calibration | mocked API plus opt-in live checks |
 | GPU smoke | Manual | real TimesFM 3 forecast | hardware/checkpoint dependent |
 
-## Mocking and Isolation Strategy
+## Mocking and isolation strategy
 
 - `FakePredictor` tests explorer orchestration without loading model weights.
 - `mock.patch.object` isolates the checkpoint loader.
@@ -46,7 +46,7 @@ configured and Windows NumPy/Pandas coverage behavior requires verification.
 - Flax-specific tests skip before importing Flax when the optional backend is
   absent.
 
-## Coverage and Quality Signals
+## Coverage and quality signals
 
 - Coverage tool: pytest-cov; threshold: `[TODO]` not configured.
 - CI builds, runs targeted Ruff/ty, application tests, and frontend checks.

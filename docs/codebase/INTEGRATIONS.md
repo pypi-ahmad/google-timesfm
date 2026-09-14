@@ -1,6 +1,6 @@
-# External Integrations
+# External integrations
 
-## Integration Inventory
+## Integration inventory
 
 | System | Type | Purpose | Auth | Criticality | Evidence |
 |---|---|---|---|---|---|
@@ -12,7 +12,7 @@
 | Memurai | local Redis-compatible broker | Dramatiq delivery | Local process | High | `timesfm_app.jobs` |
 | S3-compatible storage | optional artifact store | Result and source artifacts | Standard boto3 chain | Optional | `timesfm_app.artifacts` |
 
-## Data Stores
+## Data stores
 
 | Store | Role | Access layer | Key risk | Evidence |
 |---|---|---|---|---|
@@ -25,7 +25,7 @@
 The primary workbench uses a transactional outbox and Memurai broker. The legacy
 Explorer retains its separate local DuckDB history.
 
-## Secrets and Credentials Handling
+## Secrets and credentials handling
 
 - Hugging Face uses its standard environment configuration; the capability
   report exposes presence only, never the token value.
@@ -34,7 +34,7 @@ Explorer retains its separate local DuckDB history.
 - `.streamlit/secrets.toml` is ignored by Git.
 - Rotation policy: `[TODO]` external platform policy is not stored in this repo.
 
-## Reliability and Failure Behavior
+## Reliability and failure behavior
 
 - Hugging Face loading delegates retry/cache behavior to the library; this repo
   does not add retry or circuit-breaker logic.
@@ -42,7 +42,7 @@ Explorer retains its separate local DuckDB history.
   revision subprocess.
 - Failed checkpoint access is converted into a generic Streamlit error.
 
-## Observability for Integrations
+## Observability for integrations
 
 - The UI reports checkpoint cache/auth availability and model-load progress.
 - FastAPI and workers expose Prometheus metrics; structured logs are written

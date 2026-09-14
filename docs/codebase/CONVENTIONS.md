@@ -1,6 +1,6 @@
-# Coding Conventions
+# Coding conventions
 
-## Naming Rules
+## Naming rules
 
 | Item | Rule | Example | Evidence |
 |---|---|---|---|
@@ -12,7 +12,7 @@
 | TypeScript components | `PascalCase.tsx` | `ForecastChart.tsx` export | `web/src/components/` |
 | TypeScript utilities/hooks | `kebab-case.ts` | `use-context.ts` | `web/src/` |
 
-## Formatting and Linting
+## Formatting and linting
 
 - Ruff is configured for an 88-character line length and two-space indentation
   in `pyproject.toml`.
@@ -21,13 +21,13 @@
 - Prettier formats the React workbench; run `npm --prefix web run typecheck` for
   its static boundary.
 
-## Import and Module Conventions
+## Import and module conventions
 
 - Standard-library, third-party, then local imports are separated.
 - Package internals use relative imports; public consumers import `timesfm3`.
 - `src/timesfm3/__init__.py` explicitly defines public exports through `__all__`.
 
-## Error and Logging Conventions
+## Error and logging conventions
 
 - App-domain validation raises `ExplorerError`; HTTP exceptions map expected
   failures to actionable API responses; low-level public shape errors use
@@ -37,7 +37,7 @@
   its UI.
 - Secrets must stay in environment variables or untracked configuration files.
 
-## Testing Conventions
+## Testing conventions
 
 - Tests use pytest, plain assertions, parametrization, and `unittest.mock`.
 - Files are named `test_*.py` or co-located `*_test.py`.

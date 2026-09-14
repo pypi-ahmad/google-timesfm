@@ -51,7 +51,7 @@ upload/demo -> parse and validate -> map columns -> prepare arrays
 | `TimesFM3Forecaster` | Checkpoint and model inference | UI policy | `src/timesfm3/timesfm3_forecaster.py` |
 | `TimesFM3Torch` | Neural model computation | File parsing | `src/timesfm3/model.py` |
 
-## Reused Patterns
+## Reused patterns
 
 | Pattern | Where | Purpose |
 |---|---|---|
@@ -60,7 +60,7 @@ upload/demo -> parse and validate -> map columns -> prepare arrays
 | Resource cache | `streamlit_app.py` | Reuse one heavyweight checkpoint |
 | Dependency seam | predictor protocol/test fake | Test orchestration without loading weights |
 
-## Known Architectural Risks
+## Known architectural risks
 
 - `streamlit_app.py` remains a single declarative page; adding more workflows
   could reduce locality unless rendering stays separate from forecast execution.

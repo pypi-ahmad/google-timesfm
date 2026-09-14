@@ -1,6 +1,6 @@
-# Technology Stack
+# Technology stack
 
-## Runtime Summary
+## Runtime summary
 
 | Area | Value | Evidence |
 |---|---|---|
@@ -13,7 +13,7 @@
 | Durable state | PostgreSQL + SQLAlchemy | `src/timesfm_app/store.py` |
 | Job delivery | Memurai + Dramatiq | `src/timesfm_app/jobs.py` |
 
-## Production Frameworks and Dependencies
+## Production frameworks and dependencies
 
 | Dependency | Version constraint | Role | Evidence |
 |---|---|---|---|
@@ -28,7 +28,7 @@
 | Dramatiq / Redis client | app extra | Durable outbox delivery and workers | `pyproject.toml` |
 | pandas / PyArrow / Altair | app extras | Tabular I/O and charts | `pyproject.toml` |
 
-## Development Toolchain
+## Development toolchain
 
 | Tool | Purpose | Evidence |
 |---|---|---|
@@ -37,7 +37,7 @@
 | ty | Static type checking | `pyproject.toml` |
 | build | Distribution build | `.github/workflows/main.yml` |
 
-## Key Commands
+## Key commands
 
 ```powershell
 .\dev.ps1 setup
@@ -46,7 +46,7 @@ uv run --no-sync pytest -q tests/test_app_api.py tests/test_app_jobs.py
 npm --prefix web run typecheck
 ```
 
-## Environment and Config
+## Environment and config
 
 - The primary workbench UI is on port 3000; FastAPI is on 8001, PostgreSQL on
   55432, and Memurai on 56379.

@@ -1,4 +1,4 @@
-# Archived: Fine-Tuning TimesFM 2.5 with LoRA
+# Archived: Fine-tuning TimesFM 2.5 with LoRA
 
 > [!NOTE]
 > This is retained historical TimesFM 2.5 material. The repository's supported
@@ -12,17 +12,17 @@ This approach is based on the fine-tuning workflow by
 [@kashif](https://github.com/kashif) at HuggingFace
 ([notebook](https://github.com/huggingface/notebooks/blob/main/examples/timesfm2_5.ipynb)).
 
-## How It Works
+## How it works
 
 TimesFM 2.5 is available as a standard
 [Transformers](https://github.com/huggingface/transformers) model
-(`TimesFm2_5ModelForPrediction`). This means it supports the full Transformers
-ecosystem out of the box, including:
+(`TimesFm2_5ModelForPrediction`), so it supports the full Transformers
+ecosystem out of the box:
 
-- **PEFT adapters** — LoRA, QLoRA, etc. via the
+- PEFT adapters (LoRA, QLoRA, etc.) via the
   [`peft`](https://github.com/huggingface/peft) library
-- **All attention backends** — eager, SDPA, Flash Attention 2/3, Flex Attention
-- **Standard `from_pretrained` / `save_pretrained` workflow**
+- All attention backends: eager, SDPA, Flash Attention 2/3, Flex Attention
+- The standard `from_pretrained` / `save_pretrained` workflow
 
 The model's forward pass natively computes a training loss when `future_values`
 are provided, so fine-tuning requires nothing more than a standard PyTorch
@@ -61,27 +61,27 @@ python finetune_lora.py \
 python finetune_lora.py --eval_only --output_dir timesfm2_5-retail-lora
 ```
 
-## Key Concepts
+## Key concepts
 
-### No External Normalisation
+### No external normalisation
 
 TimesFM 2.5 applies its own internal instance normalisation (RevIN). **Do not**
 normalise your data externally — feed raw values and let the model handle it.
 
-### Random Window Sampling
+### Random window sampling
 
 Following [Chronos-2](https://github.com/amazon-science/chronos-forecasting),
 each training example is a random `(context, horizon)` window sliced from one of
 the input series. This is more data-efficient than always using the same
 fixed window per series.
 
-### LoRA Target Modules
+### LoRA target modules
 
 Using `target_modules="all-linear"` applies LoRA to every linear layer in the
 model. With `r=4` this adds only ~0.6% trainable parameters (~1.4M out of
 ~232M), which is enough to meaningfully adapt the model to a new domain.
 
-## CLI Options
+## CLI options
 
 | Flag | Default | Description |
 |------|---------|-------------|

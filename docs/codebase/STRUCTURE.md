@@ -1,6 +1,6 @@
-# Codebase Structure
+# Codebase structure
 
-## Top-Level Map
+## Top-level map
 
 | Path | Purpose | Evidence |
 |---|---|---|
@@ -15,7 +15,7 @@
 | `knowledge/` | Governed TimesFM 3 research | `knowledge/index.md` |
 | `.github/workflows/` | Build and guarded publish automation | `.github/workflows/main.yml` |
 
-## Entry Points
+## Entry points
 
 - Workbench launcher: `launch_workbench.cmd`, then `dev.ps1 launch`.
 - Native services: `python -m timesfm_app.native`; FastAPI application factory:
@@ -28,7 +28,7 @@
   `timesfm3.TimesFM3Evaluator`, exported by `src/timesfm3/__init__.py`.
 - CSV helper: `timesfm-forecasting/scripts/forecast_csv.py`.
 
-## Module Boundaries
+## Module boundaries
 
 | Boundary | Belongs here | Must not be here |
 | Workbench UI | Forms, query state, charts, tables | Durable job ownership |
@@ -43,7 +43,7 @@
 | Forecaster/evaluator | Model loading and inference | CSV/Parquet UI policy |
 | Model modules | Neural network operations/configuration | App session state |
 
-## Naming and Organization Rules
+## Naming and organization rules
 
 - Python files and functions use `snake_case`; types use `PascalCase`.
 - Current code is grouped by domain/package, with tests both in `tests/` and

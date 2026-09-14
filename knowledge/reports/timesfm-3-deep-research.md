@@ -111,9 +111,9 @@ The repository includes runners/notebooks for FEV-Bench (100 tasks), GIFT-Eval, 
 
 **Google/TimesFM claim.** The TimesFM-3 blog says the model is top-ranked among pretrained foundation models on GIFT-Eval, FEV-Bench, and TIME for both point and probabilistic measures, and says multivariate mode improves results when cross-series information and covariates are available.[^google-blog]
 
-**Independent framework check — FEV.** AutoGluon's FEV repository describes itself as a lightweight, reproducible forecast-evaluation library built around comparable tasks and datasets. This confirms an independently maintained evaluation framework exists; it does not independently confirm TimesFM-3's current ranking.[^fev]
+**Independent framework check: FEV.** AutoGluon's FEV repository describes itself as a lightweight, reproducible forecast-evaluation library built around comparable tasks and datasets. This confirms an independently maintained evaluation framework exists; it does not independently confirm TimesFM-3's current ranking.[^fev]
 
-**Independent framework check — GIFT-Eval.** Salesforce's GIFT-Eval repository describes a benchmark spanning seven domains, univariate/multivariate data, short/long horizons, and probabilistic forecasting. This confirms the scope of the framework; it does not independently reproduce or validate a TimesFM-3 leaderboard entry.[^gift-eval]
+**Independent framework check: GIFT-Eval.** Salesforce's GIFT-Eval repository describes a benchmark spanning seven domains, univariate/multivariate data, short/long horizons, and probabilistic forecasting. This confirms the scope of the framework; it does not independently reproduce or validate a TimesFM-3 leaderboard entry.[^gift-eval]
 
 **TIME check.** The TimesFM repository claims TIME coverage and labels it as 50 domain datasets/98 tasks, but the referenced standalone GitHub URL returned 404 during collection. No independent TIME leaderboard or TimesFM-3 row is asserted here.[^repo-readme]
 
