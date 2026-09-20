@@ -569,6 +569,8 @@ def execute_spec(
       events.extend(event_info)
       tables["baselines"] = last_value_baseline(batch)
     else:
+      if prepared is None:
+        raise RuntimeError("Analysis preparation did not produce any tasks.")
       latest = {}
       for task in prepared.tasks:
         key = (task.dataset.dataset_id, task.variant)
