@@ -62,6 +62,27 @@ def test_upload_version_reopen_preview_and_duplicate_identity(client):
   assert duplicate.json()["id"] == version["id"]
 
 
+def test_dataset_exploration_endpoints(client):
+  version = upload(client)
+  base = f"/api/v1/datasets/versions/{version['id']}"
+  result = client.get(f"{base}/profile")
+  assert result.status_code == 200, result.text
+  assert result.json()["rows"] == 4
+  assert result.json()["missing_cells"] == 1
+  sales = next(row for row in result.json()["statistics"] if row["column"] == "sales")
+  assert sales["mean"] == 3
+  plot = client.get(f"{base}/plot", params={"column": "sales", "x": "date"})
+  assert plot.status_code == 200, plot.text
+  assert plot.json()["points"][-1]["y"] is None
+  assert sum(item["count"] for item in plot.json()["histogram"]) == 3
+  assert client.get(f"{base}/plot?column=unknown").status_code == 422
+  assert client.get(f"{base}/plot?column=sales&x=unknown").status_code == 422
+  tail = client.get(f"{base}/preview?offset=3&limit=1").json()
+  assert tail["total"] == 4
+  assert len(tail["rows"]) == 1
+  assert tail["rows"][0]["sales"] is None
+
+
 def test_draft_stale_tab_does_not_overwrite(client):
   created = client.post(
     "/api/v1/drafts", json={"name": "Forecast", "payload": {"spec": {"horizon": 2}}}
@@ -164,6 +185,55 @@ def test_preview_and_cancel_terminal_event_stream(client):
   events = client.get(f"/api/v1/jobs/{job['id']}/events")
   assert "event: snapshot" in events.text
   assert '"status": "cancelled"' in events.text
+
+
+def test_chart_reference_uses_same_origin_and_preserves_missing_steps(client):
+  store, artifacts = client.app.state.store, client.app.state.artifacts
+  frame = pd.DataFrame(
+    [
+      {
+        "dataset": "shop",
+        "target": "sales",
+        "variant": v,
+        "origin": o,
+        "timestamp": o + s,
+        "step": s,
+        "point": p,
+      }
+      for v, o, s, p in [
+        ("model", 10, 1, 1),
+        ("base", 10, 1, 100),
+        ("model", 20, 1, 5),
+        ("model", 20, 2, 6),
+        ("base", 20, 1, 8),
+      ]
+    ]
+  )
+  record = store.create_record(
+    "run",
+    "Comparison",
+    {
+      "kind": "baselines",
+      "tables": {"predictions": artifacts.put_frame("comparison.parquet", frame)},
+    },
+  )
+  base = f"/api/v1/runs/{record['id']}"
+  result = client.get(base + "/chart?variant=model&reference=base")
+  assert result.status_code == 200, result.text
+  assert result.json()["origin"] == 20
+  assert [row["point"] for row in result.json()["reference_rows"]] == [8, None]
+  assert client.get(base + "/chart?reference=unknown").status_code == 422
+  assert client.get(base + "/input-context").json() == {
+    "windows": [],
+    "rows": [],
+    "events": [],
+  }
+  assert (
+    client.get(base + "/summary?dataset=shop&target=sales&variant=model").json()[
+      "metrics"
+    ]
+    is None
+  )
 
 
 def test_real_result_export_is_downloaded_without_reencoding(client):

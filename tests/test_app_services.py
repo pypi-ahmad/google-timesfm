@@ -189,7 +189,10 @@ def test_service_preserves_core_predictions_and_exports(inputs, kind):
     zipfile.ZipFile(io.BytesIO(expected_zip)) as before,
     zipfile.ZipFile(io.BytesIO(artifacts.get_bytes(actual["export"]["key"]))) as after,
   ):
-    assert before.namelist() == after.namelist()
+    assert set(before.namelist()).issubset(after.namelist())
+    assert {"inspection.json", "input_context.csv", "input_events.csv"}.issubset(
+      after.namelist()
+    )
     for name in before.namelist():
       if name.endswith(".csv"):
         assert before.read(name) == after.read(name)
@@ -205,6 +208,25 @@ def test_preview_never_resolves_model_and_is_json_safe(inputs, monkeypatch):
   assert len(result["scenario_template"]) == 2
   assert result["series"][0]["dataset"] == "example"
   json.dumps(result, allow_nan=False)
+
+
+def test_disabled_signals_change_preview_and_execution_without_losing_roles(inputs):
+  store, artifacts, spec = inputs
+  disabled = {**spec, "disabled_covariates": ["known"]}
+  preview = services.preview_inputs(store, artifacts, disabled)
+  assert preview["mapping"]["past_future"] == ()
+  assert preview["scenario_template"] == []
+  predictor = FakePredictor()
+  result = services.execute_spec(
+    store, artifacts, disabled, lambda *args: None, lambda: False, predictor
+  )
+  assert predictor.calls[0]["past_future_covariates"] == [None]
+  assert spec["mapping"]["past_future"] == ["known"]
+  assert result["manifest"]["input_windows"][0]["past_future_shape"] is None
+  baseline = artifacts.get_frame(result["tables"]["baselines"]["key"])
+  assert baseline.loc[baseline.target.eq("a"), "point"].tolist() == [19, 19]
+  context = artifacts.get_frame(result["tables"]["input_context"]["key"])
+  assert not (context.role.eq("target") & context.phase.eq("future")).any()
 
 
 def test_input_limits_stop_decoding_before_remaining_versions(inputs, monkeypatch):

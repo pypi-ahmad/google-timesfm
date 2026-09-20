@@ -74,6 +74,22 @@ def _record(store: Any, identifier: str, kind: str, workspace: str) -> dict:
 
 def _group_inputs(store: Any, artifacts: Any, spec: dict) -> tuple:
   mapping = _mapping(spec.get("mapping", {}))
+  disabled = set(spec.get("disabled_covariates", ()))
+  if not disabled.issubset(mapping.past_only + mapping.past_future):
+    raise explorer.ExplorerError("Disabled signals must be mapped covariates.")
+  if any(
+    edit["covariate"] in disabled
+    for scenario in spec.get("scenarios", ())
+    for edit in scenario.get("overrides", ())
+  ):
+    raise explorer.ExplorerError(
+      "Remove scenario overrides for disabled signals or re-enable them."
+    )
+  mapping = dataclasses.replace(
+    mapping,
+    past_only=tuple(c for c in mapping.past_only if c not in disabled),
+    past_future=tuple(c for c in mapping.past_future if c not in disabled),
+  )
   settings = _settings(spec.get("settings", {}))
   workspace = spec.get("workspace_id", spec.get("workspace", "local"))
   datasets, source_names = [], {}
@@ -121,6 +137,7 @@ def prepare_inputs(store: Any, artifacts: Any, spec: dict) -> tuple:
     previous = _saved_run(store, artifacts, spec)
     saved_spec = {
       **spec,
+      "disabled_covariates": [],
       "mapping": dataclasses.asdict(previous.mapping),
       "settings": dataclasses.asdict(previous.settings),
     }
@@ -181,6 +198,15 @@ def preview_inputs(store: Any, artifacts: Any, spec: dict) -> dict:
           "preparation": prepared[0].frame.attrs.get("preparation", {}),
         }
       )
+      try:
+        from .run_inspection import snapshot_batch
+
+        _, windows, _ = snapshot_batch(
+          explorer.prepare_batch(prepared, effective_mapping, settings)
+        )
+        series[-1]["input_windows"] = windows
+      except explorer.ExplorerError:
+        pass  # The quality report explains unavailable model inputs.
       if group.dataset_id not in excluded:
         try:
           missing = data_preparation.imputation_preview(
@@ -471,7 +497,11 @@ def execute_spec(
         kind=kind,
         windows=controls.get("windows", 5),
         stride=controls.get("stride"),
-        selected_covariates=tuple(controls.get("selected_covariates", ())),
+        selected_covariates=tuple(
+          c
+          for c in controls.get("selected_covariates", ())
+          if c not in spec.get("disabled_covariates", ())
+        ),
         seasonal_period=controls.get("seasonal_period", 1),
       )
       fingerprint = analysis.analysis_fingerprint(datasets, mapping, settings)
@@ -528,6 +558,57 @@ def execute_spec(
       manifest = result.manifest
       tables = _analysis_tables(result)
       exported = analysis.analysis_zip(result)
+    from .run_inspection import last_value_baseline, snapshot_batch
+
+    snapshots, windows, events = [], [], []
+    if kind == "forecast":
+      batch = explorer.prepare_batch(datasets, mapping, settings)
+      rows, window_info, event_info = snapshot_batch(batch)
+      snapshots.extend(rows)
+      windows.extend(window_info)
+      events.extend(event_info)
+      tables["baselines"] = last_value_baseline(batch)
+    else:
+      latest = {}
+      for task in prepared.tasks:
+        key = (task.dataset.dataset_id, task.variant)
+        if key not in latest or task.origin > latest[key].origin:
+          latest[key] = task
+      for task in latest.values():
+        _checkpoint(cancel_check)
+        batch = analysis._task_batch(task)
+        rows, window_info, event_info = snapshot_batch(batch, task.variant, task.origin)
+        snapshots.extend(rows)
+        windows.extend(window_info)
+        events.extend(event_info)
+    tables["input_context"] = pd.DataFrame(snapshots)
+    tables["input_events"] = pd.DataFrame(
+      events, columns=["dataset", "variant", "origin", "signal", "start", "end"]
+    )
+    manifest["input_windows"] = windows
+    manifest["disabled_covariates"] = spec.get("disabled_covariates", [])
+    manifest["runtime_scope"] = (
+      "predict_batch" if kind == "forecast" else "analysis_execution"
+    )
+    # Extend the already-built export without changing its existing member names.
+    buffer = io.BytesIO(exported)
+    with zipfile.ZipFile(buffer, "a", zipfile.ZIP_DEFLATED) as archive:
+      archive.writestr(
+        "inspection.json",
+        json.dumps(
+          {
+            "input_windows": windows,
+            "disabled_covariates": manifest["disabled_covariates"],
+          },
+          default=str,
+        ),
+      )
+      for name in ("input_context", "input_events", "baselines"):
+        if name in tables:
+          archive.writestr(
+            f"{name}.csv", explorer._csv_safe(tables[name]).to_csv(index=False)
+          )
+    exported = buffer.getvalue()
   _checkpoint(cancel_check)
   # The prefix is per-attempt (jobs/{job_id}/attempt-{attempt}/...), so a
   # retried attempt writes to fresh keys; artifacts.py's immutable-key

@@ -395,21 +395,38 @@ def create_app(store=None, artifacts=None, settings: Settings | None = None) -> 
       if record["payload"].get("dataset_id") == dataset_id
     ]
 
+  def dataset_frame(version_id: str):
+    from timesfm3.explorer import parse_upload
+
+    version = repository.get_record(version_id, "dataset_version")["payload"]
+    return parse_upload(
+      storage.get_bytes(version["artifact"]["key"]),
+      Path(version["filename"]).suffix,
+      version["source_name"],
+    ).frame
+
+  @app.get("/api/v1/datasets/versions/{version_id}/profile")
+  def dataset_profile(version_id: str):
+    from .dataset_explorer import profile
+
+    return clean(profile(dataset_frame(version_id)))
+
+  @app.get("/api/v1/datasets/versions/{version_id}/plot")
+  def dataset_plot(version_id: str, column: str, x: str | None = None):
+    from .dataset_explorer import plot_data
+
+    frame = dataset_frame(version_id)
+    if column not in frame.columns or (x is not None and x not in frame.columns):
+      raise HTTPException(422, "Choose an existing dataset column.")
+    return clean(plot_data(frame, column, x))
+
   @app.get("/api/v1/datasets/versions/{version_id}/preview")
   def dataset_preview(
     version_id: str,
     offset: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
   ):
-    from timesfm3.explorer import parse_upload
-
-    version = repository.get_record(version_id, "dataset_version")["payload"]
-    dataset = parse_upload(
-      storage.get_bytes(version["artifact"]["key"]),
-      Path(version["filename"]).suffix,
-      version["source_name"],
-    )
-    return frame_page(dataset.frame, offset, limit)
+    return frame_page(dataset_frame(version_id), offset, limit)
 
   @app.post("/api/v1/preview")
   def preview(spec: RunSpec, workspace_id: str = "local"):
@@ -564,6 +581,7 @@ def create_app(store=None, artifacts=None, settings: Settings | None = None) -> 
     dataset: str | None = None,
     target: str | None = None,
     variant: str | None = None,
+    reference: str | None = None,
   ):
     result = repository.get_record(run_id, "run")["payload"]
     tables = result.get("tables", {})
@@ -588,13 +606,50 @@ def create_app(store=None, artifacts=None, settings: Settings | None = None) -> 
     variants = (
       clean(frame["variant"].drop_duplicates().tolist()) if "variant" in frame else []
     )
+    variant = variant or (str(variants[0]) if variants else None)
+    all_variants = frame
     frame = filter_frame(frame, variant=variant)
     # Origins must not be silently joined into one line on rolling backtests.
     if "origin" in frame and frame["origin"].nunique() > 1:
       frame = frame.loc[frame.origin.eq(frame.origin.max())]
+    origin = clean(frame.origin.iloc[0]) if "origin" in frame and len(frame) else None
+    references = [str(value) for value in variants if value != variant]
+    baseline = (
+      filter_frame(load_table(run_id, "baselines"), dataset, target)
+      if "baselines" in tables
+      else None
+    )
+    if baseline is not None:
+      references.extend(
+        str(value) for value in baseline.variant.unique() if value not in references
+      )
+    reference_rows = []
+    if reference is not None:
+      if reference not in references:
+        raise HTTPException(422, "Choose an available reference variant.")
+      other = filter_frame(
+        baseline
+        if baseline is not None and reference in baseline.variant.values
+        else all_variants,
+        variant=reference,
+      )
+      if origin is not None and "origin" in other:
+        other = other.loc[other.origin.eq(origin)]
+      keys = [
+        key
+        for key in ("dataset", "target", "origin", "step", "timestamp")
+        if key in frame and key in other
+      ]
+      if frame.duplicated(keys).any() or other.duplicated(keys).any():
+        raise HTTPException(422, "Comparison contains duplicate forecast keys.")
+      reference_rows = clean(
+        frame[keys]
+        .merge(other, on=keys, how="left", validate="one_to_one")
+        .to_dict("records")
+      )
     history = []
     sampled = False
-    if "history" in tables:
+    if "history" in tables and "input_context" not in tables:
       historical = filter_frame(load_table(run_id, "history"), dataset, target)
       if len(historical) > 5000:
         # Display-only min/max decimation retains spikes. Full data remains in tables.
@@ -615,6 +670,19 @@ def create_app(store=None, artifacts=None, settings: Settings | None = None) -> 
         historical = historical.iloc[sorted(indices)]
         sampled = True
       history = clean(historical.to_dict("records"))
+    elif "input_context" in tables:
+      historical = filter_frame(
+        load_table(run_id, "input_context"), dataset, variant=variant
+      )
+      historical = historical.loc[
+        historical.signal.eq(target) & historical.phase.eq("history")
+      ]
+      history = clean(historical.to_dict("records"))
+      sampled = any(
+        w.get("sampled")
+        for w in result.get("manifest", {}).get("input_windows", [])
+        if w["dataset"] == dataset and (not variant or w["variant"] == variant)
+      )
     return {
       "history": history,
       "forecast": clean(frame.to_dict("records")),
@@ -625,7 +693,83 @@ def create_app(store=None, artifacts=None, settings: Settings | None = None) -> 
       "target": target,
       "history_sampled": sampled,
       "origin_policy": "latest",
+      "variant": variant,
+      "origin": origin,
+      "references": references,
+      "reference": reference,
+      "reference_rows": reference_rows,
     }
+
+  @app.get("/api/v1/runs/{run_id}/summary")
+  def run_summary(
+    run_id: str,
+    dataset: str | None = None,
+    target: str | None = None,
+    variant: str | None = None,
+    reference: str | None = None,
+  ):
+    import pandas as pd
+
+    from .run_inspection import summarize
+
+    result = repository.get_record(run_id, "run")["payload"]
+    tables = result.get("tables", {})
+    name = next(
+      (n for n in ("forecast", "predictions", "comparisons") if n in tables), None
+    )
+    if name is None:
+      return {"metrics": None, "delta": None}
+    frame = load_table(run_id, name)
+    metrics = load_table(run_id, "metrics") if "metrics" in tables else pd.DataFrame()
+    summary = summarize(frame, metrics, dataset, target, variant, reference)
+    if result.get("kind") == "assessment":
+      summary["scope"] = "observed_actuals"
+    if result.get("kind") == "covariates" and "comparisons" in tables:
+      summary["sensitivity"] = filter_frame(
+        load_table(run_id, "comparisons"), dataset, target
+      ).to_dict("records")
+    return clean(summary)
+
+  @app.get("/api/v1/runs/{run_id}/input-context")
+  def run_input_context(
+    run_id: str, dataset: str | None = None, variant: str | None = None
+  ):
+    result = repository.get_record(run_id, "run")["payload"]
+    tables = result.get("tables", {})
+    windows = [
+      w
+      for w in result.get("manifest", {}).get("input_windows", [])
+      if (not dataset or w["dataset"] == dataset)
+      and (not variant or w["variant"] == variant)
+    ]
+    return clean(
+      {
+        "windows": windows,
+        "rows": filter_frame(
+          load_table(run_id, "input_context"), dataset, variant=variant
+        ).to_dict("records")
+        if "input_context" in tables
+        else [],
+        "events": filter_frame(
+          load_table(run_id, "input_events"), dataset, variant=variant
+        ).to_dict("records")
+        if "input_events" in tables
+        else [],
+      }
+    )
+
+  @app.get("/api/v1/runs/{run_id}/replay")
+  def run_replay(run_id: str):
+    from .run_inspection import replay_script
+
+    record = repository.get_record(run_id, "run")
+    if not record["payload"].get("spec"):
+      raise HTTPException(422, "This run has no saved specification to replay.")
+    return Response(
+      replay_script(record),
+      media_type="text/x-python",
+      headers={"Content-Disposition": 'attachment; filename="replay_run.py"'},
+    )
 
   @app.get("/api/v1/runs/{run_id}/export")
   def export(run_id: str):

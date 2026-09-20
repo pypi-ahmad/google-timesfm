@@ -119,6 +119,7 @@ JobKind = Literal[
 
 class RunSpec(Contract):
   kind: JobKind = "forecast"
+  disabled_covariates: list[str] = Field(default_factory=list)
   dataset_version_ids: list[str] = Field(default_factory=list)
   mapping: Mapping = Field(default_factory=Mapping)
   settings: ForecastSettings = Field(default_factory=ForecastSettings)
@@ -132,6 +133,19 @@ class RunSpec(Contract):
 
   @model_validator(mode="after")
   def validate_roles(self):
+    covariates = self.mapping.past_only + self.mapping.past_future
+    if len(set(self.disabled_covariates)) != len(self.disabled_covariates) or not set(
+      self.disabled_covariates
+    ).issubset(covariates):
+      raise ValueError("Disabled signals must be distinct mapped covariates.")
+    if any(
+      edit.covariate in self.disabled_covariates
+      for scenario in self.scenarios
+      for edit in scenario.overrides
+    ):
+      raise ValueError(
+        "Remove scenario overrides for disabled signals or re-enable them."
+      )
     # Cross-field invariants that Mapping/Preparation cannot check on their
     # own: a grouping column must not double as a target/covariate, and the
     # same dataset version cannot be selected twice in one run.
