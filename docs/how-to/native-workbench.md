@@ -60,7 +60,68 @@ password in a project file. Stop leaves the database available. `.native/` and
 `data/product/` contain persistent state; do not delete them for an ordinary job
 failure.
 
+## Explore a dataset
+
+Select a version in **Data** to open its dataset explorer before forecasting:
+
+- **Rows** provides Head, Tail, Previous/Next, and a choice of 5–1,000 rows per
+  page. Click column headers to sort the displayed page.
+- **Overview** shows column types, unique values, missing values, infinities,
+  duplicate rows, and in-memory size.
+- **Statistics** provides numeric `df.describe()` summaries over the full dataset.
+- **Charts** offers line, scatter, histogram, and top-20 category-count views.
+  Choose a Y column and, for line/scatter, an X column or row number. Line charts
+  retain source row order; they do not sort or aggregate repeated timestamps.
+  Line/scatter charts evenly sample at most 2,000 source rows. Histograms and
+  category counts use the full dataset. Expand **View chart data** for values.
+- **Correlations** shows Pearson correlations for the first 32 numeric columns,
+  using available finite pairs. Constant columns have undefined correlations.
+
+Exploration reads the selected immutable source version and does not change
+forecast inputs. Missing and infinite values are excluded from numeric summaries
+and distributions; chart sampling is labeled. No model or GPU is required.
+
 ## Run a forecast
+
+### Inspect and compare results
+
+Completed results offer **Full history** and **Forecast horizon** views. Choose
+a **Reference curve** to overlay a saved experiment/scenario variant, or the
+last-value baseline included with new ordinary forecasts. Comparisons align the
+same dataset, target, forecast origin, and step. Rolling charts show the latest
+origin; accuracy cards summarize all evaluated windows when applicable.
+
+MAE, RMSE, sMAPE, and observation counts come from complete saved evaluation
+tables. Future predictions show **Awaiting actuals** until evaluated. Scenario
+summaries report changes in target units, not revenue or causal contributions.
+Zero baseline totals have no percentage change; incomplete overlap is labeled.
+
+**Execution report** shows recorded runtime and its scope, device, checkpoint,
+source hashes, shapes, roles, preparation, and saved settings. **Show the call**
+copies or downloads a Python script that submits a new job through the local API.
+It requires the original dataset versions and checkpoint. Viewing or downloading
+the script does not submit a job. **Inspect dataset** opens the pinned source.
+
+### Explore signals and input windows
+
+Use **Active signals** to enable or disable mapped covariates while retaining
+their roles. Every change invalidates the preview; preview again and explicitly
+select **Run**. Remove scenario edits for disabled signals before submitting.
+**Compare signal usefulness** creates a draft for the existing removal experiment;
+its observed error differences measure model sensitivity, not causal effects.
+
+The preparation preview includes an **Input timeline**. New completed runs also
+save their latest prepared window per dataset and variant, before interpolation.
+Historical display is capped at 2,000 rows per signal; exact dimensions are stored
+separately. Future target labels and future past-only values are never displayed
+as model inputs. Select up to three covariate tracks below the results. Calendar
+event and holiday spans are captured before sampling and highlighted on the
+forecast chart. Inputs and event tables are included in new exports.
+
+Older results remain usable and show an unavailable-context message if they lack
+these new artifacts. Reading them never triggers inference or regenerates inputs.
+
+### Submit a run
 
 1. In Data, upload CSV/Parquet or create the demand demo. Upload replacements to
    the same logical dataset to create immutable versions.
