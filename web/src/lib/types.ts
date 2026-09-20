@@ -40,6 +40,11 @@ export type Preview = {
   imputation?: Row[];
 };
 export type ChartData = {
+  reference_rows?: Row[];
+  references?: string[];
+  reference?: string | null;
+  variant?: string | null;
+  origin?: number | null;
   history: Row[];
   forecast: Row[];
   datasets?: string[];
@@ -49,6 +54,24 @@ export type ChartData = {
   target?: string;
   history_sampled?: boolean;
   origin_policy?: string;
+};
+export type InputWindow = {
+  dataset: string;
+  variant: string;
+  origin: number | null;
+  context_length: number;
+  horizon: number;
+  context_shape: number[];
+  past_only_shape: number[] | null;
+  past_future_shape: number[] | null;
+  sampled: boolean;
+  lineage: Row[];
+  signals: { signal: string; role: string; missing: number; used?: boolean }[];
+};
+export type InputContext = {
+  windows: InputWindow[];
+  rows: Row[];
+  events: Row[];
 };
 // Job statuses considered "in flight" for polling/badge purposes; see
 // hooks/use-records.ts useJobs (2.5s poll) and components/jobs.tsx.

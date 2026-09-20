@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { Button } from "./ui/button";
 import { useTheme } from "next-themes";
 import * as echarts from "echarts/core";
 import { LineChart, CustomChart } from "echarts/charts";
@@ -10,6 +11,7 @@ import {
   DataZoomComponent,
   AriaComponent,
   MarkLineComponent,
+  MarkAreaComponent,
 } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsOption, CustomSeriesOption } from "echarts";
@@ -34,6 +36,7 @@ echarts.use([
   DataZoomComponent,
   AriaComponent,
   MarkLineComponent,
+  MarkAreaComponent,
   CanvasRenderer,
 ]);
 
@@ -41,10 +44,20 @@ export function ForecastChart({
   history,
   forecast,
   target,
+  reference = [],
+  referenceName = "",
+  events = [],
+  view = "full",
+  onViewChange,
 }: {
   history: Row[];
   forecast: Row[];
   target: string;
+  reference?: Row[];
+  referenceName?: string;
+  events?: Row[];
+  view?: string;
+  onViewChange?: (view: string) => void;
 }) {
   const element = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
@@ -150,6 +163,7 @@ export function ForecastChart({
       },
       grid: { top: 48, right: 28, bottom: 82, left: 72 },
       tooltip: {
+        renderMode: "richText",
         trigger: "axis",
         confine: true,
         backgroundColor: dark ? "#232835" : "#fff",
@@ -166,13 +180,20 @@ export function ForecastChart({
             : "—",
       },
       legend: {
+        type: "scroll",
+        right: 20,
         top: 0,
         left: 20,
         itemWidth: 18,
         itemHeight: 8,
         itemGap: 18,
         textStyle: { color: foreground, fontSize: 12 },
-        data: ["Observed", "Forecast", "Actual"],
+        data: [
+          "Observed",
+          "Forecast",
+          "Actual",
+          ...(referenceName ? [`Reference: ${referenceName}`] : []),
+        ],
       },
       xAxis: {
         type: "category",
@@ -202,9 +223,16 @@ export function ForecastChart({
         },
       },
       dataZoom: [
-        { type: "inside", filterMode: "none" },
+        {
+          type: "inside",
+          filterMode: "none",
+          startValue: view === "horizon" ? history.length : 0,
+          endValue: Math.max(0, axis.length - 1),
+        },
         {
           type: "slider",
+          startValue: view === "horizon" ? history.length : 0,
+          endValue: Math.max(0, axis.length - 1),
           bottom: 8,
           height: 21,
           borderColor: "transparent",
@@ -236,17 +264,81 @@ export function ForecastChart({
           connectNulls: false,
           lineStyle: { color: primary, width: 2 },
           itemStyle: { color: primary },
+          markArea: {
+            silent: true,
+            itemStyle: { color: "rgba(234,179,8,0.12)" },
+            label: { show: false },
+            data: events.flatMap((event) => {
+              const start = String(event.start),
+                end = String(event.end);
+              const positions = axis
+                .map((value, index) => ({ value, index }))
+                .filter((item) => item.value >= start && item.value <= end);
+              if (!positions.length) {
+                const next = axis.findIndex((value) => value >= start);
+                if (next <= 0 || start > axis[axis.length - 1] || end < axis[0])
+                  return [];
+                positions.push(
+                  { value: axis[next - 1], index: next - 1 },
+                  { value: axis[next], index: next },
+                );
+              }
+              const blocks: number[][] = [];
+              for (const { index } of positions) {
+                const block = blocks[blocks.length - 1];
+                if (!block || index !== block[block.length - 1] + 1)
+                  blocks.push([index]);
+                else block.push(index);
+              }
+              return blocks.map(
+                (
+                  block,
+                ): [{ name: string; xAxis: number }, { xAxis: number }] => [
+                  { name: String(event.signal), xAxis: block[0] },
+                  { xAxis: block[block.length - 1] },
+                ],
+              );
+            }),
+          },
           // Dashed vertical line at the history/forecast boundary; omitted
           // entirely when there's no history to separate from.
-          markLine: history.length
-            ? {
-                silent: true,
-                symbol: "none",
-                label: { show: false },
-                lineStyle: { color: foreground, type: "dashed", opacity: 0.5 },
-                data: [{ xAxis: history.length }],
-              }
-            : undefined,
+          markLine:
+            history.length || events.length
+              ? {
+                  silent: true,
+                  symbol: "none",
+                  label: {
+                    show: true,
+                    formatter: "Forecast start",
+                    position: "insideEndTop",
+                    color: foreground,
+                  },
+                  lineStyle: {
+                    color: foreground,
+                    type: "dashed",
+                    opacity: 0.5,
+                  },
+                  data: [
+                    ...(history.length ? [{ xAxis: history.length }] : []),
+                    ...events.flatMap((event) => {
+                      const index = axis.findIndex(
+                        (value) => value >= String(event.start),
+                      );
+                      if (index < 0 || String(event.end) < axis[0]) return [];
+                      return [
+                        {
+                          xAxis: index,
+                          lineStyle: {
+                            color: "#d99c17",
+                            type: "dotted" as const,
+                          },
+                          label: { show: false },
+                        },
+                      ];
+                    }),
+                  ],
+                }
+              : undefined,
         },
         {
           name: "Actual",
@@ -257,6 +349,20 @@ export function ForecastChart({
           lineStyle: { color: "#23a07a", width: 1.8, type: "dashed" },
           itemStyle: { color: "#23a07a" },
         },
+        {
+          name: `Reference: ${referenceName}`,
+          type: "line",
+          data: [
+            ...history.map(() => null),
+            ...forecast.map((_, index) =>
+              finiteNumber(reference[index]?.point),
+            ),
+          ],
+          showSymbol: forecast.length === 1,
+          connectNulls: false,
+          lineStyle: { color: foreground, type: "dashed", width: 2 },
+          itemStyle: { color: foreground },
+        },
       ],
     };
     chart.setOption(option);
@@ -266,9 +372,36 @@ export function ForecastChart({
       observer.disconnect();
       chart.dispose();
     };
-  }, [history, forecast, target, resolvedTheme]);
+  }, [
+    history,
+    forecast,
+    target,
+    resolvedTheme,
+    reference,
+    referenceName,
+    events,
+    view,
+  ]);
   return (
     <figure>
+      <div className="flex flex-wrap gap-2 px-4 pb-2">
+        <Button
+          size="sm"
+          variant={view === "full" ? "default" : "outline"}
+          aria-pressed={view === "full"}
+          onClick={() => onViewChange?.("full")}
+        >
+          Full history
+        </Button>
+        <Button
+          size="sm"
+          variant={view === "horizon" ? "default" : "outline"}
+          aria-pressed={view === "horizon"}
+          onClick={() => onViewChange?.("horizon")}
+        >
+          Forecast horizon
+        </Button>
+      </div>
       <div
         ref={element}
         className="h-[440px] w-full"
@@ -276,6 +409,19 @@ export function ForecastChart({
         aria-label={`Forecast chart for ${target || "selected series"}`}
       />
       <figcaption className="text-micro flex flex-wrap items-center justify-between gap-3 px-5 pb-5 text-muted-foreground">
+        {!!events.length && (
+          <span className="w-full break-words">
+            Calendar events:{" "}
+            {events
+              .map(
+                (event) =>
+                  `${String(event.signal).replace("calendar_event:", "")} (${String(event.start).slice(0, 10)}–${String(event.end).slice(0, 10)})`,
+              )
+              .join("; ")}
+            . Event boundaries use the nearest displayed observations when
+            history is sampled.
+          </span>
+        )}
         <span className="flex items-center gap-2">
           <span className="flex items-center">
             {[0.1, 0.18, 0.28, 0.4].map((opacity) => (

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Download, Info, LineChart, LockKeyhole } from "lucide-react";
 import { api, query } from "@/lib/api";
 import { dateLabel, display, shortId } from "@/lib/utils";
-import type { ChartData, Row, Run } from "@/lib/types";
+import type { ChartData, Row, Run, InputContext } from "@/lib/types";
 import { useAnalyticalContext } from "@/hooks/use-context";
 import { useRecords, useRun } from "@/hooks/use-records";
 import { Button } from "./ui/button";
@@ -20,6 +20,13 @@ import {
 } from "./ui/controls";
 import { RemoteTable } from "./data-table";
 import { CalibrationPanel } from "./calibration-panel";
+import {
+  RunSummary,
+  SignalTracks,
+  ReplayCall,
+  RunSources,
+} from "./run-inspection";
+import { Drawer } from "./ui/dialog";
 
 // Displays a saved run: chart + calibration panel + paginated result
 // tables (RunViewer), and a separate read-only details panel (RunMetadata)
@@ -79,6 +86,50 @@ export function RunMetadata({ run }: { run?: Run }) {
   );
   return (
     <div className="space-y-5 p-4">
+      <div className="rounded-lg border p-3 text-sm">
+        <p>Recorded runtime: {display(manifest.runtime_seconds)} seconds</p>
+        <p>
+          Timing:{" "}
+          {manifest.runtime_scope === "predict_batch"
+            ? "Model prediction call"
+            : manifest.runtime_scope === "analysis_execution"
+              ? "Complete analysis execution"
+              : "Scope not recorded"}
+        </p>
+        <p>Device: {display(manifest.device)}</p>
+        <p>Checkpoint: {display(manifest.checkpoint)}</p>
+        <p>Code revision: {display(manifest.repository_revision)}</p>
+        <p>
+          Disabled signals:{" "}
+          {((manifest.disabled_covariates ?? []) as string[]).join(", ") ||
+            "None recorded"}
+        </p>
+      </div>
+      <RunSources run={run} />
+      <details>
+        <summary className="cursor-pointer font-medium">
+          Input hashes, roles, shapes and warnings
+        </summary>
+        <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-all rounded bg-muted p-3 text-xs">
+          {JSON.stringify(
+            {
+              source_file_hashes: manifest.datasets,
+              roles: manifest.mapping ?? spec.mapping,
+              windows: manifest.input_windows ?? "Not recorded",
+              preparation: manifest.preparation,
+              warnings: manifest.warnings ?? [],
+              chunking: manifest.chunking,
+            },
+            null,
+            2,
+          )}
+        </pre>
+        <p className="text-caption text-muted-foreground">
+          Hashes identify source files, not model tensors. Shapes describe
+          prepared arrays before model interpolation.
+        </p>
+      </details>
+      <ReplayCall key={run.id} run={run} />
       <div>
         <div className="mb-2 flex items-center gap-2 text-xs font-medium">
           <LockKeyhole size={13} />
@@ -153,6 +204,11 @@ export function RunViewer() {
   const runs = useRecords<Run>("runs");
   const selected = useRun(context.runId);
   const [tableName, setTableName] = useState("");
+  const [comparison, setComparison] = useState({ key: "", reference: "" });
+  const selectionKey = `${context.runId}:${context.dataset}:${context.target}:${context.variant}`;
+  const [zoom, setZoom] = useState({ key: "", view: "full" });
+  const chartView = zoom.key === selectionKey ? zoom.view : "full";
+  const reference = comparison.key === selectionKey ? comparison.reference : "";
   const run = selected.data;
   const hasChart = ["forecast", "predictions", "comparisons"].some(
     (name) => name in (run?.payload.tables ?? {}),
@@ -163,11 +219,14 @@ export function RunViewer() {
     variant: context.variant,
   };
   const chart = useQuery({
-    queryKey: ["run-chart", context.runId, filters],
+    queryKey: ["run-chart", context.runId, filters, reference],
     queryFn: ({ signal }) =>
-      api<ChartData>(`/runs/${context.runId}/chart?${query(filters)}`, {
-        signal,
-      }),
+      api<ChartData>(
+        `/runs/${context.runId}/chart?${query({ ...filters, reference })}`,
+        {
+          signal,
+        },
+      ),
     enabled: !!run && hasChart,
   });
   const tables = Object.keys(run?.payload.tables ?? {});
@@ -207,6 +266,15 @@ export function RunViewer() {
   const shownTarget = context.target || targets[0] || "";
   const shownDataset = context.dataset || datasets[0] || "";
   const shownVariant = context.variant || variants[0] || "";
+  const inputContext = useQuery({
+    queryKey: ["input-context", run?.id, shownDataset, shownVariant],
+    queryFn: ({ signal }) =>
+      api<InputContext>(
+        `/runs/${run!.id}/input-context?${query({ dataset: shownDataset, variant: shownVariant })}`,
+        { signal },
+      ),
+    enabled: !!run && !!chart.data,
+  });
   // A row missing a target/dataset/variant field entirely is treated as
   // "not applicable to this filter" and passes through regardless of the
   // selected value — only rows that carry the field and disagree with the
@@ -222,7 +290,23 @@ export function RunViewer() {
     <div className="space-y-4">
       <Section
         title="Forecast result"
-        actions={run && <Badge tone="good">Saved result</Badge>}
+        actions={
+          run && (
+            <div className="flex gap-2">
+              <Badge tone="good">Saved result</Badge>
+              <Drawer
+                title="Execution report"
+                trigger={
+                  <Button size="sm" variant="outline">
+                    Execution report
+                  </Button>
+                }
+              >
+                <RunMetadata run={run} />
+              </Drawer>
+            </div>
+          )
+        }
       >
         <div className="border-b p-4">
           <Field label="Saved run">
@@ -307,6 +391,44 @@ export function RunViewer() {
               </Field>
             </div>
             <ErrorNotice error={chart.error} />
+            {run && (
+              <RunSummary
+                run={run}
+                filters={{
+                  dataset: shownDataset,
+                  target: shownTarget,
+                  variant: shownVariant,
+                  reference,
+                }}
+              />
+            )}
+            {!!chart.data?.references?.length && (
+              <div className="px-4 pb-3">
+                <Field label="Reference curve">
+                  <Select
+                    value={reference}
+                    onChange={(event) =>
+                      setComparison({
+                        key: selectionKey,
+                        reference: event.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Hide reference</option>
+                    {chart.data.references.map((name) => (
+                      <option key={name} value={name}>
+                        {name.replaceAll("_", " ")}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              </div>
+            )}
+            {chart.data?.origin != null && (
+              <p className="px-4 text-caption text-muted-foreground">
+                Displayed forecast origin: {chart.data.origin}
+              </p>
+            )}
             {!hasChart ? (
               <Empty
                 title="This run contains tabular output"
@@ -319,6 +441,11 @@ export function RunViewer() {
                 history={chartRows(chart.data.history)}
                 forecast={chartRows(chart.data.forecast)}
                 target={shownTarget}
+                reference={chart.data.reference_rows ?? []}
+                referenceName={reference}
+                events={inputContext.data?.events ?? []}
+                view={chartView}
+                onViewChange={(view) => setZoom({ key: selectionKey, view })}
               />
             ) : (
               <Empty
@@ -333,7 +460,7 @@ export function RunViewer() {
               chart.data?.origin_policy === "latest") && (
               <p className="px-4 pb-3 text-[10px] text-muted-foreground">
                 {chart.data.history_sampled
-                  ? "Historical display preserves extrema at a reduced resolution. Full observations remain in the tables. "
+                  ? "Historical display uses reduced resolution. Source observations remain available through Inspect dataset. "
                   : ""}
                 {chart.data.origin_policy === "latest"
                   ? "Rolling results show the latest origin; all origins are available in the tables."
@@ -343,6 +470,20 @@ export function RunViewer() {
           </>
         )}
       </Section>
+      <ErrorNotice error={inputContext.error} />
+      {inputContext.data && (
+        <SignalTracks
+          key={`${run?.id}:${shownDataset}:${shownVariant}`}
+          context={inputContext.data}
+          timeline={[
+            ...(chart.data?.history ?? []),
+            ...(chart.data?.forecast ?? []),
+          ]}
+          startIndex={
+            chartView === "horizon" ? (chart.data?.history.length ?? 0) : 0
+          }
+        />
+      )}
       {run && tables.includes("calibration") && (
         <CalibrationPanel
           key={run.id}

@@ -71,6 +71,35 @@ async function fixture(context: BrowserContext) {
       return respond([record("local", "workspace", "Local", {})]);
     if (path === "/datasets") return respond([dataset]);
     if (path === "/datasets/dataset-a/versions") return respond([version]);
+    if (path.endsWith("/profile"))
+      return respond({
+        rows: 512,
+        columns: [{ column: "demand", dtype: "float64", missing: 2 }],
+        numeric_columns: ["demand", "price"],
+        missing_cells: 2,
+        duplicate_rows: 0,
+        memory_bytes: 8192,
+        statistics: [{ column: "demand", count: 510, mean: 100 }],
+        correlation_columns: ["demand", "price"],
+        correlations: [{ column: "demand", demand: 1, price: 0.5 }],
+      });
+    if (path.endsWith("/plot"))
+      return respond({
+        numeric: url.searchParams.get("column") !== "date",
+        total: 512,
+        sampled: false,
+        points: [
+          { x: 0, y: 100 },
+          { x: 1, y: null },
+          { x: 2, y: 120 },
+        ],
+        histogram: [
+          { lower: 100, upper: 110, count: 300 },
+          { lower: 110, upper: 120, count: 210 },
+        ],
+        categories: [{ value: "100", count: 300 }],
+        non_null: 510,
+      });
     if (path.endsWith("/preview") && path.startsWith("/datasets"))
       return respond({
         columns: ["date", "demand", "price"],
@@ -119,12 +148,77 @@ async function fixture(context: BrowserContext) {
       return respond({ ...draft, id: "draft-copy" });
     if (path === "/runs") return respond([run]);
     if (path === "/runs/run-a") return respond(run);
+    if (path.endsWith("/summary"))
+      return respond({
+        metrics: { mae: 2, rmse: 3, smape_percent: 4, observations: 32 },
+        scope: "holdout",
+        period_start: "2026-10-01",
+        period_end: "2026-10-28",
+        delta: null,
+      });
+    if (path.endsWith("/input-context"))
+      return respond({
+        windows: [
+          {
+            dataset: "Retail demand",
+            variant: "",
+            origin: null,
+            context_length: 1,
+            horizon: 32,
+            context_shape: [1, 1],
+            past_only_shape: null,
+            past_future_shape: [1, 33],
+            sampled: false,
+            lineage: [],
+            signals: [
+              { signal: "demand", role: "target", missing: 0 },
+              { signal: "price", role: "known_future", missing: 0 },
+            ],
+          },
+        ],
+        rows: [
+          {
+            dataset: "Retail demand",
+            signal: "price",
+            role: "known_future",
+            phase: "history",
+            position: 0,
+            timestamp: "2026-09-30",
+            value: 5,
+          },
+          {
+            dataset: "Retail demand",
+            signal: "price",
+            role: "known_future",
+            phase: "future",
+            position: 1,
+            timestamp: "2026-10-01",
+            value: 6,
+          },
+        ],
+        events: [
+          {
+            signal: "calendar_event:promotion",
+            start: "2026-10-03",
+            end: "2026-10-04",
+          },
+        ],
+      });
+    if (path.endsWith("/replay"))
+      return route.fulfill({
+        contentType: "text/x-python",
+        body: "# Creates a NEW job\nprint('replay')",
+      });
     if (path === "/runs/run-a/chart")
       return respond({
         history: [{ timestamp: "2026-09-30", value: -22 }],
         forecast: forecastRows.slice(0, 32),
         datasets: ["Retail demand"],
         targets: ["demand"],
+        references: ["last_value"],
+        reference_rows: url.searchParams.get("reference")
+          ? forecastRows.slice(0, 32).map((row) => ({ ...row, point: -22 }))
+          : [],
       });
     if (path.startsWith("/runs/run-a/tables/")) {
       const offset = Number(url.searchParams.get("offset") ?? 0);
@@ -176,6 +270,131 @@ async function fixture(context: BrowserContext) {
   });
   return { submissions, requests, currentDraft: () => draft };
 }
+
+test("dataset explorer pages rows and renders EDA charts on desktop and mobile", async ({
+  page,
+  context,
+}) => {
+  const mock = await fixture(context);
+  await page.goto("/data?workspace=local&versions=version-a");
+  await page.getByRole("button", { name: "Tail", exact: true }).click();
+  await expect
+    .poll(() => mock.requests.some((path) => path.includes("offset=502")))
+    .toBe(true);
+  await page.getByRole("button", { name: "Head", exact: true }).click();
+  await expect(
+    page.getByText("Rows 1–10 of 512.", { exact: false }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Statistics", exact: true }).click();
+  await expect(
+    page.getByRole("table", { name: "Descriptive statistics" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Charts", exact: true }).click();
+  await page.getByLabel("Column / Y axis").selectOption("demand");
+  for (const kind of ["Line", "Histogram", "Scatter", "Category counts"]) {
+    await page.getByLabel("Chart type").selectOption(kind);
+    await expect(
+      page
+        .getByRole("img", { name: `${kind} chart of demand.`, exact: false })
+        .locator("canvas"),
+    ).toBeVisible();
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    )
+    .toBe(true);
+  await page.getByRole("button", { name: "Overview", exact: true }).click();
+  await expect(
+    page.getByRole("table", { name: "Column types and data quality" }),
+  ).toBeVisible();
+});
+
+test("results expose reference zoom report and saved input signals without submitting jobs", async ({
+  page,
+  context,
+}, testInfo) => {
+  const mock = await fixture(context);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/forecasts?versions=version-a&draft=draft-a&run=run-a");
+  await page.getByLabel("Reference curve").selectOption("last_value");
+  await expect
+    .poll(() =>
+      mock.requests.some((path) => path.includes("reference=last_value")),
+    )
+    .toBe(true);
+  await page
+    .getByRole("button", { name: "Forecast horizon", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Forecast horizon", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByText("Holdout evaluation.", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Known future input", { exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("Reference curve").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: testInfo.outputPath("results-desktop.png") });
+  await page
+    .getByRole("button", { name: "Execution report", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText("Recorded runtime");
+  await page
+    .getByRole("dialog")
+    .getByText("Show the call", { exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText("Creates a NEW job");
+  await page.getByRole("button", { name: "Close details" }).click();
+  await page.getByLabel("Color theme").selectOption("dark");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    )
+    .toBe(true);
+  expect(mock.submissions).toHaveLength(0);
+  expect(errors).toEqual([]);
+  await page.getByLabel("Reference curve").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: testInfo.outputPath("results-mobile.png") });
+});
+
+test("signal changes invalidate preview and keep forecasting explicit", async ({
+  page,
+  context,
+}) => {
+  const mock = await fixture(context);
+  await page.goto("/forecasts?versions=version-a&draft=draft-a");
+  await page
+    .getByRole("button", { name: "Preview data quality", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Run forecast", exact: true }),
+  ).toBeEnabled();
+  await page
+    .getByRole("checkbox", { name: "price Known future", exact: true })
+    .uncheck();
+  await expect(
+    page.getByRole("button", { name: "Run forecast", exact: true }),
+  ).toBeDisabled();
+  expect(mock.submissions).toHaveLength(0);
+  await page
+    .getByRole("button", { name: "Preview data quality", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Run forecast", exact: true }).click();
+  await expect.poll(() => mock.submissions.length).toBe(1);
+  expect(
+    (mock.submissions[0].body as { spec: { disabled_covariates: string[] } })
+      .spec.disabled_covariates,
+  ).toEqual(["price"]);
+});
 
 test("overview shows active tracking and saved accuracy from the latest evaluated run", async ({
   page,

@@ -7,6 +7,19 @@ function valid() {
   return spec;
 }
 describe("forecast submission contract", () => {
+  it("retains disabled roles and rejects scenario overrides on disabled signals", () => {
+    const spec = valid();
+    spec.mapping.past_future = ["promo"];
+    spec.disabled_covariates = ["promo"];
+    expect(specSchema.parse(spec).mapping.past_future).toEqual(["promo"]);
+    spec.scenarios = [
+      {
+        name: "Sale",
+        overrides: [{ dataset: "a", row: 5, covariate: "promo", value: 1 }],
+      },
+    ];
+    expect(specSchema.safeParse(spec).success).toBe(false);
+  });
   it("preserves numerical defaults and accepts a complete minimal mapping", () => {
     const spec = valid();
     expect(specSchema.parse(spec).settings).toMatchObject({

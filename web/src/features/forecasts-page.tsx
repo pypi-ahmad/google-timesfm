@@ -472,6 +472,49 @@ export function ForecastsPage({
               </div>
             </section>
             <div className="min-w-0 space-y-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={
+                  ![
+                    ...values.mapping.past_only,
+                    ...values.mapping.past_future,
+                  ].some(
+                    (name) =>
+                      !(values.disabled_covariates ?? []).includes(name),
+                  )
+                }
+                onClick={async () => {
+                  try {
+                    const saved = await api<{ id: string }>("/drafts", {
+                      method: "POST",
+                      body: json({
+                        workspace_id: context.workspace,
+                        name: "Signal usefulness",
+                        payload: { spec: values },
+                      }),
+                    });
+                    context.update(
+                      {
+                        experiment: "covariates",
+                        draft: saved.id,
+                        job: null,
+                        run: null,
+                      },
+                      "/experiments",
+                    );
+                  } catch (error) {
+                    setValidation(
+                      error instanceof Error
+                        ? error.message
+                        : "Could not create comparison draft.",
+                    );
+                  }
+                }}
+              >
+                Compare signal usefulness
+              </Button>
               <ErrorNotice
                 error={validation || submit.error || preview.error || job.error}
               />

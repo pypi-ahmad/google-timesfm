@@ -1,5 +1,7 @@
 "use client";
 import { useFormContext, useWatch } from "react-hook-form";
+import Link from "next/link";
+import { useAnalyticalContext } from "@/hooks/use-context";
 import { Plus, X } from "lucide-react";
 import { useDatasets, useRecords } from "@/hooks/use-records";
 import { roleAvailable, type Spec } from "@/lib/spec";
@@ -55,15 +57,23 @@ export function ColumnPicker({
               label={column}
               checked={chosen.includes(column)}
               disabled={!roleAvailable(column, chosen, spec)}
-              onChange={(event) =>
+              onChange={(event) => {
+                if (!event.target.checked)
+                  setValue(
+                    "disabled_covariates",
+                    (spec.disabled_covariates ?? []).filter(
+                      (name) => name !== column,
+                    ),
+                    { shouldDirty: true },
+                  );
                 setValue(
                   path,
                   event.target.checked
                     ? [...chosen, column]
                     : chosen.filter((item) => item !== column),
                   { shouldDirty: true },
-                )
-              }
+                );
+              }}
             />
           ))
         ) : (
@@ -188,6 +198,7 @@ export function ForecastFields({
 }) {
   const { control, register, setValue } = useFormContext<Spec>();
   const spec = useWatch({ control }) as Spec;
+  const context = useAnalyticalContext();
   const library = useDatasets();
   const models = useRecords<RecordItem<Spec["model"]>>("models");
   const selected = library.versions.filter((item) =>
@@ -294,6 +305,47 @@ export function ForecastFields({
             columns={columns}
             hint="Provide complete values for the entire forecast horizon."
           />
+          <div className="rounded-md border p-3">
+            <p className="text-sm font-medium">Active signals</p>
+            {[...spec.mapping.past_only, ...spec.mapping.past_future].map(
+              (name) => (
+                <Check
+                  key={name}
+                  label={name}
+                  hint={
+                    spec.mapping.past_only.includes(name)
+                      ? "Past only"
+                      : "Known future"
+                  }
+                  checked={!(spec.disabled_covariates ?? []).includes(name)}
+                  onChange={(event) =>
+                    setValue(
+                      "disabled_covariates",
+                      event.target.checked
+                        ? (spec.disabled_covariates ?? []).filter(
+                            (value) => value !== name,
+                          )
+                        : [...(spec.disabled_covariates ?? []), name],
+                      { shouldDirty: true },
+                    )
+                  }
+                />
+              ),
+            )}
+            <p className="text-caption text-muted-foreground">
+              Changes require a fresh preview and an explicit Run. Saved results
+              keep their original inputs.
+            </p>
+          </div>
+          <Button asChild type="button" variant="outline" size="sm">
+            <Link
+              href={context.href("/data", {
+                versions: spec.dataset_version_ids.join(","),
+              })}
+            >
+              Inspect dataset
+            </Link>
+          </Button>
         </div>
       </div>
       <div className="form-section">

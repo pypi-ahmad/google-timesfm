@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import type { Preview, Row } from "@/lib/types";
+import type { Preview, Row, InputWindow } from "@/lib/types";
+import { InputTimeline } from "./run-inspection";
 import type { Spec } from "@/lib/spec";
 import { Badge, Check, Field, Section, Select } from "./ui/controls";
 import { Button } from "./ui/button";
@@ -21,9 +22,9 @@ export function InputPreview({
   preview: Preview;
   current: boolean;
 }) {
-  const [tab, setTab] = useState<"quality" | "series" | "imputation">(
-    "quality",
-  );
+  const [tab, setTab] = useState<
+    "quality" | "series" | "imputation" | "timeline"
+  >("quality");
   const [seriesIndex, setSeriesIndex] = useState(0);
   const { control, setValue } = useFormContext<Spec>();
   const excluded = useWatch({ control, name: "preparation.excluded_groups" });
@@ -57,6 +58,7 @@ export function InputPreview({
               { value: "quality", label: "Quality report" },
               { value: "series", label: "Prepared data" },
               { value: "imputation", label: "Interpolation" },
+              { value: "timeline", label: "Input timeline" },
             ] as const
           ).map((item) => (
             <Button
@@ -76,6 +78,13 @@ export function InputPreview({
       </div>
       {tab === "quality" && (
         <DataTable data={preview.quality} caption="Data quality report" />
+      )}
+      {tab === "timeline" && (
+        <InputTimeline
+          windows={preview.series.flatMap(
+            (row) => (row.input_windows ?? []) as InputWindow[],
+          )}
+        />
       )}
       {tab === "imputation" && (
         <>

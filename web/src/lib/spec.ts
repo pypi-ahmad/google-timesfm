@@ -23,6 +23,7 @@ export const settingsSchema = z.object({
 });
 export const specSchema = z
   .object({
+    disabled_covariates: z.array(z.string()).optional(),
     dataset_version_ids: z
       .array(z.string())
       .min(1, "Select a dataset version."),
@@ -83,6 +84,28 @@ export const specSchema = z
       .max(3),
   })
   .superRefine((spec, ctx) => {
+    const disabled = spec.disabled_covariates ?? [];
+    const covariates = [...spec.mapping.past_only, ...spec.mapping.past_future];
+    if (
+      new Set(disabled).size !== disabled.length ||
+      disabled.some((name) => !covariates.includes(name))
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["disabled_covariates"],
+        message: "Disabled signals must be distinct mapped covariates.",
+      });
+    if (
+      spec.scenarios.some((s) =>
+        s.overrides.some((e) => disabled.includes(e.covariate)),
+      )
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["scenarios"],
+        message:
+          "Remove scenario overrides for disabled signals or re-enable them.",
+      });
     // Invariant: timestamp, group, target, and covariate roles are
     // mutually exclusive — the same column can't be assigned two roles.
     // roleAvailable() below enforces this in the UI; this check is the
@@ -119,6 +142,7 @@ export const defaultSettings: Spec["settings"] = {
 };
 export function defaultSpec(versions: string[] = []): Spec {
   return {
+    disabled_covariates: [],
     dataset_version_ids: versions,
     mapping: { timestamp: null, targets: [], past_only: [], past_future: [] },
     settings: { ...defaultSettings },

@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
   Database,
@@ -12,10 +12,10 @@ import {
 } from "lucide-react";
 import { api, json } from "@/lib/api";
 import { dateLabel, display, shortId } from "@/lib/utils";
-import type { DatasetVersion, TableData } from "@/lib/types";
+import type { DatasetVersion } from "@/lib/types";
 import { useAnalyticalContext } from "@/hooks/use-context";
 import { useDatasets } from "@/hooks/use-records";
-import { DataTable } from "@/components/data-table";
+import { DatasetExplorer } from "@/components/dataset-explorer";
 import { Button } from "@/components/ui/button";
 import {
   Badge,
@@ -45,12 +45,6 @@ export function DataPage() {
   const selected = library.versions.find(
     (item) => item.id === context.versions[0],
   );
-  const preview = useQuery({
-    queryKey: ["dataset-preview", selected?.id],
-    queryFn: ({ signal }) =>
-      api<TableData>(`/datasets/versions/${selected!.id}/preview`, { signal }),
-    enabled: !!selected,
-  });
   // One mutation covers both paths: loading the bundled demo dataset (no
   // file needed) and uploading a real file. FormData is used for the real
   // upload so lib/api.ts's fetch wrapper skips setting a JSON
@@ -187,7 +181,7 @@ export function DataPage() {
             </Button>
           </form>
         </Section>
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <Section
             title="Available versions"
             description={`${library.datasets.length} datasets · ${library.versions.length} versions`}
@@ -253,25 +247,7 @@ export function DataPage() {
                 </Button>
               }
             >
-              <ErrorNotice error={preview.error} />
-              {preview.isPending ? (
-                <Loading />
-              ) : (
-                preview.data && (
-                  <>
-                    <DataTable
-                      data={preview.data.rows}
-                      columns={preview.data.columns}
-                      caption="Dataset preview"
-                    />
-                    <p className="border-t px-4 py-2 text-[10px] text-muted-foreground">
-                      Previewing {preview.data.rows.length.toLocaleString()} of{" "}
-                      {preview.data.total.toLocaleString()} rows. Full data
-                      stays on the server.
-                    </p>
-                  </>
-                )
-              )}
+              <DatasetExplorer key={selected.id} version={selected} />
               <details className="border-t p-4 text-[11px]">
                 <summary className="cursor-pointer text-muted-foreground">
                   Version provenance
