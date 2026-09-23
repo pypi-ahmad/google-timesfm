@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "TimesFM-3 Inference Flow",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": "timesfm3-inference-flow.workflow.html",
+    "viewBox": [1120, 620]
+  },
+  "lanes": [
+    { "id": "inputs", "label": "Inputs" },
+    { "id": "model", "label": "Model" },
+    { "id": "outputs", "label": "Outputs" }
+  ],
+  "phases": [
+    { "id": "prepare", "label": "Prepare", "fromCol": 0, "toCol": 1, "variant": "emphasis" },
+    { "id": "attend", "label": "Attend", "fromCol": 2, "toCol": 3 },
+    { "id": "forecast", "label": "Forecast", "fromCol": 4, "toCol": 5, "variant": "emphasis" }
+  ],
+  "mainPath": ["targets", "patches", "temporal", "variate", "masked", "forecasts"],
+  "nodes": [
+    { "id": "targets", "lane": "inputs", "col": 0, "type": "external", "label": "Targets", "sublabel": "historical", "yOffset": -10, "width": 64 },
+    { "id": "past_covariates", "lane": "inputs", "col": 0, "type": "external", "label": "Past cov.", "sublabel": "observed", "width": 64 },
+    { "id": "future_covariates", "lane": "inputs", "col": 0, "type": "external", "label": "Future cov.", "sublabel": "known", "yOffset": 30, "width": 64 },
+    { "id": "patches", "lane": "model", "col": 1, "type": "backend", "label": "Patching", "sublabel": "normalize", "yOffset": -20, "width": 64 },
+    { "id": "temporal", "lane": "model", "col": 2, "type": "backend", "label": "Temporal", "sublabel": "sequence", "yOffset": 20, "width": 64 },
+    { "id": "variate", "lane": "model", "col": 3, "type": "backend", "label": "Var", "sublabel": "relations", "yOffset": -20, "width": 48 },
+    { "id": "masked", "lane": "model", "col": 4, "type": "backend", "label": "Mask", "sublabel": "future", "yOffset": 20, "width": 48 },
+    { "id": "forecasts", "lane": "outputs", "col": 5, "type": "external", "label": "Forecasts", "sublabel": "point · quantiles", "width": 64 }
+  ],
+  "edges": [
+    { "id": "targets-patches", "from": "targets", "to": "patches", "role": "main", "variant": "emphasis", "route": "outside-right", "fromSide": "right", "toSide": "right" },
+    { "id": "past-patches", "from": "past_covariates", "to": "patches", "role": "branch", "variant": "dashed", "route": "outside-right", "fromSide": "right", "toSide": "right" },
+    { "id": "future-patches", "from": "future_covariates", "to": "patches", "role": "branch", "variant": "dashed", "route": "outside-right", "fromSide": "right", "toSide": "right" },
+    { "id": "patches-temporal", "from": "patches", "to": "temporal", "role": "main", "variant": "emphasis" },
+    { "id": "temporal-variate", "from": "temporal", "to": "variate", "role": "main" },
+    { "id": "variate-masked", "from": "variate", "to": "masked", "role": "main" },
+    { "id": "masked-forecasts", "from": "masked", "to": "forecasts", "role": "main", "variant": "emphasis" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Input preparation", "items": ["Historical targets anchor the forecast context", "Past and known-future covariates enter the same prepared representation"] },
+    { "dot": "violet", "title": "Alternating attention", "items": ["Temporal attention models sequence context", "Cross-variate attention models relationships among series"] },
+    { "dot": "emerald", "title": "Output", "items": ["Future patches are masked during prediction", "The model returns point and quantile forecasts"] }
+  ]
+}

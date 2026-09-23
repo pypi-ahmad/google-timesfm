@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "TimesFM-3 Explorer Forecast and Tracking Flow",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": "timesfm3-explorer-flow.workflow.html",
+    "viewBox": [1200, 820]
+  },
+  "lanes": [
+    { "id": "input", "label": "Input" },
+    { "id": "forecast", "label": "Forecast" },
+    { "id": "analysis", "label": "Analysis" },
+    { "id": "tracking", "label": "Tracking" }
+  ],
+  "phases": [
+    { "id": "prepare", "label": "Prepare", "fromCol": 0, "toCol": 1, "variant": "emphasis" },
+    { "id": "predict", "label": "Predict", "fromCol": 2, "toCol": 3 },
+    { "id": "persist", "label": "Persist and assess", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "mainPath": ["sources", "prepared", "evaluator", "forecast", "artifacts", "vintages", "track"],
+  "nodes": [
+    { "id": "sources", "lane": "input", "col": 0, "type": "external", "label": "Input", "sublabel": "CSV · demo", "width": 64 },
+    { "id": "prepared", "lane": "input", "col": 1, "type": "backend", "label": "Ready", "sublabel": "parse · check", "width": 64 },
+    { "id": "evaluator", "lane": "forecast", "col": 2, "type": "backend", "label": "Eval", "sublabel": "policy", "width": 64 },
+    { "id": "forecast", "lane": "forecast", "col": 3, "type": "backend", "label": "FC", "sublabel": "targets", "width": 48 },
+    { "id": "artifacts", "lane": "forecast", "col": 4, "type": "external", "label": "Out", "sublabel": "tables · ZIP", "width": 52 },
+    { "id": "analysis", "lane": "analysis", "col": 2, "type": "backend", "label": "Analyze", "sublabel": "backtest", "width": 64 },
+    { "id": "metrics", "lane": "analysis", "col": 4, "type": "backend", "label": "Metric", "sublabel": "compare", "width": 64 },
+    { "id": "vintages", "lane": "tracking", "col": 5, "type": "database", "label": "DB", "sublabel": "history", "width": 64 },
+    { "id": "track", "lane": "tracking", "col": 5, "type": "backend", "label": "Track", "sublabel": "refresh", "yOffset": 85, "width": 64 }
+  ],
+  "edges": [
+    { "id": "source-prepared", "from": "sources", "to": "prepared", "role": "main", "variant": "emphasis" },
+    { "id": "prepared-evaluator", "from": "prepared", "to": "evaluator", "role": "main", "variant": "emphasis" },
+    { "id": "evaluator-forecast", "from": "evaluator", "to": "forecast", "role": "main", "variant": "emphasis" },
+    { "id": "forecast-artifacts", "from": "forecast", "to": "artifacts", "role": "main" },
+    { "id": "prepared-analysis", "from": "prepared", "to": "analysis", "role": "branch", "label": "historical", "variant": "dashed", "labelDy": 24 },
+    { "id": "analysis-metrics", "from": "analysis", "to": "metrics", "role": "branch" },
+    { "id": "artifacts-vintages", "from": "artifacts", "to": "vintages", "label": "issued", "variant": "dashed", "via": [[650, 243], [650, 491]], "labelAt": [620, 360] },
+    { "id": "metrics-vintages", "from": "metrics", "to": "vintages", "label": "analysis", "variant": "dashed", "via": [[700, 393], [700, 491]], "labelAt": [690, 430] },
+    { "id": "vintages-track", "from": "vintages", "to": "track", "role": "main", "variant": "emphasis" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Preparation", "items": ["Input parsing is session-scoped", "Roles, grouping, calendars, and readiness are validated before inference"] },
+    { "dot": "emerald", "title": "Forecasting", "items": ["One evaluator applies forecast-domain policy", "Exports remain portable through tables, charts, and ZIP manifests"] },
+    { "dot": "violet", "title": "History", "items": ["Derived records are retained in local DuckDB", "Tracking compares issued forecasts with later actuals"] }
+  ]
+}
