@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:faa9752c464cfddb0dedbb32ba6b791715b5fd9aede85f7c5d191b4c8baae0f6",
+  "claims": [
+    {
+      "id": "claim_548f2936e2f84c249b75d53c53e8589c",
+      "statement": "The current timesfm3 package exports a PyTorch TimesFM3Forecaster API with single-series predict and batch predict_batch methods; the point forecast is selected from the configured median-quantile channel and full quantiles are optional.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/__init__.py#L15-L28",
+          "version": "repo-lines-v1:sha256:fa055db83b9d22dfdf797175995dd27d935782772e92fe5b82edd853b9b9dd74:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhjNTQ5ZTA3YTZmOTA2YzEwZTJjZDQxNDAzZGI4ZDQwNTEzYTcwYTdiYTk4MWExNDQwOGM0MTUzNGJjOWRiNmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzYTkxZTFhMjdjODY4M2VkMzgzN2M1NTU2ZmRjNTZjMTJmNjM4YmM5ZDYzZWI2MmNkMjUyMDk3YWFiZDY0NzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQxZTU5MjViOGNjYmE2ODI4MjQzOTE5MDExYTIwNGQ5NWU0YTk2Y2IyODY5YzA5MGQ4ZjM4MmFkN2Y1ZDc3MWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRlNDllYzQyZjFiNTgwYThlZmU4OTAwY2MxMWE3NDA3NTM5OTA3Nzc1NjExOTljYWM5Njg1NWQ1M2M0ZGNmZTkifQ"
+        },
+        {
+          "resource": "repo://src/timesfm3/timesfm3_forecaster.py#L120-L129",
+          "version": "repo-lines-v1:sha256:d09031b1afcab1a81c09b1b8453b69dac2e039a99cecf010cf4b33c941e57192:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3MzI0ZDNjMTcwOGUxNGNjMjUwNDQ5NGE4MTY2ZWE2OGM3NjJmNDU4YzQ5N2FkNmEwMTBmYjFhNjRjZWE0YTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhMGYyMzRlNDg4ZDE5YjQ1M2YxOWEyNTU5NzdmY2QxMTI1NTg3OTdmNDg1YmFkM2M2ODJiMTkwOTU3ZjY1MDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc2ZjdkZTdhNGQxYTc2MjJjNDkwOTliNTg4ZjlhNGEyMmJlNjZmYjVjOGQxZDc0MDdiODdiM2Q4YmExNGQxYWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVjNTQ1YmIzYmViNmMzNjI0NDJjYTkwMWY5NGUxNTk5ZDczN2ExNjQzOGFiM2YxMGUwMGVlNmYxZTAwNDVhOTMifQ"
+        },
+        {
+          "resource": "repo://src/timesfm3/timesfm3_forecaster.py#L478-L523",
+          "version": "repo-lines-v1:sha256:b426fc4f04dfa7f81e9d768fd0778f29dd05e99cc1a0a02692a51928bbd1e101:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmMmFjODA1MGZlYjZjZDgxZTMzNmQ0N2Q2ZDhhZDE1NjFkY2VmMjU3YzFiZjc5ZTczMGZhMDJmNDg2Y2JmNDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJjNmEyODU3MWEyODc0ZjcwNzAwZjRjYWJiYzFkNGJiNGY1ODFmMWExMjIzMjU2Y2ZlNjFjMGNiOTgzZmViMWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5NGExZWIwMjMwMzc0YWRhYTIzZjU0NTlmYzJlOWFhMWVmMjRhZmE5NDZkMzZkNGIyMjE3OTA1Mjk0ODE5Y2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlmNDA0MWRjOGZhNTM2OWJkZGZlODdlZGQ4ZDlhYmNjY2U5ZTJhNjUwNjgyYmE5OWU3ZDdhZWZkNjhlMzliNWEifQ"
+        },
+        {
+          "resource": "repo://src/timesfm3/timesfm3_forecaster.py#L903-L920",
+          "version": "repo-lines-v1:sha256:782008f5023340810a5caf2d206563cd4343581490d18e752c6756f82604d975:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1MTQyNjQ0N2VkNjk3ZjQ0Yjc1NjQwODYyNmFjZWQ2MDA2YzY0OTY5YzE5NDI1OTNlMmM1NTkyZGJmNDYwNjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhOWY4YzJiYzdhMTQxYTAyMmFmM2ZlYjhhYjUwMDhlYzI1NzU3ZWYyNGFjZDA0OWY1MDg5YTc0YjdjOWFlODEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUxNjhjZTFhMGJiZmFhMjFlMzBiNzQ5NTgxZjAxZTNlNmNiNWExNWYwODUwNGUyZDZhM2ZiNjVlY2Q1ZjhjYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_97fdd3801d184bbbb64104b09102fa1f",
+      "statement": "The forecaster accepts one- or two-dimensional contexts and validates that past-only covariates align with context length while past-future covariates align with context plus horizon.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/timesfm3_forecaster.py#L510-L618",
+          "version": "repo-lines-v1:sha256:daefe5f0de6060cc9e25c723dfe4cdc845efe9946942d7c87c77dee5b5bbab18:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJjYTA4M2FhMjA3NTViNmFmZTg4M2E0NWMyNTU4Y2U2Mjk4NzI3MzhjMWNkNWQ0ZDAwMmQ0MDQ2ZTZjZjg0NmVmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJmNTNmY2U2MWU1YmQ0OGM0NTk2NjRjMzg3ZjkxODA5OGVhNDlmNGJlNzc1NTBmM2M3ZTk5OWViNjk1ZGJlZmQwIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2ZTU2NDk2NGM3OTMyOGI5MGM0YzE4MGVhYmI5ODNjZWNhNzYyMDFlNGZlMDc2YTdlZTc1MjUyNDdlYzBkMGQ3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI1MDlkMmRlODhlNWRkMDc1ZThjYjU2OGZmMWU2YjExNmNiYjk5ZjgzMWNjNTkwNzZhZWFiZjRiZTI0ZjYyNjc3In0"
+        },
+        {
+          "resource": "repo://src/timesfm3/timesfm3_forecaster_test.py#L91-L123",
+          "version": "repo-lines-v1:sha256:14bc65d520157a1cd0f4b1d4a5118c7704efe78b95fe54f6c1ead653ae074f74:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhjOGU5MjZlMmVlYjJjZDIzMjU1NjA2NTViYTM3Mzk3ZDM5ZDc4NDJhYjVlZDRkNmEyMDgwYzQwNjk5MTIxNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzM2MzODMxMTM0ZjFjOTlhMmU4OTJkYjAwMDJkMDliYTMzYWY0ODg2MzAzNzM1YTQyN2FmOTk5NjBlMzZhNDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3OWFhMzJiOWZkYjQ2ZDMyNTgwYThhMTQ5MTU0Mjk1MDNjZmM4YThiZjdkY2IyMzJlODM0ZjFiYzgyOWRlYWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI1NTAwNTc2MmJiODNiNGMxZTUwNzJjNDFhNjI2YTU0ZDFiYTYxOTg1OWI2MDVmYjg3ZmNiOGIyYTEwZDkyMjkifQ"
+        },
+        {
+          "resource": "repo://tests/test_checkpoint_selection.py#L1-L15",
+          "version": "repo-lines-v1:sha256:45916cf35709268b21b037a1b46a4377335cda7ac42dfe5a321f076e683d4fc6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzYzRmYThiYzNlMTBhOWU2NzRjMTc1NTllNDNjM2M2MmFkMTNkMDE1NDYzOTZhZmViZDcxZjAwZGU0NTBiZjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjliMzllMDIyZTBkODU0MTIwMDAzZDc5MGMyOGI3NTk2MmVkZDMwMzc1NmQ1MTMzM2RmNzQ1Y2ZiODZlYTExY2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM4NmFlNmViY2U5ZTEwZThlMmRiY2RhNGQxMzE4NjhhY2Q4ZjM0NTQ3ZjYxZTU2NWJlYjMyNDVlY2QxYzhkMWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_55d9c4e9580b4022814a2e96ef2de126",
+      "statement": "TimesFM3Evaluator applies benchmark defaults, supports univariate mode, and chunks high-dimensional multivariate inputs to fit the model's 32-variate forward limit.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/evaluator.py#L143-L198",
+          "version": "repo-lines-v1:sha256:e33392bffbd036de2b3a7f62cd8c7dfc7352e76bcea99a66a2eb35c8834cfbf0:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwNTgxYmY0NWZjYjYyOGRmMmU0NjQ2OTkzZDAwM2FjMTQ2MTVkNWEzODg1OTQ1NmFlYjg4ZmFhOWFkMjU5OTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3MTIzMDNjYTg1MGY1ZDZkNWY2ODUzNjhmODliMDhkNjhjODRjM2VmNTJkOTk2ODliYjIxMTJlZTNhYWFmNmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg0MGM4NTg5MTk4ZDM3NDBlYWYzY2EwZjgzODQ3YmZlZTRmNTU0ZjcxMTMxMThkZGZkMWQ5YjQwMWQzYTIxOGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2YWRmYjkyYzNkYjU5ZTkwOGI5NTE4YzU1N2MxY2FmNmFiNWNjYTMzYzM3ZTUxOTgyMTgxYzVkMzgzMzc3MzEifQ"
+        },
+        {
+          "resource": "repo://src/timesfm3/evaluator.py#L15-L70",
+          "version": "repo-lines-v1:sha256:434e4dbbb85f6bc9b4af739fa28bd0869099f77f5f66e77bad592db5b361a5a4:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzYjUwZTIzNWI0MjNmMTk4NGFmM2I1YjJhOTExMDcxNjc4N2IwMzMyYTVlNzIwYWQxZmIxZWYyNmQ4NmI3MjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJjNmEyODU3MWEyODc0ZjcwNzAwZjRjYWJiYzFkNGJiNGY1ODFmMWExMjIzMjU2Y2ZlNjFjMGNiOTgzZmViMWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQxZTU5MjViOGNjYmE2ODI4MjQzOTE5MDExYTIwNGQ5NWU0YTk2Y2IyODY5YzA5MGQ4ZjM4MmFkN2Y1ZDc3MWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyMWM5MmQwNzA0NzI5ZmVkZWM2NDFlNmUxYzM2ZmU5NDUwNWFjMWM5YzQwNjZkODJjZjBjZTQ5N2UwM2M1OTIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4239b4b43bcb478b8f53bb3a645ce3a0",
+      "statement": "ModelSelection describes an explicit Hub or local source with optional revision and offline mode; resolution fingerprints selected checkpoint files and records them in model provenance.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/model_loading.py#L27-L58",
+          "version": "repo-lines-v1:sha256:857d1a9e2457450a28dee8dd84a2dca87f1948261f42b1f50251bb95da686bbd:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3MzI0ZDNjMTcwOGUxNGNjMjUwNDQ5NGE4MTY2ZWE2OGM3NjJmNDU4YzQ5N2FkNmEwMTBmYjFhNjRjZWE0YTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0MTlhNmRjYzA0ZTIxM2EzYzdhNzdhNDU2YjAxZTc2ZDFlZjc4Y2QwMGJiZWMxZDhmODE0NThmZTkzZWRjNTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyOWZlNjRkNzA0NzExZGRlYzJmMzVlOWY2ZDQ5MTlmNTI1MjM2M2I2MGZmMjE0MzEzYmE0YmEzOTQxN2NmYjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY5ZGRhYzc4ZWE5YzFlMzM0Y2IwM2I4ZWQ5MzVlM2JlYjc4YTFjODhlODJlY2MxNzA5NDEzOGVhYTRlMDk1ZmMifQ"
+        },
+        {
+          "resource": "repo://src/timesfm3/model_loading.py#L70-L124",
+          "version": "repo-lines-v1:sha256:1a31a671dbd4bc31477ea46dd15c0e267d3d8269763c5f5071ed6b5b76c05085:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwMTJhNTMyMThiNWZiNzI3NmI0YWE3NDVmMTBmMTY2N2I4ODZhZjIzOGZjNzQ4ZGE5ODU4Zjk3ZWEwOTZlYmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NDA1YTM3ZjlkZDE3YzQxMTFmOTVmNTc5NzdhNGNkODlhODI1YzgwNGMzZTg5OTc3ZjA4ZWNmNjA2YzJhYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI1ZGU3Yzg3OWVjMDk1OTM3ZGY0OTYwYzJiMGU1NDgzNTViNGI0ZTUzMTE0MzhhODg3MTVhMTc3NDYzNjMzYjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM1YTUzNGE4ZGVlNGNjNWNjODNmNzcyODQ1MmJjMmU0NjBjZjkwYTBiZTEwMWVlMWZkZmE2OGZiMDg5ZjNkYzQifQ"
+        },
+        {
+          "resource": "repo://tests/test_checkpoint_selection.py#L24-L49",
+          "version": "repo-lines-v1:sha256:3280d170388d912124353addf5e885f2df75d417f4d547ea884f18fcc8d033b4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0NmRmYTAyMjAyY2Y5YmYzNjQ4NGY3YWI2OGRjNGMxYmY3MDJiYzUyZTA2OGE0NDJlNWM3NmZmODVkYzdlMzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmMmQzZDcxNmNmNTg0MDE2NmQzNGY3MDhlNDg4ZDI4MTBlZTBiNmYyYjQxODY5ODVjZmUxZjc4ZGJmNzZhNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMxN2I0M2RlODc0NDc2MDE5ZWYxY2M4YzAwNTJhMDE0MmEzZjM3ODI5NmQ2NzEzMmMzOTUwNGM0MWE4OWI2M2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM0N2NlN2YwOTFiZGYyNWVhMWVkN2MyZDM2NTA5YWY3ZmI3NDA0YmY1NWYwMTQ3NzFmNjE3ODVjYTYxYTI2NDUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_61b35536342b45eeaabd7ad917759337",
+      "statement": "Resolved checkpoint loading is local-only, validates the TimesFM-3 quantile set and folder parameter names/shapes, and attaches checkpoint provenance to the evaluator without an implicit default-model fallback.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/model_loading.py#L127-L175",
+          "version": "repo-lines-v1:sha256:ad29d35b0c40646c208abf975aef81b0344f4fb203eb3d9e6fdc8cc2a1ec8ce6:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyZTM1NTNlMDU2Y2Y5NjJhM2I1NWIyZGVmYTJmZjcyMWExZDEyNzM2ZGFjMTRmODg0ZGJhNWE4OGUxMDU4YTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUwMzczOWU4OGEyY2RmZmM3ZDMxN2YxZjhiNWE2ZTFlODkxYmRjZTdhM2I0NTZmMzYwZmQ1ZTZkMjVmOTZjOGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjljYjhjMGQxYzQ0ZWVmOWEwODQ5ZjAwMGFkZGFhODdkNTNhYmExZGQ2OGZmNzZiOTUxNjhhYjk4ZDZmM2MxYTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2OWIwMTVhNDFhZTdhMTg0MTc1ZmIwZTk3NTBkMjk1YWI0MjkxMDQ4ZTUwZmVmMzdhODE5OGI2NTgwMjVkMTEifQ"
+        },
+        {
+          "resource": "repo://tests/test_checkpoint_selection.py#L64-L106",
+          "version": "repo-lines-v1:sha256:de5bdc8bc286f6299bca063e0b44eff4db3bcf6ec84cd49a6faf5ca1d98310eb:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2OGRlZDcxZDBjOWEwYWUxMWUyOGZlNTBlZGI4YjhhOGNhMzMwMDNhNDE3NGRkZjFkMzQxMjU4ZmQ2NWQ3OGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjcwMjU3NTkzZGEwNmY2ODJhM2RkZGE1NGE5ZDI2MGQ0ZmM1MTRmNjQ1MjM3ZjVjYTc0YjA4ZjhkYTYxYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU1NDUyZDIzNDJmYzJlZjMxZjcyNmM4YzM5OTdhM2ViZmUzNTgyODJjZjczMDE5M2MwZjJmZDAwZTgxNmU5NWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkxN2YyZmJiZTQ0NmI0Y2MzYzRlOGMzZDE5MTQ2YTA4OGRiOGMyNTI5YzY1NjA2MmFjZGU0M2Y1ZTc1ZWYzZjgifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-23T14:20:48.709Z"
+  }
+}

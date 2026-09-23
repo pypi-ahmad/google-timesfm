@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:65437f812387160e1e2f815311e0226b128c39d87d3d33b1add33ae69088a660",
+  "claims": [
+    {
+      "id": "claim_4414639f58c14ef8a3347ab785c94eb8",
+      "statement": "The retained Streamlit application runs TimesFM-3 inference in-process and does not use the FastAPI job backend; its Windows launcher pins the app to port 9587.",
+      "evidence": [
+        {
+          "resource": "repo://launch_app.cmd#L1-L34",
+          "version": "repo-lines-v1:sha256:a241f9a7c6fb4848824b2fd13876265e3c52ec49c8dcf860b96a7cd3a77f244d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUwZDNjMzc0MDhiOTU1ZGUzMzg5MDU3NGI2ODBmNmI4MGZiMDhhZWM0MTRjZWEwNzRkODZlOTZjYWQ1NDliZTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4OTk0NDk3ZjIyM2Y2NWE0Y2JiNDdjNWFiMzIzMDI4ZWU3ZDkxMzZlNDRkMzg2MGM4ZmNlZjc3NWIxNzU2MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkOGRmMjU5NTc5NzRhZWIxOTRmNDUyYTU1NDQwZDk3NWRjZDU1NzJjNDYyMzYyMTFkMGNiMGQ2MDY3N2UzMjgifQ"
+        },
+        {
+          "resource": "repo://streamlit_app.py#L4-L22",
+          "version": "repo-lines-v1:sha256:8b35b5fd06d6f7dc86b18d13f1e2b86b4509b61bc0ca691e42fe11792807275d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhZjlmY2Y3ZjAzNzA5ODU5MDRjMGQyZjQwYzM1YjRiNDlhM2QzZTBhZGIxMWVkOGM0YjI2ZGY5YmE4ZGRmNTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlZDI4MGY5ODRiZmFhNGMxZDQ1OThkYjU3ZWI5ZTU3NWNjZjMzOGJjMjZiNTgxNzdiZTg1MWM2NzkyNjJkNWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZjMTAyZjY0MjMzMjkxMTkwNjcxYjljNGFhNTgyN2M2ZThjYjU5ZmU0OTBhN2M4MDFhODcyMDQ1YzVjODhmMWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkZDdiOTMyMGM2ZDM1NzJlYTlkZTRiMTM2NDhiOTA2ODAxYzA1NGFhNThjN2IxYjAyYjQ5MDYwMjE1MWQ3ZTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e063323cbe2349bea567d4ca4715d8d2",
+      "statement": "The Streamlit interface separates preparation, forecasting, evaluation, and tracking workflows, and its forecast form requires the user to acknowledge the default checkpoint restriction before submission.",
+      "evidence": [
+        {
+          "resource": "repo://streamlit_app.py#L592-L663",
+          "version": "repo-lines-v1:sha256:3f76dc50482cff11344a35e58cfd7a75a52e0da8eaf285d52f000d15694e3a92:eyJzZWxlY3RlZExpbmVDb3VudCI6NzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiYjdmMjAyZTA1ZjY2OWRhOGIxMmQ2NTA1NGQ3NGZlN2M1YzVmZmI1NmQ0MjA1ZDYxZGIzZjEzYTZhZGUzYWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3ZmRiYjZkMGY4NWU5MjNkMWNhNmI4MWZiMWQ0Zjc2NjcwZTNhYzIyMWYwODlmNDMyNGNiMzZiMGQ0NGIzNTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllODE3MGM3YmQyN2U3OTgwODJlZWU1NzYwZDg3ZWY4YjdiN2MzYjRjNmEwNWZiYmUyNWRhNmEyZTJkY2FhZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY5NjlmMTdhNjQ2ZTI4MWMxY2NhMGY0MjI0MTliYjliOTExYTBmODc5YWZmOGUyZGRhZmZjOWFiNTZmMGJiMzEifQ"
+        },
+        {
+          "resource": "repo://tests/test_streamlit_app.py#L39-L59",
+          "version": "repo-lines-v1:sha256:fa282e7372e07fc64da634b892cadcc4e9bd2088789df0fe03f51a3f4cec4cd7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkMTM3MGE1YmYxOTJkZDYzYjRiZjYyZWYyNTRjZmRjYjhkZDRkOTNhYzQ0M2I3OGNhNzI3NmI2OGU0Y2M0ODEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjZDJiY2ExOWU2MDliYmFhMTMxMDJjMDEwN2FkN2E0YmQzMjhkYzc3ZTAwYWM5Zjc5YTRjNWJlYmRlZDU2MDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIyZjkyYjI4MDdmMzk4ZjlhMTRmNmQzZjhhMGFlOGI4ZmRmMGIwZGEyMjJmN2M1Yzg0MDIxZjdjNTBhY2YxM2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVkNjFmZDAxNDc2Zjc2ZGYwMzM0YWQwZDk3MDQwNzk2NTdjNGQ4NTVhYzQ3NTUyZWJlNmJhMTBmODA3MWUxZDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_56f52be484454dcd84c13969ef71bf37",
+      "statement": "Streamlit upload parsing is cached in session state, while one process-wide cached model configuration is retained and evicted when checkpoint, device, or batch size changes.",
+      "evidence": [
+        {
+          "resource": "repo://streamlit_app.py#L142-L156",
+          "version": "repo-lines-v1:sha256:0111d53baa68c6d9a72ead01bb3f8f4bde81b653fc4f231be11ead121b612f3c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkNTI4NzI3NTQxZjM2ZGMxYjVmZDE1ZDU5OWMwNjg0MDE4NjNhOWFhYTQ3OTY0NmVhMDJjMDc0ZjUwYjhkYWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiYjNlMzllMTgwZmE2MWY4MTczODljMTViYjIzZDg3OWE1ODg4NjQ5M2MyNTg4OTc2YmQ2MTg1NzhmNGZhMmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmODAxZTcwNzI3MGE3ZDZiOWQyNThlYTU4Yjc1YjJkNzVlNTYzY2RmNTYxNDExMmI1MTY1YmE3NDRmZTg0OTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzMDA1YjAzNTk5MmE2ODQxZDg1NGIwZjQ3NWUzNzM4YjEwMWVjZmFkNWVhNzEyYzMyY2JiZTkzMjE1ZjY0MGQifQ"
+        },
+        {
+          "resource": "repo://streamlit_app.py#L89-L122",
+          "version": "repo-lines-v1:sha256:9af31d7c97f0ea62cf6d51d10696681c3fccd07fa54f6ad6ed181fc1e15fa8f1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhZGY4MzJjYjE0NjcyZmEwZjVlY2FiNjBhMTgzMjdmYWNiMTQxNTkzMDk5ZjI2ZDgzODU1ZWU1YmI1NGE1MTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1MmI1Njc1NTU1YWUzZmVjMTM5Mjc0MzQ2NDhlNDVjZjA5ZDM2Yzk0ZDA3NjFkMDdiZWYyNjE0ODI0ZTgxOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhlNmNkMjRmMmVjMWVmNGJkMzhiYzBkZjAxYjhkNThjMjE2ZGI2MDYzOTlhZTNkMGJhNDQ4NDkzNGQ0MTE2YzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlNTliMTAzODQwOGE0NjY1MjVhMDczYTA4MGNmOGRiODFhZDE0Y2FlMjk0NDA0YTNkOWM1N2I0MDY5MGI4MmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ed0a436edb524788b5abcb57f4ec005b",
+      "statement": "The Streamlit app stores local history in data/timesfm.duckdb, saves immutable forecast vintages, and retains the newest 25 untracked forecasts while protecting tracked runs.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/run_store.py#L227-L288",
+          "version": "repo-lines-v1:sha256:9c1be8f22316a16a9d8a38713f54e8eb3315727839f5909dab0f90a32b5f914c:eyJzZWxlY3RlZExpbmVDb3VudCI6NjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4NzdhMWIyMWY2OTdhYmQ3YmMwNzRmMmFkNmQyNzFhNjIxMzNjYmM5MmVhNDE4YWE3ODI1MjVlNmEwNDAwYjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlODkzZTc2Yzg3ZmVmMjc3ZGNlZGYxMzEzNGExYTM0MTJiNzI1YzlhZDM3NmE4NDc5MmYzN2IwNWQwNmExMTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiYWIzM2E3NzVhYWIyYzdjMzFmOWExMDZhOTYwODQ1ZmVlNzhmNTZjN2MxOTdlNGRiYTI4MTNkZGNiODcxYWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY4N2ZmOGMwZDVhNjI5ODczNTA0MDE3ZDdmZTgyYTY2MzUzNDFmMjQ2ZmYwOWYwZWY0ZDJjMTU4NGQ4MDI5YzcifQ"
+        },
+        {
+          "resource": "repo://src/timesfm3/run_store.py#L300-L322",
+          "version": "repo-lines-v1:sha256:44d4d778904201b03f430f0a664ef3d82c4284cd5aec983f39d3b564c9fa1c3a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwMDhlM2M5NDZiZDI0NTZjOTE0MGRhNjI1OTEyZjYwZDQ0ZjJlMmQ0ZDYyOWVhYWRlZDc1NTkwM2VjMDViMmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1MjliNTJmODFlNGVmOTFjZDY5MGEyYmE0MGZiMjRjMDhlMTRjN2M3YzUyNzRlNWNiYTZmNDFmMGZlYmJkMGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg1NGNlNmVlOTUxZDU4ZmJjN2FmOTkzOGEzMDU3NTExOGNkZGJlMjI5NDEzN2Y1ODgzN2Q4MWVlOWY5MGIzMWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNmMmIzZjdkOTJkZTQ5NzdiZTgxZDU0NjAzY2UyYjk2NjM4MDQ4MDNmYTJiNWM3ZTM3MGIxYjkwYTZmZGE2NDgifQ"
+        },
+        {
+          "resource": "repo://streamlit_app.py#L14-L22",
+          "version": "repo-lines-v1:sha256:e957ca5535e5ebf9ee3ef6d864a9e3bb6e14adb6a3501105aeb16874e6815208:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODg2NGYzOGE4MDM3MTJiNjAyNjYzMWYwMzVkMmZlZGMxZGVmMGFhNWRiYjU5YWRlMjc1Nzk2MjQzZjQzNzQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGVkMjgwZjk4NGJmYWE0YzFkNDU5OGRiNTdlYjllNTc1Y2NmMzM4YmMyNmI1ODE3N2JlODUxYzY3OTI2MmQ1YyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmU4NDQ5ZjJiZmJmMDQ4YmIyYzk5ZDkzMzRiODQ3MDc1ZjRmZjIxYTdmZDZkYjg2OWUyYTgzYzI4MDg5NTVlYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2RkN2I5MzIwYzZkMzU3MmVhOWRlNGIxMzY0OGI5MDY4MDFjMDU0YWE1OGM3YjFiMDJiNDkwNjAyMTUxZDdlMSJ9"
+        },
+        {
+          "resource": "repo://streamlit_app.py#L76-L80",
+          "version": "repo-lines-v1:sha256:846949ee0976a2ea37273914b873d39f3c1c01e31a407fed6f13a68e5769379e:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjVmZmU4ZDU0NWRlOTYyZTBkMWVmMzI1NWMyNDI2NTYyYTk4Y2EyZWYzMzEzMTEyY2Q5ZjgwZWI1Y2Y1NzkwMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODY4ODUxZDQzZjBmMDAyMDgwMmJmNGUzOGE1MThjZmQzMjNhMDAyMzQxNDViOTgwMDk3ZTcyZTkyMGFmODZjZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWU2YjExOWRhNzMyYWM2YzUzMDI1MzkzYjIxYThjOTdhY2Y5ZmIyYjYwYzllYWU0YjZjOWI4ZGEwM2EwNmU4YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2RmYzEzYzMwYmYwMTRmZDM1ZTVlMTc2ZWNkNTdjZDQ5MmQ1NjkwODkwNTkwODVjODU3NTkwNWQ2Yzk4MGVkMCJ9"
+        },
+        {
+          "resource": "repo://tests/test_run_store.py#L64-L89",
+          "version": "repo-lines-v1:sha256:1cb8765aca04e5b37c625f3d378bd42aaddb7c11ca68de91e537de62b96c384c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlMzNkNjdhODVjMjIwYWFjMWE4MDRmYTg5MzE1Zjc3OTdkNTQ2ZWIzNjI5ZDczYzM2ZDA4NDEzNDNiYmExMjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3N2Y1ODljMWFiNmY2ZGU5ZDY1MmM1NTA4NmU1OWI1ODY1MjI5Mjc4MWY1ZjZjOGFiMThjMWZkNTk0MThlMDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIyZjkyYjI4MDdmMzk4ZjlhMTRmNmQzZjhhMGFlOGI4ZmRmMGIwZGEyMjJmN2M1Yzg0MDIxZjdjNTBhY2YxM2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFhMjVhZDNkOWQxYjJmMjBiYzNiZTk3ZWNjNDNmNzAwYmY5MDZhMzkwODEzMGIxMGI2Njc2NTE0MDQ4MzBjMzIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2a8619313f4d4c3093d67ab8fd6a1be5",
+      "statement": "DuckDB history failures fall back to session-only history, while tracking assessments append data without mutating the issued forecast and analysis history uses its own retention limit.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/run_store.py#L602-L638",
+          "version": "repo-lines-v1:sha256:453618af8c315c065be1fad8a201776770eac8df79ddda3ad6bee8475ef9e803:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYxN2IxZjgxNmRhZWI2MDIyYjg2MTEwNmI3NmYxZTJjZWI4YzY3OWI5Yzg2ZmNjMTY2MGNhMDc1MTJlNGIzNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU1MGIwNTFlMmVhYTEzODkzZDNjOGY3ZDYwYWQ1ZThlMjFiNGMyN2M2NWE2MmEwYjUwYWVjZmMxN2EwMmViNGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA5NmU4YmIzZDhkYmFlODRkMGZkYTQ0ODQ2YjlmZDQwOTYwOWM3MWEyNTE2NWU5ZjU0MGRhODY1MDNmOTYxYTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkNWI3ZTJlZTYwM2NkMTI0MjgyNzY1YWU0YTkzYzE4ODdiZGI1YmE0YmU2M2Y2MzhjYzVhOTY2OWNlZDQxZmIifQ"
+        },
+        {
+          "resource": "repo://src/timesfm3/run_store.py#L676-L724",
+          "version": "repo-lines-v1:sha256:4a4d8c09137ad217db7cb00c4eb41453d976c67765a178f8ff5bdac392799d54:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlNjJjZThjMTYxNzc4ZmRhMWU1ZmNkY2MzODdmOTg1Y2EyYzBmZTM0MjA4ODYwYjdhNGNiYzA3OWZmNjJlNmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxNWM2MWZmNGNjMTQzNDRhN2Y2NDlkZWZiMzllODZhNzdmMjNiNWE2NWY5ODUzNDY4NmJjYmFiYTNjYTg5YWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxMDczZjUzMGIzNzhjNjZhNGEwZDgyMmU4MzdkNDU2NmI1ZTQzYzM1OTEzNGQ5N2U3MWQ2MjkzMWY0MWNkYjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdiMjNlZjk5N2VmM2Y5ZGRhODM3ZjQ3ZjljZTEwNThlMjk5MmQ4ZTExYmNmYjBkZTgzYzRiMWFhZDdmYzE3YjMifQ"
+        },
+        {
+          "resource": "repo://streamlit_app.py#L129-L139",
+          "version": "repo-lines-v1:sha256:2b2e8ca2017cb5bf18fbc6ba0afd12de68525e7c78622b190184a6a0bb0dbc94:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlODgxNmI0YjVmZmU1NDNjYmEzZmQxYzZiZGI0NTJjZmVkYWEzNjUwYjc1MDhkNTI0ZmZlMWYzMjEzMmFlOTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlYmQ0NWRjMzlhZjcyMWFmMTJmMWJlMjkyYWY1NTQxNzljMTljZTdhNTY0ODc5MzYyZjdlZmFiYWY2YmYzZWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM0ZGQxMGU2ZjEyZjU3ZWVlZWQ4NWU3ZGM5ZmM4ZjMzYjI5OTA2ZjU2ZjlmMzgxNzUwOTdmOWE3NmM1YmU1NjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA4MWE5YTQ3NjRjZmVhNzA1MWJmZDAwYjRmZWRlNGQyM2JkN2VmNGE2YmI3NjBlNGY0YzgwNzMzZGU4ZDA0NjkifQ"
+        },
+        {
+          "resource": "repo://tests/test_streamlit_app.py#L85-L93",
+          "version": "repo-lines-v1:sha256:b61b3a1a35f5eece00b79aa36d056ebabf91145d84293e49a4c6331c5eb53ee3:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDg0ZTgzYjJjM2Q3MzlkMzFjZjI5NjVhZTA4NTM4Y2NhYjNjYzljZjY1ZjBiM2NkM2YyZTI2YzdiODNlYmEwNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYThmNDQ5ZWQzZDg1OWUxOWM2YTAwZmVjNGRiZmU2N2IwNWM1OGFhNDU5ZGUzZTZkYTc1NDcwMTQwN2MzY2I4NSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWFlNDk0NGI1NjdiZDNmYzM3ZjQwMzY4MGMwY2UxN2EyOTQ4MGE5MmQ1M2QwZDRhNDRjMjA1ZTZmNzEyYWI4MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-23T14:20:48.709Z"
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:24bde2deaf6b43f3426d18e794dbc4e27707ea418ee683402756253240dbe117",
+  "claims": [
+    {
+      "id": "claim_ceebeb81f59046e7a2b23b4972e17eac",
+      "statement": "Contributor guidance defines separate focused test suites for the Python workbench, current TimesFM-3 package, and explorer, and recommends adding a focused regression test for behavior changes.",
+      "evidence": [
+        {
+          "resource": "repo://CONTRIBUTING.md#L45-L55",
+          "version": "repo-lines-v1:sha256:78a65f12510cd113aee20107d41872e1c1e604f7d430d38c756619071cb8cc32:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBhNTBlZTEwZmI3YmQ1MjcyZTFlMTMyMGJlM2JhMzViMWY2YmJlYmJmYzEyYjAzMTAyNzNmMGI5MDBhYjUwOWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmNWJiZTI4ZjBkZDMwMTZkMGFjMjY5MGU2ZDQzOWQwMGY2MjY1NDgwNjQ2ZWUwZjVkNTdmNzQ2ZDdlMTAyNzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhlMjY4MWZlYzlhOTc0N2Y1YTE1ZmNkOGYyMzNlZmE2NDE1OWJjZWU3ZDFmNDhjM2Q0ZTJkYTBlOTMwZTI3NzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFhNDFiYWRhNWQ2ODE5Y2YyOThjNmEzNDk2OTY3NWU4ZTY1YTYwN2RhZmRmMzc0ZDM2Y2VmMGI3MzEyNjI0ODYifQ"
+        },
+        {
+          "resource": "repo://CONTRIBUTING.md#L57-L100",
+          "version": "repo-lines-v1:sha256:5c4795cdb83e65b5daa76d712d99c0aefa3407ed353328e4a0d059ce6331064a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyNGIxMmU0MWE2NGI0YzAzMjEzZDAxNWFlZWU2YThmZjYwNGQ3OTRiMzYzZTc0ZjE3YWQyNWY4OTQwNTE1NTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYxMGNlZmUzNWQ5YmMxY2RkMzRlMWJiN2Y0OWU4NDQ3NTRlNzRmOTU2YjA4OGNiODZlNzM2NzNlOTkxMmQ1MDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyZmVlNGYzNGMwN2I2YWFkOTAxNjJkNWEyOTllMzFjYTExNzkzZWYyY2RhNmQ4NzkwNDdhZTY2MTRjYjUwMTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRkZTlhOWViZDQyMmM3ZTA0MzA0NTMxYmEyZTc1ZmQ5ZjE2NTM3YmIzODg5OTVmMGYxMDk5Mjc5YTQ2MWVlZTYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_64cfa5b4b7644ae39fcb571654bfee4c",
+      "statement": "The Python package CI builds the package, runs Ruff and ty checks, and executes pytest across tests and src/timesfm3; workbench CI runs focused backend checks on Windows.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/main.yml#L9-L31",
+          "version": "repo-lines-v1:sha256:fbb4a9f7ac5d38b8a007f4524f39587cb9a370c4efd9e338d81638f20e81a1f3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1MGE2MDZkZWQyMDhhNzcwMWFmZTU5ZTg2MjQzYWQ4M2EyMjg0MjlmNTMzMjk4MDNlZGU1MDBlOGY2Y2M5ODUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3OGJkMjJkZGYwZjU1NTYyN2I1YTk1NjczZDZjZjBkMzk3OTc4ODExMjVlMjNmMjZhZTM1OTI0MzM1ZjNmY2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3NzAwYjk1MDEwZTlhODVhNDdkN2Q1ODVmNzdkOTIyY2EyMjFiYWQ4ZDM1ZmRiYjhjMDNkNTU4ODI2MjM2ZGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://.github/workflows/workbench.yml#L9-L22",
+          "version": "repo-lines-v1:sha256:0b7063bb886980815ea5367138c638104f245faedf0be99560267ccf066dc8c8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1MGE2MDZkZWQyMDhhNzcwMWFmZTU5ZTg2MjQzYWQ4M2EyMjg0MjlmNTMzMjk4MDNlZGU1MDBlOGY2Y2M5ODUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmZmFlMzY0ZGIxMWVlNTk2YjQ5NjhiNjNjMjIzMmI1ZTdlNmRiZDc2YzA3NDdhMTFmZTJkZTBmZWUwZjU0MzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE2NDM1OWM5NjZlMGFhZTU4ZGI2ZDc1YmM4ZjM0MzJmNjU5MzJmNWM0NTA1MGRjZDhlOTkwNTQ5NWI0NTYyM2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExMjViODFlMWI4ODE1NTM3ZmYwMDRhOWVkOTQxOThhNDg1Y2JiMmJmZWEwZWRlNDc2MzFhNTlkYjg2NTcxZjQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1492d6d46f3748d0bb861808ebe17a95",
+      "statement": "The frontend unit test script uses Vitest and includes only web/tests/unit/**/*.test.ts; frontend scripts also define a separate Playwright end-to-end suite.",
+      "evidence": [
+        {
+          "resource": "repo://web/package.json#L9-L16",
+          "version": "repo-lines-v1:sha256:cee402d79966fbcac5e394e28c23dcc80756730fb18b2e0cf57b78b19ac5dabc:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTg0MDY5ODRiZGVmY2EzNGRkNmJjOTAwMjdmMWQxMWFiY2IxNzAzNGM1MjVjOWE1Y2VmYTFkODRmY2NkODFkMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjQxZWQ0YjE1MDlmOTBmYzMzNGRmZjRkOTE2ZmQ0OWRhNTMwZGI1NjkwNDg3N2M0MTI0Zjg4ZGZjYmQ1ZDlhZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjAyNmRlY2FhMTRjZDgzYzliNjM5NjBjOThhZGUzZDE1N2IzOTU5ZjJjZjg1OWFjNTdiYjk0ZWMwYjNlZTA0MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTAyMjlkOTRjZjRmMGQwMDc5ODI4ZTY1Mjg1OTlmMzc1NGNkMzc1ZTRiYzExYjA5NmMyY2Y2YjIzMTgxMGJjYyJ9"
+        },
+        {
+          "resource": "repo://web/vitest.config.ts#L1-L4",
+          "version": "repo-lines-v1:sha256:c673e52815f2e016c818d16a901a1d0d377cf470b05213a6ebce0f4f209724ab:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzk3MDI5MDIxOGY0ZDhmYjU3MDA4OTQzODg1N2Y4YmQ2NDg3MzA0NGY3NGFiMTRiYmExNzM2YjM3YmExYWVlZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTNkZGVmNzI0Nzg2YjRhZjQ1YWI3Y2FkODFkMzc3YWU1NDNiYjc4NDEyOTY1NjhmYjUyMjY5OThhZWMyMTYzNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_16214725d0ff4f099533fadfcf71c6c0",
+      "statement": "After API contract changes, contributors export OpenAPI, regenerate the frontend declarations, and run TypeScript typechecking; workbench CI checks generated declarations for drift.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/workbench.yml#L20-L49",
+          "version": "repo-lines-v1:sha256:ef6e808ee7e17d4a69d516847c08c2fc3ccdd276cd2ed184cc62c69a2b33a164:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU5MWQ0N2ViYmUyYTM2MWIyZmJkODgxODhhOTg3ZDM5MDA1ZjBlOTIyZDM3MzA5OGJlZWFmN2UxOTJkYWExMjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiZjY3NzUwZWM2YzJkMGZkMjY5N2ViNWZjOGU3ZjMwNDhiNTkyM2VmYWNjMDE1ZDVkNzNmMjg2YTAzYzFjMTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkyMGUwYjZiZTJiYzFkMTBmNGUxZDUzN2Q1YTVhOGMxMzhkNzllODAyZmU2NjRlMDFlNDgyZGRiY2NkZDc4YjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://CONTRIBUTING.md#L74-L80",
+          "version": "repo-lines-v1:sha256:841094b91d3065d6a7db6cfe24c6f2a7780d119f7040dffeb2737c6b7274795e:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTQzOWE1ZTE5N2IxNjBhOWI1MmIwOTZhYjgxNWZkNmQ5ODNlOWY2MDA5ODFhZWI0ZGZhNTNmN2UyYWJhYTFhNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2VjNTY4ZWFkZGNjNDg0MDI2ZjFlMzJhZjIyYzc1ZjM4NTM2MmNmMmM1YzFkZDk2OGMwNTkyZjU3MTk1ODMzMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzA3NTQwOTdjMDZhMWI5ZjFiOGNiZjE1MGRmNzcwMzI0MjFmZjc4OTRmZGJjYzU3ZmRlNzFiNjI0ODI2M2RkMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDhkMzI1ZGEwNGFjZDBmNjE3MDhhNzI4Y2YxYTc5MzdiNDE1Yzk3ZTFjZjM0NTU5NWNiN2U3YjcwMmU3MjhjOSJ9"
+        },
+        {
+          "resource": "repo://web/package.json#L9-L16",
+          "version": "repo-lines-v1:sha256:cee402d79966fbcac5e394e28c23dcc80756730fb18b2e0cf57b78b19ac5dabc:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTg0MDY5ODRiZGVmY2EzNGRkNmJjOTAwMjdmMWQxMWFiY2IxNzAzNGM1MjVjOWE1Y2VmYTFkODRmY2NkODFkMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjQxZWQ0YjE1MDlmOTBmYzMzNGRmZjRkOTE2ZmQ0OWRhNTMwZGI1NjkwNDg3N2M0MTI0Zjg4ZGZjYmQ1ZDlhZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjAyNmRlY2FhMTRjZDgzYzliNjM5NjBjOThhZGUzZDE1N2IzOTU5ZjJjZjg1OWFjNTdiYjk0ZWMwYjNlZTA0MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTAyMjlkOTRjZjRmMGQwMDc5ODI4ZTY1Mjg1OTlmMzc1NGNkMzc1ZTRiYzExYjA5NmMyY2Y2YjIzMTgxMGJjYyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_bb8a06c5112347899bd7a3501cbbf111",
+      "statement": "Playwright browser tests target Edge and a local UI by default; live mode requires saved forecast/backtest results, uses PLAYWRIGHT_BASE_URL for alternate hosts, and does not submit GPU work.",
+      "evidence": [
+        {
+          "resource": "repo://web/README.md#L64-L83",
+          "version": "repo-lines-v1:sha256:9727fb60d3523fc0cb85ae3cef3db1095f85e177928fd8ddbeb7276e2d894a4a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFhNzFiOWM3ZjZjYzc0NDE3MjVkYWZiMGMyYTFiYTJlNzc1OTg1MmNkOTU0MTdhYjIyM2Y2NWI5NjAxYjY5OGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlMzMwMDE5MGQwNjZkODBhNjlhNWEzZDBmZGVlODZmZTdkNzcxZjBhOGI1NWViYjk4NWY5NDAxM2FhYTliMTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU5MTYyMjQ1ZDlkYWJjZDQ0ZjExOGY3Y2QzYTllMWQ1MGNiNDg5ZGNkZjU5ZjUyN2Y1NjM5OTlhODE4ZWNhNGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://web/playwright.config.ts#L1-L23",
+          "version": "repo-lines-v1:sha256:088213d08b8c34122e933bd53bf5eb6f8712f05cf7156af895bd16dca4d84c4a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiMmNiZTk1ZGM1NzcxYjQ0MGYwNGVhN2JkYTZlNDk5NDczNmZkZmU0MzEyOWNiZmNlODYxZjNkNTY5NzAzZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlYWE0OWFlYzQyZjJiN2E4YzlmZjdmMmI0M2IzMDM3Nzc4Y2JjZDI3OWQ2MjU1ZTJlNWM0NjcyYWEzZDA5MTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzZGRlZjcyNDc4NmI0YWY0NWFiN2NhZDgxZDM3N2FlNTQzYmI3ODQxMjk2NTY4ZmI1MjI2OTk4YWVjMjE2MzQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b36655ac2a0c40bdb51251e783b347b5",
+      "statement": "PostgreSQL concurrency tests are optional behind TIMESFM_TEST_DATABASE_URL, and native process ownership tests run only on Windows using spawned dummy processes.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/workbench.yml#L10-L22",
+          "version": "repo-lines-v1:sha256:29ee9e863880d9be1994d35009826dc2eca884a3689aad9e2e110ea37ed989a4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1NGQ0MTMzYmJmYTBiZTRkZmJhNDI5YjA5ODRjNzIzZTIxNDI0ZDMzNDdmYWYxYWNmNTJiZmE5NTY0NzQ5YzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmZmFlMzY0ZGIxMWVlNTk2YjQ5NjhiNjNjMjIzMmI1ZTdlNmRiZDc2YzA3NDdhMTFmZTJkZTBmZWUwZjU0MzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUwMjg1OTc5YzVkNThkZjdlYTdjYjc1OTA4NTAxN2RjNDI2NTZlN2JmMGRmZWFjNDZhNGE1NjZlZGE2MDA4NWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjExMjViODFlMWI4ODE1NTM3ZmYwMDRhOWVkOTQxOThhNDg1Y2JiMmJmZWEwZWRlNDc2MzFhNTlkYjg2NTcxZjQifQ"
+        },
+        {
+          "resource": "repo://CONTRIBUTING.md#L69-L72",
+          "version": "repo-lines-v1:sha256:68be106a489a306d3906e9aa8b37d2b8305550f43278c5395abeff8b670df29b:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWMwYzkyODE1MDc4YWQyNWI3MGMyZjFhNmFhMTY0YjU4ZDE5YTM0Mzk0ZjExNDY5NGYxYWZmNGJkMzY0ZTlhMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjA2N2FlNTQ3NDI1YjkwOTQ0YzcyZjc5ZWExNGVmOWZmYjI4NTc4MWMyOWJlMjAyM2E3YTM2ZGQwYTdkNTlmNSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDhiZjBjOWE1NmQwYTFjODFiMDU2OGVjNTJiNTg4NTY5NjgxMDhlNjBkNjBmZWY4YWNkZWRiZTY2NDgxNDVkYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDYwMzAwYmUxMWUyNWYwYWM2NzNjMzJhOWRiN2RjZjNiZDg3NjliMjRhNjNjOWY4YmFiNTMxYThmMjAyYzJhNiJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-23T14:20:48.709Z"
+  }
+}

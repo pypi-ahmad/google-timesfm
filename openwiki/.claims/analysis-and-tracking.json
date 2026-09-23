@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:813b625ec0adda7c618707c1c43c2a82c3c7a3af18a4c8b855dc601be041f131",
+  "claims": [
+    {
+      "id": "claim_a6d7c7b5ba2342f2af313f3a90a7d23a",
+      "statement": "Historical analysis validates a bounded schedule before model acquisition and executes all scheduled tasks before constructing a result artifact.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/analysis.py#L317-L389",
+          "version": "repo-lines-v1:sha256:39b1395e65bcb76400f33c0ca3fbfabea155891488cac991563c0fdb0d071ca8:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4OGFmZjU2ZThjMTRiMTQ2ZThkOTA1YTdiNGIzZTExOGZhODYwNTJkZmY5MTc5YTU0N2Q1MTM0YzUzOTdkOTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3Y2Q4ZmJjMzI0OWRkNjEwM2M4NzZjNDNmMDI5Y2UzOGQ0NTY4YWEyNjJkYjcwZTQ5YWI2NTQwZjA0NTIxNWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJlNGVmYjg1M2UyNGE1NmRkMjcwMjc5NTEwNGU5ZjE1YTI4ZjBjMzVjODk4OTlhZDg5M2FmMDU3YzU4YWY0MjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE2YjAxZmYxOGNlMWMzOTY0YmJlZTRlZTg1N2I5OWNhNDE3ODI4ZTcxNDQwNzMzMjM4ZGI5OWU4OTQzYmJmZTAifQ"
+        },
+        {
+          "resource": "repo://src/timesfm3/analysis.py#L747-L813",
+          "version": "repo-lines-v1:sha256:f1c7954b1be49b89c980ddad2a343a00b18f28c0a215410242db1dd11493a520:eyJzZWxlY3RlZExpbmVDb3VudCI6NjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlNDM2ODY2YmU4MDEwZWRhYWZmMmU0ODU0NTk5ZWY5ZjFjZmZiZDU2YmE3YWU0ZDdkZmNlZDE0ZmNjOWU3N2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1MjliNTJmODFlNGVmOTFjZDY5MGEyYmE0MGZiMjRjMDhlMTRjN2M3YzUyNzRlNWNiYTZmNDFmMGZlYmJkMGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYyNjRiZmFkNTI1YmJlMTFjOTliMGNjNGNiOGEwNzViZGFkNGFiZGFlMmM0OWJjMTA4NDdiOGY5MmZkYWM3ZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU3MmY0ZjhjZGM3MmE3ZDY5NzM5NmZlMTBkM2Y0MGQwYTI1NmY5YTZmZjExYjIwYmMwN2E4NGNkNDA4OTFkOGMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_51138246329f46cf91c36a1945553add",
+      "statement": "Each historical forecast task slices context through its origin and limits future rows to that task's horizon; regression tests verify held-out targets and future past-only values cannot affect its context or predictions.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/analysis.py#L283-L301",
+          "version": "repo-lines-v1:sha256:aede1b0d1633209e52882b6df43b0df712d50e9034249e3947f4011cbb6ed3ce:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0NzRiNTdkNjdhN2RkYmUwOTU1MWJlMDI3MmUxOTVlODUwOGQzNjc3ODVmMzJlNjQyMDdlNDQ1YzNmOGNhMGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1MjliNTJmODFlNGVmOTFjZDY5MGEyYmE0MGZiMjRjMDhlMTRjN2M3YzUyNzRlNWNiYTZmNDFmMGZlYmJkMGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1YmYxZDc5MGI5OWVlMTRhMTAyNGRmZTA4YzhkNDY5ZWU1NmNmNjMzZTg5MzllMWZlMmVkZTY1MzU1NGVjOWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4YmZiMWIzMDgwMjVhYzljYzk0ZTUxMTNkYjljYTBjMTQ2MDcyOWU4NmMxN2JkZjBjNDA3MzE2MTdkYmE1ZmEifQ"
+        },
+        {
+          "resource": "repo://tests/test_analysis.py#L99-L120",
+          "version": "repo-lines-v1:sha256:aae8cc09733dc3d65777ed37c29a5594e3e5bddc1f8053e1231e421ac6f580e8:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjNTBiMTZhMWNhN2QxZTcxYjYyNTNlNjg4NmRhMmZhYzc0N2EyYzZkZTU0YmVmMzNkMDlkOTI2NzY0YjU5MzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYjcwMjU3NTkzZGEwNmY2ODJhM2RkZGE1NGE5ZDI2MGQ0ZmM1MTRmNjQ1MjM3ZjVjYTc0YjA4ZjhkYTYxYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYwYTRlOTIxMjAxMWU4MjgxYmJlNzU3NTg5YzQ5YTIxZDJlZmI3ZTQzNGU1ODcxZTQyOWZjNzViYTAxMTU3MDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyNGY4ZmE1YjVkN2ZkZTM3ZDE1NjY1Y2NkZjI4NTE3MzE1MjY3YjBhN2JlYjA4OWFiMmJiZWExYzlmOWNjY2QifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_fd9109999f6849a5b7bd072dac23b758",
+      "statement": "Settings and baseline comparisons score only identical finite forecast keys across variants and compute per-target MAE ranks with equal target weighting.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/analysis.py#L703-L744",
+          "version": "repo-lines-v1:sha256:81962573f43f7cc999d0ec98f6956116302e04645abb3df7d6b21e97cba26ba5:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUyYTI0ZDhhY2E3N2E5NzRlOTlmYTY0M2Y5OWE2ZmU2NDQxYTZmNTA5YTI4ZjVjNDdlMWM2YTQ0MDFkODgwMmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlODJhYzE1NGUyY2IyOWM3ZjMxMTJiNWE2MmQxYzA2OTc4YjNiYjczZDAxYWZlYmE4MzBmMGIyMGRlOTRkYjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyZTRhNDc0MDcxNDQ5YWE1MmVjYjM5YWQ5YWZlOGNkZTM4MzYxZmFmYjRkY2IxYTk3MjJkNjhiNGIwYWY4MWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjNjhkYTVjNDQ4Mzk5OWU5Zjg5ZDU0MDIwYzQ5MDlmMDQzNzg4YmMzYTlhMjVmZmYyZjRmOTg0ZWRlYTU3NjcifQ"
+        },
+        {
+          "resource": "repo://tests/test_analysis_extensions.py#L232-L268",
+          "version": "repo-lines-v1:sha256:5d4581ec7386b77d992993cd2711c1d3b6d5f4d4278047a1afb08aa669e3e9aa:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczZmRmMTI3MDkxYjRmZGZlN2JmY2E4NDE4OThkOWZiZGVhMWE4ZGM5ZWY5ODczMmUwODk4OWM3YWRlZmQ0ZjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRmNzllZmFiZGI2MjM4MDIwZWIwYTU2ZDMyZDg4OTcyMjJiZmQ3MTY1N2U2ZTFhZGZhNzc2OTBkZmFhY2FmZDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjMmU4MTg4MzQ4NDIyMDYxNDJiODFkZWFmMWRmMjgzZDgyZTllZDIwZWU4MTMxNTUyZTc0N2M5NDQyZmExMGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5d3a77e4faa54b57b49daf1ebf6f01fc",
+      "statement": "Anomaly analysis forces a one-step horizon with sorted quantiles and marks actuals outside q0.1–q0.9 as anomalies while missing actuals remain unscored.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/analysis.py#L349-L368",
+          "version": "repo-lines-v1:sha256:b55f22a56f16218f974f679fa88731a6476e33bef80217b84b6b79a79df7b2b8:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwYWM0Y2I3YTExNjY1YWYzMmM2NWQwY2Q2MDBkYzdlMGY2MzJhYjE3M2MzZDdlMWQwNmQ0YTk4MGJkNzcyZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1MjliNTJmODFlNGVmOTFjZDY5MGEyYmE0MGZiMjRjMDhlMTRjN2M3YzUyNzRlNWNiYTZmNDFmMGZlYmJkMGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5NWM1ODAzYTI5NDAzNGY5NjJjM2M5NzNlM2ZmMDJmY2Y4Yzk3YWEwYTA0NzQ4OGQ3ZmVmZDQzZGE4OWY0MWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiOGY1NmY0ODYzNmExYTMwYTU0OTUwMjhjZDM2OWZjYTAyYTQ0ZDNjZTNlMTY4OGRlZmUwZmU3NGYwN2E4MzMifQ"
+        },
+        {
+          "resource": "repo://src/timesfm3/analysis.py#L816-L846",
+          "version": "repo-lines-v1:sha256:3b7db2a09156c600ea223b725d9b31e5602878460d10e74e21b9f89bf19391fb:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkZjY3NTlhYjg5NWEwY2U3MWI0MDRkNTQwMTUyMGRhNTU5MGNjMDk0ZjYxZjYxODRjY2Q4YjQ3MTI4ZDU5MGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjMWVjOGMyNWVmYTAzMjRkYWVkNWVlODVkOTY1MTk0YTgwZTZjMWY5MjI5MmM3MGUyNGExNjBhYzYxNWRmMzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgwNWM5MjY2ZjY3MTQ2Y2MwNDU4MTU0YWQyN2RkZTdmOTI5NWY3Njc1MTJmNDVhODkzMDg5MTU3NTI5ZWFmN2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2YWRjNTBhNDA1NzEyNzYxNWZkNGMxMDVlMTNiNTYwNzBlMTE5MGM2NDRlNDc5MTZlZDI2ZTY4ZDEwMjQ2YzEifQ"
+        },
+        {
+          "resource": "repo://tests/test_analysis.py#L139-L169",
+          "version": "repo-lines-v1:sha256:ffe1a0b5d79b4d43de8102b7b0a961a75c23adf7d3920ce1c6af14c751768d8c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4YzAxNDk5ZGFmYWE5N2EwYTc3ODBlNGExZmQ5ZDVmODFmZTFhMGQ2OWE4NDdjNjkxNTFiNGI2N2M0ZjJmNTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4YWE2MTEyYmM1NmEyNDU1Y2RiOWVhOWNmZmJhYWZlOTk3MTc4OWIyOTFhMWNmM2U0M2E4OTAwODlmOWYzOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVmYjQ3ODc3NjMxNWI2Y2RjNDBkOTY1NDFkODJjMTFlZjEzNmRmY2Q3ZmNmZWNhYzE2ZmU4MGMyMDczYzQ3ODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJlMmQwYmQ4NzAzOGI1ODI2NTU0Mjg2MGI2MThmMzgwZTkzYmRiMGZhM2NkNzk0ZGFlM2FlZTQyNGRjMTU3NTQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a679d3ab184e4b078d7e884eae18678e",
+      "statement": "Scenario templates expose known-future covariate cells, edit validation permits only finite value changes, and scenario output compares edited predictions with an unchanged baseline.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/analysis.py#L221-L280",
+          "version": "repo-lines-v1:sha256:a9dbac7af744397c5dc535ae5621091e98c640664aec363301ce0a0cb3627589:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2OWQzMzZmNjhlMDhjNTViYzA4ZGVlYmIyYjM3Zjc1ZWNiZTdlNWJiNWE2M2NjYTM4YWYzN2EwZjJhZTBhZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3ZmRiOTgzM2MxN2NmN2I2YTQ1MWVjZWVmZWY1MzkwZDgwNGYwYzEwZjlkZDJiMTc0YWI5YjBhNzM2YWM2YjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxNjAyYTZkMTkzYjU5MDc3NDc2ODQ4NzRhYTJlZWUyMzZlM2U0MTU1NjlkMzdkYTIxNDYxYzM1YWZmODRmOGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZkMTI2ZDQwMWI2Y2ViODAwYmZmYzI3NWZiZGIyNDdkNGQ4NGY2NmEyMWY2ODg4YzJjMjkwZDZjNDEzZjc3ZjEifQ"
+        },
+        {
+          "resource": "repo://tests/test_analysis.py#L215-L243",
+          "version": "repo-lines-v1:sha256:8e75307a465d3120de0c8690c1ae77fa13ed4efdc511d49e9ff569d7c10977b3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3NGRhNWZkYWEyYmQxMzUzYzk2YmRiZDE1NjdmMjJmYjk1ZTFlNTUxNjk4YmY0YzM0ZjAwOWI4YjRkODhiZDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5Y2RmYTIxYTZmOTc3M2Y5NWRiZjJiNWRjNmM5MWQyN2Q2M2ZjZTQyNDEyOGJkNWJmMGFlNjRlZWFlOWQ4MmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmMDQ3MTg0NTlkMjEwNTUyMDgyMzQ4MGRlYjNiNzU3MGJjOTdlMTFmYmE4ZTc0MjNlYWE1MTlmYjI2ZTU2YTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3Y2FlNWMzMjVlOGE3ZWRlMzdmOTJmM2YzYzFiZjYzMjQ4ODkyMDA5MGFhOWY2ODM0ZGNhN2IzNzhlNWViMjUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5bcb89f9ff504fb098077daeace7330b",
+      "statement": "Uncertainty helpers derive central quantile bands and empirical coverage summaries from existing forecasts without fitting or adjusting intervals; crossed or non-finite bounds are excluded from valid coverage observations.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/uncertainty.py#L1-L71",
+          "version": "repo-lines-v1:sha256:a7001f8425f5846fd800eb1758fac99041fe3fa52343850cfb6f134bdb4ebb62:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5NjJmMDM0MjMyMzlhMjllMjRiYmNlOTQ0OWRiODQ1ZWUxMmMzODY3N2ZiYWUzZDQ1MGUyYTYzYWNjYmNmNTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NTNjNmVhMmY4NzZhNzBkYTllYzJkODg2NDU5YzgxY2M2Nzg2NThiOWJmNGY1ZDIzNjY4OWFiYzk5ZTM2ZTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYxYTk5Zjc4ZmRjZTQ1OWVlMjFkNGI5YTVmNDdlY2VjZWE3Yzk5MzE5ZGRjNGE0ZWJkM2VkMTI2ODQ5ODJkZTcifQ"
+        },
+        {
+          "resource": "repo://src/timesfm3/uncertainty.py#L74-L110",
+          "version": "repo-lines-v1:sha256:b1d04cba1a9ffd017cc9f61cc888ce5e91ede4544f3c3122fe7b19313bbf2b10:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxMjI3Y2ExODE2ZTZhZGE0NjU2MjAxMjRhZDgwODkxMDBmZTQ3MGJkNGU4N2YzYTJhYTQyZTdiMmI0Y2QwMGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM5MjIwNGM2NWY1MDJkYzE2NDU0YjYyNDA4NTZhOWFiN2FkZTAwM2E4ZTlmODYzMzNlYzBiN2M5ZTQwOTQ5MWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU1NTc1ODUzYjliNzhkYzdkNWE1MzQ3MTI4NDY4YzU0NmM5OTVlMTM2Mjg2MzUyNWRmNzhkZWE2ZDUyNjYyZWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3ZGE2NjZkNzFiZGJiY2RmM2Q4NmNiYzUwMWRjYWUyMjYwODkxNjYwYjIzNDkxNWFmZGU3ZGIzNzgzOWQ2NmMifQ"
+        },
+        {
+          "resource": "repo://tests/test_analysis_extensions.py#L269-L296",
+          "version": "repo-lines-v1:sha256:0bd739f6bb4fe21ca1baf1df9fe634eec1e56d816e3341af66b3dd85eda687e2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5YWRkNWE4Yjc0NjMwOWJiY2JlOTdlNWQ2ODNmZTdhYzk4YTM0YzZkNTE4YjYzNGZiYzk2MGYxYWVkNjQ5NGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4MzI0ZjRiMGUzZjY0YmFhNTFkMWNiYmQyY2YxZWNiMmQ2OTE2MmJhMThiZGIxN2VmODBlOTMxZjk5OGM4NDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUwYTAxZWI3OWNiYzc5ZDdmMGJlY2JiMjQ5OTQ5YmExY2I0ZTIyYjJkZjdkZDc1MTIyZTYyNDg1MDBlN2IyODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNmNDJiYzQ2ZTJlOTI0NDIxZDBmNzFlYjBhZjFlODYwMDQ5MTc5YTUzMWRiMmY3OWZiZmRjZmVkNWEwZWFkOWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c0889b287387484ead8b130e3bdd660c",
+      "statement": "Forecast assessments require explicit dataset associations and exact timestamp/target matching, preserve the issued forecast, and score only observed actuals at forecast timestamps.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/tracking.py#L118-L215",
+          "version": "repo-lines-v1:sha256:dcad0dbfb7c4ce76b3e2d57541ce172c9892d1ec2bb2391e0401d2f1f58dac33:eyJzZWxlY3RlZExpbmVDb3VudCI6OTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkODE4ODkzNTFiYmU3MTEyN2E5N2Y0Y2Y4N2JhZDFiNzE2NWY3OWUzZGFlODMwZmExNTdkYWYxMzg3ZGZmMWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1MjliNTJmODFlNGVmOTFjZDY5MGEyYmE0MGZiMjRjMDhlMTRjN2M3YzUyNzRlNWNiYTZmNDFmMGZlYmJkMGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdkNGNiYTNmODU3N2ZmNTE5MjU0ZjJhNDUzMWVjOWIxYjNlZWQ1YzMzYTI1YjU1ZWY0NTY5NjBiMjY3YWIxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFmZmEwYjY4ZDY4NTgxMjk2MzM1ZjdiZmY0Yjk0MTE0NjFmZThiMTM4ZTc4YWMzMzFjYjZmNjEyNWFkMjYxMDgifQ"
+        },
+        {
+          "resource": "repo://src/timesfm3/tracking.py#L84-L115",
+          "version": "repo-lines-v1:sha256:e1d7a2234219c277d8491f8bc0fe24c7fd1d0f6c27bcde3a6b3d00b5132af8df:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmM2QxNWYwNzYyYTE0YTgwYmQzOTBmMmIxYjU5NzVhZjdmYmY0NjM2NzcwMWJjOWU4YzRjNTk0YWQ3NTczZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4NDQyY2UxMGJmZWVmZjZhNTkxMDY3ZjdiYzBmNzlmNDFlNjZjMWI0MzliNmQ3Y2MwNjRiMzJmN2MzYjhhODEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRkMmNlMDdiNDFkNGJiODI0NDg2MTAzZDY3YmE5NzlkNDQ5OGJkNGVhNWUxYTZjY2U0NmQ4ZDU3YzU2OTQwODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU2OThlMWQ4N2RlYTdjYTJjNGExZDAzOGMxODJjYzY2OWIyZjExOTQxNDNiMmY0Nzg1M2ExNjc5OWI1OWFjN2EifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8d8475b8629b4487a1153609fe9c4305",
+      "statement": "Tracking reconciliation queues changed source versions as idempotent assessments, while automatic forecast refresh is opt-in and requires verified model provenance.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm_app/tracking_jobs.py#L115-L159",
+          "version": "repo-lines-v1:sha256:56db067731bf6aa9034a9b83bc63509f5d866098fedaebcf652a78719fa65b76:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3MjRmZDdkMWFkZGJlOWJhZjdlYzE4ZWFlMTdjNDY4NDIyNTFkMWIwMjBkNDI0MmI3NTgzZDBkODljNDM1YmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4MWNkN2M5OTUyYzFmNDA2MDBjYmExM2FjOTcwOTE4YzBmY2RhZTM4ODUwYWNkMGEwM2Q0ZTlkZTMxMTE4ZTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJiMTRhYjc2ZGNmOGFhYWM5MGQ5ODNhMGQ2ODk3MDgyMDM4OGFkNGM1ZDA3MTMwOWU4YWVkZjQ4MDU1MDFkMDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzNjBjY2NlODY0MTFhZjFlMzgzNTYwOTcxZmQ3NTY4ZWNiYTkxMmM5MzA5YjQ0N2NlZDQwZTllZGQ0MTY1N2QifQ"
+        },
+        {
+          "resource": "repo://src/timesfm_app/tracking_jobs.py#L55-L79",
+          "version": "repo-lines-v1:sha256:613dfbb095284b8fb3b17a8d5ab3e1622e2d329487a9d32d1abeac4fed93b9f5:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjYTJjNDFjNDE3Y2RkNmNmMDhkNmRjMmFlMmM5MjY0Yjc2Yjg1ZWJlYzFlZjUwMjg5MDRjOTRiMjIzNDU3NWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1MjliNTJmODFlNGVmOTFjZDY5MGEyYmE0MGZiMjRjMDhlMTRjN2M3YzUyNzRlNWNiYTZmNDFmMGZlYmJkMGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIwNWU3YThhOWJiNDEyMjUzZWE4OTZmYjdlMTIwYjQyNmE1Y2Q0MTc0ZTc4MmI2Y2VkZDNjM2IwYzJmNzZhMzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkNjc0NzEyNTE0YmFlMzVkYzVjODY1NDkzZTBkYjdlMDI4MTM2NmYzZjdlZTcxNTI3NWQ0MzJjNGU5MWMyMmQifQ"
+        },
+        {
+          "resource": "repo://src/timesfm_app/tracking_jobs.py#L82-L112",
+          "version": "repo-lines-v1:sha256:d2dbe462ff7497f7cc8140e9c3016a8ebfdc60ed25819f4b386a300ffbe7a101:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4OTU2ZDVlZDUzODcyMjhlZDgyNzhkNjExOGU1OWQyZWViZjQ1ODJiNWNjMTE3OTZkN2VkY2MyMzhjZWJlMjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA5ZGEzYjRhYTJmNDBiMTE4Nzc4OTY2ODMyYjkxYjkwNDk1NWRlYmIxZGRhNzk3ZDNlMzcxNjZmNGE1MDFlNTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgwNWM5MjY2ZjY3MTQ2Y2MwNDU4MTU0YWQyN2RkZTdmOTI5NWY3Njc1MTJmNDVhODkzMDg5MTU3NTI5ZWFmN2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ0YWI1Y2M5OTUxYjEwYTYzMWQzODU5MTViZmRlODg2ZDdhY2M5M2IzYjNiMjEwN2I0NDI3Y2VkMTEzYjYwNDkifQ"
+        },
+        {
+          "resource": "repo://tests/test_tracking_jobs.py#L88-L124",
+          "version": "repo-lines-v1:sha256:6edd60000e40b0d2f11f39b8552a4511c97033eef39b938e5fda380bab21a98f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwOGQyM2EzN2Q0Y2QzOWNiYWM1M2YxYzdkZWQ5YTM5NDdlYzlkMWU1NzMyMTkwMTUwNzFmZjg5MTM4MmQyNGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwZThkY2VkOTg3MGU4NGE5NzVhZTAxMGM1NTIzMDVmMGE0ZGFlMmUwYjdkNzlhMGE4OWYzNTgxNjY2ODdhM2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMxYjZkYjJmN2I1NjVhNmNhOWE3YTBhODVmMWJlMTQwYmQ0YzRjODYyNDM0NWViMzQyMDY3YmQ4OGJkNzNmZTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYyMWRjYTY0ZjhkMjk5YWNlZTk1M2ExMDczMjQ5MTc5OTc3Y2Q1NjJhNzAzOTU4NDIzZWViZjUzNWExODBmNDIifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-23T14:20:48.709Z"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:43b04c14808675223add5c1463f615aae8b3f40f33c43af314384dc51a57db6b",
+  "claims": [
+    {
+      "id": "claim_d300f3e6b6614847811ba8cf97a39c03",
+      "statement": "The repository README's primary Windows workbench path requires uv, Node.js 24 or newer, and Git, and launch_workbench.cmd performs setup when needed, starts services, checks readiness, and opens the browser.",
+      "evidence": [
+        {
+          "resource": "repo://README.md#L18-L27",
+          "version": "repo-lines-v1:sha256:7f832d0901f2f47b1caa955926ffff0b3ac1d88004758a5d8764dfe67a15eee5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyYTk3NDVhOGQ5MTUwZDU5MWI2ZGMxNTJkNzc2NGE2ZjNjNzBkYTRjNDU1MTM3MmQ1OTJkNjA3Yzc5Y2YzN2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlOWNmYTcyNTFjNTcwMWUzOTk2NzZlNjdhMGU3OTc5ZGQwMDZlNjQwNDMwNDQ5MzVkZWEzYjdjMDkyZDIyMzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgyMWY3ZDc4ZjU4NzdlMzMyNTA0ZGRjZGMwMjljZTc2MTY5NjQyZWQwOTkxOTkyNzQ5ODBkYWIwYjA3NmIxNmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxY2U3NjlhMDM5YWQ2MDUyYTIyNTgyN2E4YWQ5M2EwMTA0YmVjOTJkYTUxNTIxZDg0MjEzZmU0NzM1ZjY5ODMifQ"
+        },
+        {
+          "resource": "repo://dev.ps1#L32-L50",
+          "version": "repo-lines-v1:sha256:17b2ba177faeb256d7672f18496c13780435cc952e1d355b5b5c95b36602ccbe:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4MDNhMjc2MWE2MTY2ODdiZTYyNzNjZjExZDU4NjAyMjlkZDc3NWJhNzhjNjZkNzU4NTFiNmZiMDc1NThlMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcxMzQ1MTgwMTA1YjBjNjZhNzdkYWQ1MWJiMzc5MDFhMzczMmM5NjU0YmE0ZGUzOTgxZjgxZTE4MTc1MjQ4YmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyOWJmZjY2MDlmZTc1ZmRhMzczNDFkYmQ0NTY3NjU2MWYzZGY4NDU5MDExNzNlM2MzZGZhZTljZTMzNTM4ZDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZjZDNiOWU4YzA4ZWVhMTRlYzkwNDdjN2MxNzM5NDQzZjM3YWU4ODc0MmUxMDdjMTgxZmI2MzdhMTcyMjE0NDUifQ"
+        },
+        {
+          "resource": "repo://launch_workbench.cmd#L1-L19",
+          "version": "repo-lines-v1:sha256:6bc97d99c70f6435ccdd8459d5e12f3787fa9bfe3e13cda2cc747a6611167b4a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzMzczMzdlMjgwZjBjZGUxMmVjY2RjMjNjZDUwZTZjMGJiMWU2YWEyM2QyZGQxYmYzMzIzZDUxMTg5ODZiZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzMTgzOWFmNzZiYzhjZTJhZjFhZDY4ODI0YmU5YTU1ZGY5MTJjNzU4NGZlMzA5MDAwZjJjNDNkY2E4MmZhYTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI3MGM3NTM5MjJlZjNmYTY5ZjlhZWYwMzMzYTEwODJkM2U5YzZlNjdhODhlZGRiODJjYTVkNDdkZGE4NDM4MGUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0c42ba9b7b154274af6ffdcdd1cb785b",
+      "statement": "Manual workbench operations use dev.ps1 setup/start/doctor/stop/dev; the default frontend is localhost:3000 and API documentation is at 127.0.0.1:8001/docs.",
+      "evidence": [
+        {
+          "resource": "repo://README.md#L29-L39",
+          "version": "repo-lines-v1:sha256:ed6972b2aa496788d223c95881b4b3857e696f00c1eb0cabcbdc4b053704d8e7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5M2Q5MWIxODQyNWU4ZTQxY2ZiNzJmOTU1OWEzZTUyZGU0MTEwMzcwMDgzZDIwZGY3MTc5Y2I3N2QzNmUyNTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmMTgzNDU4YjQ2MGE4NTgwZGJkODMzYTk4MTAwYmE0OTE2MWQxZTE5MzU5MjkzZGZmNTBjY2U1NGNkM2QwZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJhN2MzYzhmMjc5MzE1OTQ0MGRmZmYzNTNkYzM5ZTRjZjlkMmU0NjZhODA4ZTZiMDQ0NzJjMWMwYzExYTg1NjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNkMGUwMTkyZjEwZTA3ZmQ5ZDg1ZTZhZDc3NmQzYzE3NTQ2NTA5MDkwMzI3NjFkYjNjYTQyZmIwYjljMDkzYWIifQ"
+        },
+        {
+          "resource": "repo://dev.ps1#L6-L20",
+          "version": "repo-lines-v1:sha256:baa06a326621501a05fa648accd3475cdcfc8e156895924ccbc0be90d308acea:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzMmNlZDM5ODc1M2Y2ZmZlODM0NDU3MDNiNDM1MmVjZGU1M2NhZDc4NmQ2NjY5YjkxYzMyOWM5NmI0NjVjMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxOTk4YjMwNjA4YThhNGI3MjViMjBkOWI1NGEzODdlZWU3ZThiOTg4NjcyMDZjNTNlMzcxYTRlMzdjMWE4NTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY4ZGM1ZDYyNWY3M2RmMDIyMGFjN2I1M2NhMjA2YjA1YzY5OGFlMjQ3MjZiYzEwYzYyM2FkYzQ4MmZiMmEwYjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNjYzIwNzVhYWE5YjBhMjg5NWYxNjM5NzlmYWU5YzBkNTAwNWRhMDRmMTQ3ODI5Y2ZhMTdhYTFlMjQ2YTRmY2IifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0c98b750dad84f9d84fad309662ca9cf",
+      "statement": "The primary code entrypoints are the TimesFM-3 package under src/timesfm3, the FastAPI application under src/timesfm_app, and the React client under web; streamlit_app.py is a separate retained legacy explorer.",
+      "evidence": [
+        {
+          "resource": "repo://CONTRIBUTING.md#L22-L40",
+          "version": "repo-lines-v1:sha256:5c6d8d4e18f1c255862a2a626b395909a40b61abbc53e322ecb0867559487e28:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzNzkxNzY4N2IyZDUyNjg5MGU0ZDZmZjYyZGY0NTJhN2UyYjkwNDdiYzdhZWUzN2M5ODAxOGM3YmQwYWJkMWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1ZTBmNzJiNmRmYzM3MDcwZTUyZjUwOGJkZGY3OWUwMWIzZDViOGM2ODRiNmFmY2VhOWRhZjA3MGFmMTNkY2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0MTM0ODFiNGVhOWY0ZjExNzkzMDFkNDQ0ZmRjNjI4M2U0MTg1ZmM3ZmM5N2NhZGVjNzM2OTdlODZjNTAxMWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzN2M0YmRkYThkNTc0MjYwODlkMTQwMDNiNTk3ZWNiMmFkOTQ4NGUyMTlmMWIzNjBjYmVhYmQyNjk0YWNjZDUifQ"
+        },
+        {
+          "resource": "repo://README.md#L49-L56",
+          "version": "repo-lines-v1:sha256:706a70f228d6cc4eaf795d9ca7ca6a2b5fe2f9acd0e434b9dec51346133dd008:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTM2NDRmMzIyMTU4YzExNGQwY2IwNDk5N2U2ZmM3Y2VkOGQ1YmIwYWEzNWUwNDk1MjY3YjgxNWY5Y2EyZjY1NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2VjNTY4ZWFkZGNjNDg0MDI2ZjFlMzJhZjIyYzc1ZjM4NTM2MmNmMmM1YzFkZDk2OGMwNTkyZjU3MTk1ODMzMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGVlN2ViYjg0MmExMjRhMGQwZTExNDdhYzMwNTE5ZjNhNzlmOWJkNGUwYTA5MWZhZWYwMmY2NWFmNWQ2YWFjNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzFkMjc2NmVlMGQyNWMyZTAzMGQ1NWExY2ZlOTk5NTZmY2VkOWFkYmZiZGYxNDg2ZTRhZTUxZmNkZDk0MmMzOSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_003d2fc3bb7647c490970f8352c0aabd",
+      "statement": "The timesfm3 package publicly re-exports TimesFM3Forecaster, whose from_pretrained method defaults to the google/timesfm-3.0-pytorch checkpoint.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm3/__init__.py#L15-L44",
+          "version": "repo-lines-v1:sha256:824b39afa136a7dd5c49c772b73d7d05cdbb10eca0910478c004dcf9724ca6f0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhjNTQ5ZTA3YTZmOTA2YzEwZTJjZDQxNDAzZGI4ZDQwNTEzYTcwYTdiYTk4MWExNDQwOGM0MTUzNGJjOWRiNmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1YzcxYWI2YmI1YTU3ZWYxZWU1Yjc0YTdiZmJmNjI3ZTg1MjgzYzZkYTE0ZjM2NWQyMTAyNDZhZWJjNzAwNzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQxZTU5MjViOGNjYmE2ODI4MjQzOTE5MDExYTIwNGQ5NWU0YTk2Y2IyODY5YzA5MGQ4ZjM4MmFkN2Y1ZDc3MWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNmMmE0N2FhNDQ5ZTYwOTNiZWRlMmU5YmRiNTIzYmM2OGE0YWZiMTNjMzg3NzJlYjlkZTMyNWM1NDE3OTYxZDcifQ"
+        },
+        {
+          "resource": "repo://src/timesfm3/timesfm3_forecaster.py#L371-L396",
+          "version": "repo-lines-v1:sha256:604464af1ffcd8a193fb83f0968d5ffec51ff6a1fa68dd4ea6c0b4f3242858cb:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1NjlkZWM3NTY0NGQ5MzgyMzI4Y2FiMTc2NDk1MWY3NjY5ZWI3ZmM3Y2ZlMjA4OTU0ZjJhMWVlYmU3YjI1YzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0ZmI1ZGVlN2I1NmM0YzA0ODM3NDU3YzYzOWQwZDFiZGY2ODg4YzgxMGZiNjNiYjBmNjJmYmFmZTQ0YjIyYWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRjYzBkODdhZjE1NzY3ODAyMTQ3ZGVjZjE2YjVhNzE5N2ZkZDQyMzc2ZTZmMjNjN2Q5Yzk2NWM2Y2UwNzAyY2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmM2U2YzQzZmRjMTkxOGJhMjllMmM5YjczODIwZDRhOThlMjk3MTkxMWZiMmI5ZGUxMzEyNWQwOTJhYzFmNmYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f41978b1e5924df1b099f6486157bed0",
+      "statement": "The default pretrained TimesFM-3 checkpoint may require internet access on first use and has a separate non-commercial, non-production license.",
+      "evidence": [
+        {
+          "resource": "repo://README.md#L12-L16",
+          "version": "repo-lines-v1:sha256:e740101fa520f9225b4b1982f53b9f4102f0416ea65e62afb2ed5a9444f90a39:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGE1OTNkMTRkMTY5M2VhY2IxZWJjZDQ1ZDA1NzYzNTg1YTg2NmQyOTYzYWI4YzA3NDEwNGVhMjVjMTc3NjgxMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2YyNTU2YTQ3MjEwZWZmOGVhMDU5NGYwNDFlNDY3YjE3NDZkZmY4MWE2ZTMzYTc1NzYwODllZTkwNDJiNTQzZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjkyYjQ5NTJjYTVjOWE0N2UyOGU1NjA3YWIwZTY5YTY0OTRmYzZmN2E4ZTI1MTc1NTU0MzcxYTUwMjVjYWFjMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWEzNGQzNjczNTQwMmYzMjY5YmRkY2Y1NmIwMGRhMzJlYjAzZDcxNjM0YTVlN2ZhOTMzZmEzODAzM2IzYjZjNiJ9"
+        },
+        {
+          "resource": "repo://README.md#L58-L63",
+          "version": "repo-lines-v1:sha256:fec64e5e30aae620bbb831f8a517a65a92e26529fc161424c43f8b1fe8882dc5:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTBjODVkYWQ5NWY4NWE0MThlZDE0ODkzNmIwZWFiNmE0M2MxYTYyYTY2OGJiY2Y3NTM0MWFjZWQ0OTQ2ZTQwYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhjODY5NWYzMzllMzVkYzYyMTBkNWQ2YzhhOWQwY2IzMWIwYWU2MjYxZTY4NDcyZTY4M2E1YTY2ODBlMzY2YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGZhOWVkMzQ0ZjUwMzY5ZmYxZWRjY2Y2NjhkYTFiNDFmZmFkNWM0NjFlMWM0MWRiNjRlMTQzOTc4N2EzNWQyOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTBiMjcyMjg2MWI0YjQ3YWYxMjMyMmMzNDhhNjBiN2JhMzMzNTQxOTIwYmIxYzNlNjhjMDQ3YjkzYTg1YzRjNCJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-23T14:20:48.709Z"
+  }
+}

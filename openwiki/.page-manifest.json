@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "pages": {
+    "/openwiki/analysis-and-tracking.md": {
+      "pageVersion": "sha256:813b625ec0adda7c618707c1c43c2a82c3c7a3af18a4c8b855dc601be041f131",
+      "completedBy": "codex",
+      "completedRunId": "f326966b-f01d-4f64-9fb5-f51a6c7be9c6",
+      "gitHead": "128a370d297e0e559e39bd54bf0f65dea39d6897",
+      "sourceFingerprint": "sha256:c54cf4eadabfb9447771cdea31ef7e181a20e557ba014bb22940b74d44280034"
+    },
+    "/openwiki/durable-jobs.md": {
+      "pageVersion": "sha256:f82ba886d2e32cf74122d7ab437e14f2d4bb7c5bfd565cddb21ac7b3fbb13c60",
+      "completedBy": "codex",
+      "completedRunId": "f326966b-f01d-4f64-9fb5-f51a6c7be9c6",
+      "gitHead": "128a370d297e0e559e39bd54bf0f65dea39d6897",
+      "sourceFingerprint": "sha256:c54cf4eadabfb9447771cdea31ef7e181a20e557ba014bb22940b74d44280034"
+    },
+    "/openwiki/forecasting-pipeline.md": {
+      "pageVersion": "sha256:df3e769c1dd257303fe57f02f2c49c35a20bf1044462916923ebb4baca689bea",
+      "completedBy": "codex",
+      "completedRunId": "f326966b-f01d-4f64-9fb5-f51a6c7be9c6",
+      "gitHead": "128a370d297e0e559e39bd54bf0f65dea39d6897",
+      "sourceFingerprint": "sha256:c54cf4eadabfb9447771cdea31ef7e181a20e557ba014bb22940b74d44280034"
+    },
+    "/openwiki/legacy-explorer.md": {
+      "pageVersion": "sha256:65437f812387160e1e2f815311e0226b128c39d87d3d33b1add33ae69088a660",
+      "completedBy": "codex",
+      "completedRunId": "f326966b-f01d-4f64-9fb5-f51a6c7be9c6",
+      "gitHead": "128a370d297e0e559e39bd54bf0f65dea39d6897",
+      "sourceFingerprint": "sha256:c54cf4eadabfb9447771cdea31ef7e181a20e557ba014bb22940b74d44280034"
+    },
+    "/openwiki/model-runtime.md": {
+      "pageVersion": "sha256:faa9752c464cfddb0dedbb32ba6b791715b5fd9aede85f7c5d191b4c8baae0f6",
+      "completedBy": "codex",
+      "completedRunId": "f326966b-f01d-4f64-9fb5-f51a6c7be9c6",
+      "gitHead": "128a370d297e0e559e39bd54bf0f65dea39d6897",
+      "sourceFingerprint": "sha256:c54cf4eadabfb9447771cdea31ef7e181a20e557ba014bb22940b74d44280034"
+    },
+    "/openwiki/operations.md": {
+      "pageVersion": "sha256:7913d58172d8b64979952e2d77521c3fce0d7e43f64cfd9b8655d5c24387a693",
+      "completedBy": "codex",
+      "completedRunId": "f326966b-f01d-4f64-9fb5-f51a6c7be9c6",
+      "gitHead": "128a370d297e0e559e39bd54bf0f65dea39d6897",
+      "sourceFingerprint": "sha256:c54cf4eadabfb9447771cdea31ef7e181a20e557ba014bb22940b74d44280034"
+    },
+    "/openwiki/persistence.md": {
+      "pageVersion": "sha256:ab000b6938c7127f9af20ca1513ddaefa826a41b7db66e5dd95deb1c45051775",
+      "completedBy": "codex",
+      "completedRunId": "f326966b-f01d-4f64-9fb5-f51a6c7be9c6",
+      "gitHead": "128a370d297e0e559e39bd54bf0f65dea39d6897",
+      "sourceFingerprint": "sha256:c54cf4eadabfb9447771cdea31ef7e181a20e557ba014bb22940b74d44280034"
+    },
+    "/openwiki/quickstart.md": {
+      "pageVersion": "sha256:43b04c14808675223add5c1463f615aae8b3f40f33c43af314384dc51a57db6b",
+      "completedBy": "codex",
+      "completedRunId": "f326966b-f01d-4f64-9fb5-f51a6c7be9c6",
+      "gitHead": "128a370d297e0e559e39bd54bf0f65dea39d6897",
+      "sourceFingerprint": "sha256:c54cf4eadabfb9447771cdea31ef7e181a20e557ba014bb22940b74d44280034"
+    },
+    "/openwiki/testing.md": {
+      "pageVersion": "sha256:24bde2deaf6b43f3426d18e794dbc4e27707ea418ee683402756253240dbe117",
+      "completedBy": "codex",
+      "completedRunId": "f326966b-f01d-4f64-9fb5-f51a6c7be9c6",
+      "gitHead": "128a370d297e0e559e39bd54bf0f65dea39d6897",
+      "sourceFingerprint": "sha256:c54cf4eadabfb9447771cdea31ef7e181a20e557ba014bb22940b74d44280034"
+    },
+    "/openwiki/workbench-architecture.md": {
+      "pageVersion": "sha256:cd8f2e1045fe98814483f669fc8eb1c6e6cbb845ed00bc9475d5e357be11225f",
+      "completedBy": "codex",
+      "completedRunId": "f326966b-f01d-4f64-9fb5-f51a6c7be9c6",
+      "gitHead": "128a370d297e0e559e39bd54bf0f65dea39d6897",
+      "sourceFingerprint": "sha256:c54cf4eadabfb9447771cdea31ef7e181a20e557ba014bb22940b74d44280034"
+    }
+  }
+}

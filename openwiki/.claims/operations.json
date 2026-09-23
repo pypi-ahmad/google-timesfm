@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:7913d58172d8b64979952e2d77521c3fce0d7e43f64cfd9b8655d5c24387a693",
+  "claims": [
+    {
+      "id": "claim_26c32f515f28407db4b152d4802acea7",
+      "statement": "The repository's Windows launcher supports setup, start, stop, doctor, dev, and launch commands; launch performs setup when required files are missing, waits up to 90 seconds for health checks, opens the frontend, and tails service logs.",
+      "evidence": [
+        {
+          "resource": "repo://dev.ps1#L32-L105",
+          "version": "repo-lines-v1:sha256:9e1cb91051625b28f3ec422680c44e8fee20dfc54e0310cbafe652556f7c95c0:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4MDNhMjc2MWE2MTY2ODdiZTYyNzNjZjExZDU4NjAyMjlkZDc3NWJhNzhjNjZkNzU4NTFiNmZiMDc1NThlMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViZmQ1ZmU4OGI0ODhiOGU0NDYzZjIzZGY2MWQ5NmZmYmM1YWIzZDhlYjQxOTcwMWIzYzVkMjFlMTU3OTY1YmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyOWJmZjY2MDlmZTc1ZmRhMzczNDFkYmQ0NTY3NjU2MWYzZGY4NDU5MDExNzNlM2MzZGZhZTljZTMzNTM4ZDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYyNWE3MzgwMzkxMWQ1YzVmNjBiNWFkY2Q2NmE1NzA3NDQ3OWVhNDNmYzIxZGM0YmE4MTc4ZTQxMGNlOGY5NTgifQ"
+        },
+        {
+          "resource": "repo://dev.ps1#L6-L29",
+          "version": "repo-lines-v1:sha256:c4dd5bcdee3e48395e243845bb0ac9f2aa930dc88083e88829408b599213a3cf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzMmNlZDM5ODc1M2Y2ZmZlODM0NDU3MDNiNDM1MmVjZGU1M2NhZDc4NmQ2NjY5YjkxYzMyOWM5NmI0NjVjMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjliMzllMDIyZTBkODU0MTIwMDAzZDc5MGMyOGI3NTk2MmVkZDMwMzc1NmQ1MTMzM2RmNzQ1Y2ZiODZlYTExY2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY4ZGM1ZDYyNWY3M2RmMDIyMGFjN2I1M2NhMjA2YjA1YzY5OGFlMjQ3MjZiYzEwYzYyM2FkYzQ4MmZiMmEwYjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBhNzE1ZjZkYTAxNGUzZDhiODFjNWRmOTQ5YzU0MzljMjk1N2YzNDllODM4MWQ4NjY3YmJkNmQ3YjdhZjhmMzkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e87f9582fbde4df8b614cfa0333e5088",
+      "statement": "The native supervisor starts the API, dispatcher, separate GPU and CPU Dramatiq workers, and frontend, while local PostgreSQL and Memurai provide application storage and queue delivery.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm_app/native.py#L243-L301",
+          "version": "repo-lines-v1:sha256:f8c88633cce7fcec1d81c6ac6c3520b149022887320d3bfded03942f4d4d952b:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExMmM2MDRiNTVlMWRmYzYxOTcwNDAzYTNhMWRlOGMyODA4ZWMxZjgzMDdhYjE1YTk3NWRjMWZiZDY0YTU2YWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzMjA5MTEyMjg2MGRhYWJlYzQ2YjU5MDFiZmQ3MDMxNjNlYWI5M2U0YWZmM2UwNDZkZjFlMmMzMzYxODNmYWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhiOTc0ZGE0MDg2MzJhNGFhN2UyYWU4MGI4NjAzOTFhM2RjZDgyMTFjNzllY2FkN2NhOGU5NTEyOGIwMDE4MzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmOGNiNDRmNDdiZDM2OWZjNzM2ZDJkYWQ4NWNhOWVmMWM0NThhMjgxMGQ1YWUwZjZhMTgzZGM4M2Q4MDliYzAifQ"
+        },
+        {
+          "resource": "repo://src/timesfm_app/native.py#L455-L504",
+          "version": "repo-lines-v1:sha256:7ee90da473e1222e09904eabe6d3697d34fba58ee34c1ebb8945289ac6931e55:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmYjFkYTJhYmZiYmJjNjFhNWQ3NmU2YmIyZGYwM2Q0M2QyMDczZDFlNzJjNTkwMWFjMGFjZTIyZTEzNjY5ZTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcxMzQ1MTgwMTA1YjBjNjZhNzdkYWQ1MWJiMzc5MDFhMzczMmM5NjU0YmE0ZGUzOTgxZjgxZTE4MTc1MjQ4YmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhiOTc0ZGE0MDg2MzJhNGFhN2UyYWU4MGI4NjAzOTFhM2RjZDgyMTFjNzllY2FkN2NhOGU5NTEyOGIwMDE4MzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxOGQyMzkzYzc1NDY1NGI2ZDBiMmU0NzNiMjhiNmQwNDI0NmRiZjlkMmFiZjJjNDZiODYyN2EyYTgwNDVjMjkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7ab0d25a417649d88148c8bb3ce5d6dd",
+      "statement": "Default API, frontend, database, queue, worker device, worker lease/heartbeat, and artifact settings are configurable through TIMESFM_-prefixed environment variables; default ports include 8001, 3000, 55432, and 56379.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm_app/config.py#L17-L34",
+          "version": "repo-lines-v1:sha256:e70e522b48e11430df68f8c069842e23b0438213d36ec7b29eef524fdadf3bf0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUzOGFlZWYzNjdhODkyMGY5YzE5ZmFjYWFlOGE4ZmIyYWViMzAwNGQ0NGJlZTZiZjI2ZjFmNWIwMWExNjk5MGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhMTk5NjA0Njc4MTE3YmVlMjc0MzdlYzQ1ZjAwYWQ0ZTUwZDFmNWJmZjhjNzk1OTk1ZGNlNGFmNTQ0ZTNlYTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5MDYwOWJiOTE3ZjU3MzlmNzJkZmIzMzM3YTViODgwYWRkN2YxNjAwYmIzMmQ2N2I1NmI2NTU3ZjE0ODgxM2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZmM2YxOWRlY2Q3MDA1M2IwMWFmM2Y4MzNmYmFjNGJkOTE4YWU1OTVlMmZmODYxM2IxMDBmZTk1NDRhZTY5MTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9b029669412341db881edcd90903d0fc",
+      "statement": "Assessment and model-check jobs are routed to the CPU queue; the default GPU worker device is configurable and an out-of-memory failure does not trigger automatic CPU fallback.",
+      "evidence": [
+        {
+          "resource": "repo://docs/how-to/native-workbench.md#L39-L46",
+          "version": "repo-lines-v1:sha256:1f4a8eff343f2884fa544b124cd7cbb337832739be4dbce11bbe9b90e6e67e0a:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2ViNzAyNTc1OTNkYTA2ZjY4MmEzZGRkYTU0YTlkMjYwZDRmYzUxNGY2NDUyMzdmNWNhNzRiMDhmOGRhNjFhNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTE5ZmU0ZDkzM2ZjM2U3ZmZmMDIzYjVhMDJhMDE1ODUzYzkxODY2ZmI3MzJjMjdiODIyZWFiYmJlODQzOTI4ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWFjMGJkNjFmOGQwYzhkNmFhMDMwOTZjMTBhYzIzY2EyYzNmODNjNTc4MDE5NDE5ODE5ZTE0ZTY0OGEwYTk4YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmFlNjhjYWI4ZGYxYmM4MGExMDBkNGRiZTU2M2Y3ZmE3ZDVkNjQzYzNlOGQ2Y2ZkNmZiYTViM2JkOWU2YTc5YSJ9"
+        },
+        {
+          "resource": "repo://src/timesfm_app/config.py#L26-L33",
+          "version": "repo-lines-v1:sha256:f248ae26703dd6f6418205a921608f149991c6baadc150f3d00dde00a9972d9d:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhkOWE5ZWM1Y2FiNzZkZTA3ZDM0NjgwODU1MGE1YzQ0ZjU0M2EwNDM2OGU3ZjI5N2I4M2JhYWUwMDQ5ZjJlMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmZiNTliNTQyMmE3ZjlmMmVjYmFkNWNiMGM3ZThlYTc4ODJlZTY3ZDE4ZWEzNTcyMzg3ZGFhYjEwMzFmYmYyNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGJiYzJlZGFhNWY3MTVhYWU1NjJmMWM1MjRjYjMzMjIyYTU3NTE1ZjllYWEzMTcyMDUwNTEyOWViYzRmZWNlOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjkzYjllYzU4NTE1NmI3OTMzMDNmNGIyZmZiY2M5YjAxMGEzOGFiMmFkMTM1OTBmMmNmMjVkNzQ3MTM0ODIwYyJ9"
+        },
+        {
+          "resource": "repo://src/timesfm_app/native.py#L476-L504",
+          "version": "repo-lines-v1:sha256:824b892572d676e916d869114e1a93bd031c6837081beb51af1e234d17417407:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5OWExZjM0MWJjN2RmMjc5MTczYzU5M2NmM2NiYzM2ZGUwNDg0YjBmNGJhNjE0NTA1OTA3MWFmNDk2NTEyNWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcxMzQ1MTgwMTA1YjBjNjZhNzdkYWQ1MWJiMzc5MDFhMzczMmM5NjU0YmE0ZGUzOTgxZjgxZTE4MTc1MjQ4YmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVmZDVkMzY5YjQ0M2RmMTMzYTg4NGRkN2YyZGE0YWFjZTM5ZTg2NWI3NGYwMDY5MzJmMzc2NmJlMjFiOTFjNTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxOGQyMzkzYzc1NDY1NGI2ZDBiMmU0NzNiMjhiNmQwNDI0NmRiZjlkMmFiZjJjNDZiODYyN2EyYTgwNDVjMjkifQ"
+        },
+        {
+          "resource": "repo://src/timesfm_app/worker.py#L254-L315",
+          "version": "repo-lines-v1:sha256:797a036cfda7f220edc9648c84ad626a87a3896924c977592d6d6a5c6e1ef270:eyJzZWxlY3RlZExpbmVDb3VudCI6NjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0ZGE1NDY0NDUzMTM3ZmY2MzQzMjJmZjBlNmFhYzVjY2E4MTE4MWZhNDdhZWFlMjZhNGI2MDdlYTI5YjE5MWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA0MDY5Y2U1NzkzY2NlNzQ0NWIyYjgzMzk0MTE3YzhjYmI3YTY0NDliOWRkYzk3NWU4YTVkYjdiNDlmYTBkMDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgwNWM5MjY2ZjY3MTQ2Y2MwNDU4MTU0YWQyN2RkZTdmOTI5NWY3Njc1MTJmNDVhODkzMDg5MTU3NTI5ZWFmN2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVjMDhkYzRiZmE3Y2RmYjY0ZTFlNzI3MTRmNjc3OTY1MjczMGQzZmM4ODE3ODNlYzMzNWRmYzY5MDQyNDU5MjcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_dc0d3934326c497ebe8c3458bc5bbd5f",
+      "statement": "Doctor checks database, queue, API, and frontend readiness and succeeds only when all four are ready; the API and frontend checks use their configured loopback ports.",
+      "evidence": [
+        {
+          "resource": "repo://src/timesfm_app/native.py#L595-L627",
+          "version": "repo-lines-v1:sha256:1702a0b3a72fd9b67d4acb73ca63f6b95859b991fff995520a7d3a2c74a68d2d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyNGRlZjllYjA2MTNmNjY3OGZhYzRkNDdjYjExN2Y5NTU3ZjA0ODE1MDIyN2VkZTJiOWJmMmQ4NDM5ZjgzYTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1MjliNTJmODFlNGVmOTFjZDY5MGEyYmE0MGZiMjRjMDhlMTRjN2M3YzUyNzRlNWNiYTZmNDFmMGZlYmJkMGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRhNDliYWM1N2JiZDJhNWRlMzllZGU2ZDhjMjliZjk1NzEyMTQwNGVmNWJkMjcyNTM0N2UxYTExYzY0NDZlZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMzZTY0NDc1YTNmMjliMWJmNGMxMWU1NDc1Mzg2YWZmZmZlNDM2ODU2Y2VlZTdkMzIxMTBkZWU4N2JkN2YzYTIifQ"
+        },
+        {
+          "resource": "repo://tests/test_app_native.py#L296-L330",
+          "version": "repo-lines-v1:sha256:bd64b5c3d74ba1010193cf5157e35af4442f1f864b925bbbcabc03a01e0e319d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3OTBjZGU2NGZlZDdhOWQ5ZTY4ZTBmNWRiYTVlOTYyMzE5OWQwNmM2NWE4Y2ViYTdkYjBmNDkxNGRlMjA2MzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1MjliNTJmODFlNGVmOTFjZDY5MGEyYmE0MGZiMjRjMDhlMTRjN2M3YzUyNzRlNWNiYTZmNDFmMGZlYmJkMGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU5MDBmMzQzZjkzYjU5ZDA0ZGUzNDQ0OWU3ZjcxYzBiZGQ5ZjllNjIwZGY3NDc2MTM0ZmI2MWFmZTE5NGZhNzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2e2fabcd1e474a6f8f431cb12620dd2b",
+      "statement": "The native supervisor tracks process identity and tests verify it will not terminate unmatched workers or processes owned by another session; stopping the workbench leaves PostgreSQL and saved data available.",
+      "evidence": [
+        {
+          "resource": "repo://docs/how-to/native-workbench.md#L59-L60",
+          "version": "repo-lines-v1:sha256:70ad0006bb1b38c8ef00b66365a919da5a816ad153a02594d7489f834786e4ef:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmExNzIzMjVjNmE1ZTE1ZDMzM2ZiZDIwODhlODQ1NTlkNWNlMDgwMmQ3YWU4NTI3YTQ3MmE5MWQyZmZmNjY3YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODViOThmYmFkMzdiMWE0ZWY2M2YxMGYxN2QyMGI2NTZhN2Y1OWEzMDMwNGE4YjZkNjBiMzk2N2U0ZTRlNGNjYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTI4MzRkZmZlZjRiOGMzYmQ1ODdhYjYxYjhkODE4MzBlOWZiNjIwY2NmMmU4Mjc5ZGIyODAwOTY5OTg3YWI4MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWY2NDM3N2U2NTBjYzU4Y2ZjM2VjMGUwOTA5YTM2ZWJkZDY3OGYzMjhhOTljYjYwOWI5MGRkYTIxNDBlYjExNyJ9"
+        },
+        {
+          "resource": "repo://src/timesfm_app/native.py#L337-L386",
+          "version": "repo-lines-v1:sha256:833afbc4eb0281eb86f5eb00db54e8551dd65da90cdb41c92012c5cd3227e295:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyY2Y3MTY2Y2NiMjA2ODU5ZWYyNWRmYzIyOWU2YWYyZDc4MmY2ZTE5NmQ5MzBiNDNmMjEyN2I0ZmUzZGVlNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiZTJlYjZjMjI2ZGMzN2YwZDJjNDBmODk1OTU0OWNlOTcwMDc0Mjc1Nzc0NWY0MjU1YzVmNTU4OWFhNmY1YTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg1OGQ4MGFlZGRiNjI3ZGUzZTE4MzNjM2UxMGU4NjVkY2ZkNTllZjQ1MmMzYmY2YTEwZGRkYzY1NThlZWVjZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEyNGFmMzdkNDYxNGQ2OTQwYWFiYzU4YzFjNTI0NmJmNzUwNmRlMzU4N2M3YTNmOGY5NjQ3NjkwODRkMzQzOWMifQ"
+        },
+        {
+          "resource": "repo://src/timesfm_app/native.py#L648-L672",
+          "version": "repo-lines-v1:sha256:f366cf858cfe7816ac4480963728f19349c14b8b4b6e104a747cd2c97df4c80b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4MmQ4Y2M1MjgwMDA1ZjViZGM0OTQxNTI1MWQ0NTNhYWRlMDZkZWRkNzg1ODE2ODI2OGRjNTBhODA5Y2UyM2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMzc2YzU1NDIyYThiYTliOTVlODU0ZTFkYTM2NmFiNjJiYzliOGQyNzM3MDUyMjM2MWVjZTUwNmMzNjE2ZDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUwNjMxMGZkZjdkYTIwM2QzNzNkZWQzNWUwZWVlM2JjNGRkYjM2Yzg0MzVmYTA2MTBhMTg1M2FlZTVlYTUxMjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyYTY1MWVmZDJiZmJlMzM5YjBhOWM2MjQ4Zjg1ZmJlM2MxNjE0OTM2OThjNmMzODNlM2IzOGJlYjM0MjJlZGYifQ"
+        },
+        {
+          "resource": "repo://tests/test_app_native.py#L111-L175",
+          "version": "repo-lines-v1:sha256:bacb1e713f789db10f1799114a7c3fc66f58f95d900b90a2041855ab4c71dcc8:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNmYjNhNzY0OGE5OTgyZTcwMjUyYjdlMGJhMWFhMDNjYzkyMGZiNWFiZjMzODFhZTAwODgyZDkxNzAzZTI5YzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI2YjFlMWVhZDIxMWE3YzE1ZDk5ODU1ODVhM2I0YjI2NmIxZWE3ODc3NDM5NTNhZmNhZGFlZjdmNDdiYzI5NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhYTkwYjkzZTc2NDRhYWRhODRiZmYzYjJmNDdiMzI3YjgzZjQ0ODdkMjQyNTg2MDc5MmFlNTkwZGY0ODcwYWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA4ZTBkN2VjZjk4ZTczMjAyYTA5MzEzY2Q0YWExZDQ3YzIyZDdkMTUzYmE0ZGU4NGY2ZTFiNGI2Mzk4MGEzMmYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_db78c01c09594b1296961ecaaf5a715f",
+      "statement": "The Prometheus configuration scrapes the API and the GPU and CPU worker metric endpoints at loopback ports 8001, 9201, and 9202.",
+      "evidence": [
+        {
+          "resource": "repo://monitoring/prometheus.yml#L1-L19",
+          "version": "repo-lines-v1:sha256:1472d87547fec878c0fa54d6e99f10b27823be4d235ee4a1056bf657544a08c8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3Y2MzMWUwNDkzYWY1NGIxOGQ3ZTA2YzJhMzE3NTMyOGYzOTYzMzc1OTVhNDk4MDhmNjlmYTA1MzRlM2IzMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0OTkwMmUxYjIzNWI1MGY5YTQ4YTJlMWY3ZGI1NTIxMGM2ZjYyMzQ1ODZlOTllNzhiOTc5MDQ5MTIwZmY3YTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/timesfm_app/worker.py#L447-L480",
+          "version": "repo-lines-v1:sha256:efa9c79797a0449be26217e228864e57c2014b27af85ed1c57f8d2c5f8fb9968:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0YzRlNGRmOTU3NmJlZGRlNDQ1YjdjMjQ4NGVjOTg0YzVlNTM5MjIxNGQ4NjhkMWMwZTU1ZTQzMTM0ZGIzMmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2Mjk4MzgyN2RmOWMzNzY2NDFjZTBlYWQ0ZmQ5NmIyZjdmNTIzOTgxOTFmMzY4ZDA5MDRiODljMTJiNzM1NWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ5ODU1ZTAxOTFkOWFiNWU0ODQ4MjA4N2RmZGIwZjRjNjY2Njg0OTljN2U3ZjcwN2Y4OWJhMGQzZGIwZDkwYzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2YTA5NzJiYTI5YTcyNTgwYzViOGJmMjBjYTk3NWY4NDdhYTA3OGQyZjQzZDAyNDBmY2M1ZDc0ODBhZWNkMTIifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-23T14:20:48.709Z"
+  }
+}
